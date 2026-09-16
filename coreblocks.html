@@ -1111,6 +1111,7 @@
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.bpu.html">coreblocks.frontend.bpu package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#submodules">Submodules</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">coreblocks.frontend.bpu.bpu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.component">coreblocks.frontend.bpu.component module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.micro_btb">coreblocks.frontend.bpu.micro_btb module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.ras">coreblocks.frontend.bpu.ras module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu">Module contents</a></li>
@@ -1250,16 +1251,46 @@
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.params.html">coreblocks.params package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.bpu_params">coreblocks.params.bpu_params module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig"><code class="docutils literal notranslate"><span class="pre">BPUComponentConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig.__init__"><code class="docutils literal notranslate"><span class="pre">BPUComponentConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig.meta_width"><code class="docutils literal notranslate"><span class="pre">BPUComponentConfig.meta_width()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig.validate"><code class="docutils literal notranslate"><span class="pre">BPUComponentConfig.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUPredictorConfig"><code class="docutils literal notranslate"><span class="pre">BPUPredictorConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUPredictorConfig.__init__"><code class="docutils literal notranslate"><span class="pre">BPUPredictorConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BPUPredictorConfig.get_module"><code class="docutils literal notranslate"><span class="pre">BPUPredictorConfig.get_module()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.__init__"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.micro_btb"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.micro_btb</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.bpd_meta_width"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.bpd_meta_width()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.components"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.components()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.fast_predictor"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.fast_predictor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.ras"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.ras</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.validate"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig"><code class="docutils literal notranslate"><span class="pre">CfiPredictorConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig.__init__"><code class="docutils literal notranslate"><span class="pre">CfiPredictorConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig.candidate_count"><code class="docutils literal notranslate"><span class="pre">CfiPredictorConfig.candidate_count()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig.get_module"><code class="docutils literal notranslate"><span class="pre">CfiPredictorConfig.get_module()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.DirectionPredictorConfig"><code class="docutils literal notranslate"><span class="pre">DirectionPredictorConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.DirectionPredictorConfig.__init__"><code class="docutils literal notranslate"><span class="pre">DirectionPredictorConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.DirectionPredictorConfig.get_module"><code class="docutils literal notranslate"><span class="pre">DirectionPredictorConfig.get_module()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.FastPredictorConfig"><code class="docutils literal notranslate"><span class="pre">FastPredictorConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.FastPredictorConfig.__init__"><code class="docutils literal notranslate"><span class="pre">FastPredictorConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.FastPredictorConfig.get_module"><code class="docutils literal notranslate"><span class="pre">FastPredictorConfig.get_module()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.__init__"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.entries_log"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.entries_log</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.get_module"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.get_module()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.useful_cnt_width"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.useful_cnt_width</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.validate"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.validate()</span></code></a></li>
 </ul>
@@ -1796,7 +1827,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:11 2026-09-16.
+      <span class="lastupdated">Last updated on 21:02 2026-09-16.
       </span></p>
   </div>
 

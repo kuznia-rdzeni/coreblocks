@@ -142,6 +142,16 @@
 </li>
         <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.__init__">(coreblocks.frontend.bpu.bpu.BranchPredictionUnit method)</a>
 </li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponent.__init__">(coreblocks.frontend.bpu.component.BPUComponent method)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponentLayouts.__init__">(coreblocks.frontend.bpu.component.BPUComponentLayouts method)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor.__init__">(coreblocks.frontend.bpu.component.CfiPredictor method)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor.__init__">(coreblocks.frontend.bpu.component.DirectionPredictor method)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.FastPredictor.__init__">(coreblocks.frontend.bpu.component.FastPredictor method)</a>
+</li>
         <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.micro_btb.MicroBTB.__init__">(coreblocks.frontend.bpu.micro_btb.MicroBTB method)</a>
 </li>
         <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.__init__">(coreblocks.frontend.bpu.ras.RAS method)</a>
@@ -338,7 +348,17 @@
 </li>
         <li><a href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_blocks_unifier.FuncBlocksUnifier.__init__">(coreblocks.func_blocks.interface.func_blocks_unifier.FuncBlocksUnifier method)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig.__init__">(coreblocks.params.bpu_params.BPUComponentConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUPredictorConfig.__init__">(coreblocks.params.bpu_params.BPUPredictorConfig method)</a>
+</li>
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.__init__">(coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig.__init__">(coreblocks.params.bpu_params.CfiPredictorConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.DirectionPredictorConfig.__init__">(coreblocks.params.bpu_params.DirectionPredictorConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.FastPredictorConfig.__init__">(coreblocks.params.bpu_params.FastPredictorConfig method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.__init__">(coreblocks.params.bpu_params.MicroBTBConfig method)</a>
 </li>
@@ -583,6 +603,8 @@
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.accept_res">accept_res (coreblocks.cache.iface.CacheInterface attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor.accept_s1_hints">accept_s1_hints (coreblocks.frontend.bpu.component.DirectionPredictor attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.ADD">ADD (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 
       <ul>
@@ -729,13 +751,15 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.BLT">BLT (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.BLTU">BLTU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.BNE">BNE (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.bounds">bounds (coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.bpd_meta_width">bpd_meta_width() (coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.bpu_flush">bpu_flush (coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
 </li>
@@ -744,6 +768,14 @@
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.bpu_response">bpu_response (coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.bpu_update">bpu_update (coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponent">BPUComponent (class in coreblocks.frontend.bpu.component)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig">BPUComponentConfig (class in coreblocks.params.bpu_params)</a>
+</li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponentLayouts">BPUComponentLayouts (class in coreblocks.frontend.bpu.component)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUPredictorConfig">BPUPredictorConfig (class in coreblocks.params.bpu_params)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.BRANCH">BRANCH (coreblocks.arch.isa_consts.Opcode attribute)</a>
 
@@ -789,6 +821,8 @@
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface">CacheRefillerInterface (class in coreblocks.cache.iface)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig.candidate_count">candidate_count() (coreblocks.params.bpu_params.CfiPredictorConfig method)</a>
+</li>
       <li><a href="coreblocks.telemetry.html#coreblocks.telemetry.events.FTQRollback.cause">cause (coreblocks.telemetry.events.FTQRollback attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CBCFE">CBCFE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
@@ -798,6 +832,14 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CBZE">CBZE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CDE">CDE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponentLayouts.cfi_hints">cfi_hints() (coreblocks.frontend.bpu.component.BPUComponentLayouts method)</a>
+</li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponentLayouts.cfi_prediction">cfi_prediction() (coreblocks.frontend.bpu.component.BPUComponentLayouts method)</a>
+</li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor">CfiPredictor (class in coreblocks.frontend.bpu.component)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig">CfiPredictorConfig (class in coreblocks.params.bpu_params)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType">CfiType (class in coreblocks.arch.optypes)</a>
 </li>
@@ -860,6 +902,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.COMPARE">COMPARE (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes">ComparisionTypes (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.components">components() (coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.consume_instr">consume_instr (coreblocks.frontend.frontend.CoreFrontend attribute)</a>
 </li>
@@ -1026,6 +1070,13 @@
 
       <ul>
         <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.frontend.bpu.component
+
+      <ul>
+        <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.component">module</a>
 </li>
       </ul></li>
       <li>
@@ -1315,6 +1366,8 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.lza">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.fpu.otfc
 
@@ -1329,8 +1382,6 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.qsf_tables">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.jumpbranch
 
@@ -1914,8 +1965,12 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.digits">digits (coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor">DirectionPredictor (class in coreblocks.frontend.bpu.component)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.DirectionPredictorConfig">DirectionPredictorConfig (class in coreblocks.params.bpu_params)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.DIV">DIV (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 
       <ul>
@@ -2074,6 +2129,12 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.far_path.FarPathModule">FarPathModule (class in coreblocks.func_blocks.fu.fpu.far_path)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.fast_predictor">fast_predictor (coreblocks.params.bpu_params.BranchPredictionConfig attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.FastPredictor">FastPredictor (class in coreblocks.frontend.bpu.component)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.FastPredictorConfig">FastPredictorConfig (class in coreblocks.params.bpu_params)</a>
+</li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend_params.FrontendParams.fb_addr">fb_addr() (coreblocks.frontend.frontend_params.FrontendParams method)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend_params.FrontendParams.fb_instr_idx">fb_instr_idx() (coreblocks.frontend.frontend_params.FrontendParams method)</a>
@@ -2131,6 +2192,12 @@
       <ul>
         <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.flush">(coreblocks.frontend.bpu.bpu.BranchPredictionUnit attribute)</a>
 </li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor.flush">(coreblocks.frontend.bpu.component.CfiPredictor attribute)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor.flush">(coreblocks.frontend.bpu.component.DirectionPredictor attribute)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.FastPredictor.flush">(coreblocks.frontend.bpu.component.FastPredictor attribute)</a>
+</li>
         <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.flush">(coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
 </li>
       </ul></li>
@@ -2158,14 +2225,14 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorMethodLayout">FPUErrorMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorModule">FPUErrorModule (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout">FPUMulMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_mul)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulModule">FPUMulModule (class in coreblocks.func_blocks.fu.fpu.fpu_mul)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams">FPUParams (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_rounding_module.FPURoudningMethodLayout">FPURoudningMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_rounding_module)</a>
@@ -2358,6 +2425,16 @@
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbkx.ZbkxComponent.get_module">(coreblocks.func_blocks.fu.zbkx.ZbkxComponent method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbs.ZbsComponent.get_module">(coreblocks.func_blocks.fu.zbs.ZbsComponent method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUPredictorConfig.get_module">(coreblocks.params.bpu_params.BPUPredictorConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.CfiPredictorConfig.get_module">(coreblocks.params.bpu_params.CfiPredictorConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.DirectionPredictorConfig.get_module">(coreblocks.params.bpu_params.DirectionPredictorConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.FastPredictorConfig.get_module">(coreblocks.params.bpu_params.FastPredictorConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.get_module">(coreblocks.params.bpu_params.MicroBTBConfig method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams.get_module">(coreblocks.params.fu_params.BlockComponentParams method)</a>
 </li>
@@ -2964,6 +3041,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MEPC">MEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig.meta_width">meta_width() (coreblocks.params.bpu_params.BPUComponentConfig method)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MHARTID">MHARTID (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MHPMCOUNTER10">MHPMCOUNTER10 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3198,8 +3277,6 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MHPMEVENT9H">MHPMEVENT9H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.micro_btb">micro_btb (coreblocks.params.bpu_params.BranchPredictionConfig attribute)</a>
-</li>
       <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.micro_btb.MicroBTB">MicroBTB (class in coreblocks.frontend.bpu.micro_btb)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig">MicroBTBConfig (class in coreblocks.params.bpu_params)</a>
@@ -3293,6 +3370,8 @@
         <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu">coreblocks.frontend.bpu</a>
 </li>
         <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">coreblocks.frontend.bpu.bpu</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.component">coreblocks.frontend.bpu.component</a>
 </li>
         <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.micro_btb">coreblocks.frontend.bpu.micro_btb</a>
 </li>
@@ -4119,12 +4198,32 @@
       </ul></li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read">request_read (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor.request_s0">request_s0 (coreblocks.frontend.bpu.component.CfiPredictor attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor.request_s0">(coreblocks.frontend.bpu.component.DirectionPredictor attribute)</a>
+</li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.FastPredictor.request_s0">(coreblocks.frontend.bpu.component.FastPredictor attribute)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write">request_write (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.RESERVED">RESERVED (coreblocks.arch.isa_consts.Opcode attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.resolve">resolve (coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor.response_s1">response_s1 (coreblocks.frontend.bpu.component.CfiPredictor attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.FastPredictor.response_s1">(coreblocks.frontend.bpu.component.FastPredictor attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor.response_s2">response_s2 (coreblocks.frontend.bpu.component.CfiPredictor attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor.response_s2">(coreblocks.frontend.bpu.component.DirectionPredictor attribute)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.DynamicAreaPMPChecker.result">result (coreblocks.priv.pmp.DynamicAreaPMPChecker attribute)</a>
 
       <ul>
@@ -4149,14 +4248,14 @@
         <li><a href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams.result_fifo">(coreblocks.params.fu_params.FunctionalComponentParams attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">result_handler() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
 </li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.announcement.ResultAnnouncement">ResultAnnouncement (class in coreblocks.backend.announcement)</a>
 </li>
       <li><a href="coreblocks.telemetry.html#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port">retire_port (coreblocks.telemetry.rvvi.RVVIHartCollector attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.backend.html#coreblocks.backend.retirement.Retirement">Retirement (class in coreblocks.backend.retirement)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.REV8">REV8 (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -4656,6 +4755,8 @@
       <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.update">update (coreblocks.frontend.bpu.bpu.BranchPredictionUnit attribute)</a>
 
       <ul>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponent.update">(coreblocks.frontend.bpu.component.BPUComponent attribute)</a>
+</li>
         <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.update">(coreblocks.frontend.bpu.ras.RAS attribute)</a>
 </li>
         <li><a href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncBlock.update">(coreblocks.func_blocks.interface.func_protocols.FuncBlock attribute)</a>
@@ -4677,9 +4778,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.V">V (coreblocks.arch.isa.Extension attribute)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.validate">validate() (coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BPUComponentConfig.validate">validate() (coreblocks.params.bpu_params.BPUComponentConfig method)</a>
 
       <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.validate">(coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
+</li>
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.validate">(coreblocks.params.bpu_params.MicroBTBConfig method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.validate">(coreblocks.params.bpu_params.RASConfig method)</a>
@@ -4996,7 +5099,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:11 2026-09-16.
+      <span class="lastupdated">Last updated on 21:02 2026-09-16.
       </span></p>
   </div>
 

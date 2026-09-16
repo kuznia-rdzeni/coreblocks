@@ -96,6 +96,7 @@
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.bpu.</span></span><span class="sig-name descname"><span class="pre">BranchPredictionUnit</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.bpu.BranchPredictionUnit" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Branch-prediction pipeline built from the configured predictor composition.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.__init__" title="Link to this definition"></a></dt>
@@ -124,12 +125,146 @@
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.frontend.bpu.component">
+<span id="coreblocks-frontend-bpu-component-module"></span><h2>coreblocks.frontend.bpu.component module<a class="headerlink" href="#module-coreblocks.frontend.bpu.component" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponent">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.component.</span></span><span class="sig-name descname"><span class="pre">BPUComponent</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponent" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Shared layouts and training interface for BPU components.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponent.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponent.update">
+<span class="sig-name descname"><span class="pre">update</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponent.update" title="Link to this definition"></a></dt>
+<dd><p>Train on a resolved CFI using this component’s prediction metadata.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponentLayouts">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.component.</span></span><span class="sig-name descname"><span class="pre">BPUComponentLayouts</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponentLayouts" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Shared predictor layouts.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponentLayouts.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponentLayouts.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponentLayouts.cfi_hints">
+<span class="sig-name descname"><span class="pre">cfi_hints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponentLayouts.cfi_hints" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponentLayouts.cfi_prediction">
+<span class="sig-name descname"><span class="pre">cfi_prediction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponentLayouts.cfi_prediction" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.CfiPredictor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.component.</span></span><span class="sig-name descname"><span class="pre">CfiPredictor</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.component.CfiPredictor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.frontend.bpu.component.BPUComponent" title="coreblocks.frontend.bpu.component.BPUComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUComponent</span></code></a></p>
+<p>Identify CFIs in S1 and provide their targets in S2 from an S0 request.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.CfiPredictor.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.CfiPredictor.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.CfiPredictor.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.CfiPredictor.flush" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.CfiPredictor.request_s0">
+<span class="sig-name descname"><span class="pre">request_s0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.CfiPredictor.request_s0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.CfiPredictor.response_s1">
+<span class="sig-name descname"><span class="pre">response_s1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.CfiPredictor.response_s1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.CfiPredictor.response_s2">
+<span class="sig-name descname"><span class="pre">response_s2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.CfiPredictor.response_s2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.DirectionPredictor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.component.</span></span><span class="sig-name descname"><span class="pre">DirectionPredictor</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.component.DirectionPredictor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.frontend.bpu.component.BPUComponent" title="coreblocks.frontend.bpu.component.BPUComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUComponent</span></code></a></p>
+<p>Use an S0 request and S1 CFI hints to predict one taken bit per slot in S2.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.DirectionPredictor.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.DirectionPredictor.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.DirectionPredictor.accept_s1_hints">
+<span class="sig-name descname"><span class="pre">accept_s1_hints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.DirectionPredictor.accept_s1_hints" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.DirectionPredictor.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.DirectionPredictor.flush" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.DirectionPredictor.request_s0">
+<span class="sig-name descname"><span class="pre">request_s0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.DirectionPredictor.request_s0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.DirectionPredictor.response_s2">
+<span class="sig-name descname"><span class="pre">response_s2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.DirectionPredictor.response_s2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.component.</span></span><span class="sig-name descname"><span class="pre">FastPredictor</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.component.FastPredictor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.frontend.bpu.component.BPUComponent" title="coreblocks.frontend.bpu.component.BPUComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUComponent</span></code></a></p>
+<p>Predict a CFI and its target in S1 from an S0 request.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.FastPredictor.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.FastPredictor.flush" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor.request_s0">
+<span class="sig-name descname"><span class="pre">request_s0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.FastPredictor.request_s0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor.response_s1">
+<span class="sig-name descname"><span class="pre">response_s1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.FastPredictor.response_s1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.frontend.bpu.micro_btb">
 <span id="coreblocks-frontend-bpu-micro-btb-module"></span><h2>coreblocks.frontend.bpu.micro_btb module<a class="headerlink" href="#module-coreblocks.frontend.bpu.micro_btb" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.micro_btb.MicroBTB">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.micro_btb.</span></span><span class="sig-name descname"><span class="pre">MicroBTB</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.micro_btb.MicroBTB" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.frontend.bpu.component.FastPredictor" title="coreblocks.frontend.bpu.component.FastPredictor"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastPredictor</span></code></a></p>
 <p>A small, fully-associative, single-cycle branch target buffer (micro-BTB).</p>
 <p>The micro-BTB maps a fetch block address to a predicted next-fetch PC and
 follows an “always-taken on hit” policy: a hit means the block is predicted to
@@ -202,7 +337,7 @@ speculation can also corrupt the stack, as a checkpoint only recovers the top en
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:11 2026-09-16.
+      <span class="lastupdated">Last updated on 21:02 2026-09-16.
       </span></p>
   </div>
 

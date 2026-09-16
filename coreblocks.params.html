@@ -92,18 +92,69 @@
 <section id="module-coreblocks.params.bpu_params">
 <span id="coreblocks-params-bpu-params-module"></span><h2>coreblocks.params.bpu_params module<a class="headerlink" href="#module-coreblocks.params.bpu_params" title="Link to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUComponentConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">BPUComponentConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUComponentConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>Configuration for a BPU component.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUComponentConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUComponentConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUComponentConfig.meta_width">
+<span class="sig-name descname"><span class="pre">meta_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fetch_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUComponentConfig.meta_width" title="Link to this definition"></a></dt>
+<dd><p>Bits of prediction metadata this component needs back for training.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUComponentConfig.validate">
+<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUComponentConfig.validate" title="Link to this definition"></a></dt>
+<dd><p>Raise ValueError for invalid parameters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUPredictorConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">BPUPredictorConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUPredictorConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.bpu_params.BPUComponentConfig" title="coreblocks.params.bpu_params.BPUComponentConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUComponentConfig</span></code></a></p>
+<p>Configuration and factory for a predictor in the BPU pipeline.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUPredictorConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUPredictorConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BPUPredictorConfig.get_module">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.BPUComponent" title="coreblocks.frontend.bpu.component.BPUComponent"><span class="pre">BPUComponent</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BPUPredictorConfig.get_module" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.bpu_params.BranchPredictionConfig">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">BranchPredictionConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Configuration of the branch prediction unit and all of its sub-predictors.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.bpu_params.BranchPredictionConfig.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">micro_btb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.bpu_params.MicroBTBConfig" title="coreblocks.params.bpu_params.MicroBTBConfig"><span class="pre">MicroBTBConfig</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">MicroBTBConfig(entries_log=3,</span> <span class="pre">useful_cnt_width=2)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ras</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.bpu_params.RASConfig" title="coreblocks.params.bpu_params.RASConfig"><span class="pre">RASConfig</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">RASConfig(entries_log=1)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ras</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.bpu_params.RASConfig" title="coreblocks.params.bpu_params.RASConfig"><span class="pre">RASConfig</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">RASConfig(entries_log=1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_predictor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.bpu_params.FastPredictorConfig" title="coreblocks.params.bpu_params.FastPredictorConfig"><span class="pre">FastPredictorConfig</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">MicroBTBConfig(entries_log=3,</span> <span class="pre">useful_cnt_width=2)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BranchPredictionConfig.bpd_meta_width">
+<span class="sig-name descname"><span class="pre">bpd_meta_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fetch_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig.bpd_meta_width" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BranchPredictionConfig.components">
+<span class="sig-name descname"><span class="pre">components</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.params.bpu_params.BPUPredictorConfig" title="coreblocks.params.bpu_params.BPUPredictorConfig"><span class="pre">BPUPredictorConfig</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig.components" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BranchPredictionConfig.micro_btb">
-<span class="sig-name descname"><span class="pre">micro_btb</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.params.bpu_params.MicroBTBConfig" title="coreblocks.params.bpu_params.MicroBTBConfig"><span class="pre">MicroBTBConfig</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MicroBTBConfig(entries_log=3,</span> <span class="pre">useful_cnt_width=2)</span></em><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig.micro_btb" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.BranchPredictionConfig.fast_predictor">
+<span class="sig-name descname"><span class="pre">fast_predictor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.params.bpu_params.FastPredictorConfig" title="coreblocks.params.bpu_params.FastPredictorConfig"><span class="pre">FastPredictorConfig</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">MicroBTBConfig(entries_log=3,</span> <span class="pre">useful_cnt_width=2)</span></em><a class="headerlink" href="#coreblocks.params.bpu_params.BranchPredictionConfig.fast_predictor" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -119,9 +170,66 @@
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.CfiPredictorConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">CfiPredictorConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.CfiPredictorConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.bpu_params.BPUPredictorConfig" title="coreblocks.params.bpu_params.BPUPredictorConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUPredictorConfig</span></code></a></p>
+<p>Configuration for a predictor providing CFI hints in S1 and targets in S2.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.CfiPredictorConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.CfiPredictorConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.CfiPredictorConfig.candidate_count">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">candidate_count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.CfiPredictorConfig.candidate_count" title="Link to this definition"></a></dt>
+<dd><p>Maximum CFI candidates per fetch block.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.CfiPredictorConfig.get_module">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.CfiPredictor" title="coreblocks.frontend.bpu.component.CfiPredictor"><span class="pre">CfiPredictor</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.CfiPredictorConfig.get_module" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.DirectionPredictorConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">DirectionPredictorConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.DirectionPredictorConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.bpu_params.BPUPredictorConfig" title="coreblocks.params.bpu_params.BPUPredictorConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUPredictorConfig</span></code></a></p>
+<p>Configuration for the S2 direction predictor.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.DirectionPredictorConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.DirectionPredictorConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.DirectionPredictorConfig.get_module">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.DirectionPredictor" title="coreblocks.frontend.bpu.component.DirectionPredictor"><span class="pre">DirectionPredictor</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.DirectionPredictorConfig.get_module" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.FastPredictorConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">FastPredictorConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.FastPredictorConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.bpu_params.BPUPredictorConfig" title="coreblocks.params.bpu_params.BPUPredictorConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">BPUPredictorConfig</span></code></a></p>
+<p>Configuration for the S1 fast predictor.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.FastPredictorConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.FastPredictorConfig.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.FastPredictorConfig.get_module">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.component.FastPredictor" title="coreblocks.frontend.bpu.component.FastPredictor"><span class="pre">FastPredictor</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.FastPredictorConfig.get_module" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.bpu_params.MicroBTBConfig">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.bpu_params.</span></span><span class="sig-name descname"><span class="pre">MicroBTBConfig</span></span><a class="headerlink" href="#coreblocks.params.bpu_params.MicroBTBConfig" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.bpu_params.FastPredictorConfig" title="coreblocks.params.bpu_params.FastPredictorConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastPredictorConfig</span></code></a></p>
 <p>Configuration of the micro-BTB.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.bpu_params.MicroBTBConfig.__init__">
@@ -134,6 +242,11 @@
 <dd><p>Log of the number of entries.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.bpu_params.MicroBTBConfig.get_module">
+<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.micro_btb.MicroBTB" title="coreblocks.frontend.bpu.micro_btb.MicroBTB"><span class="pre">MicroBTB</span></a></span></span><a class="headerlink" href="#coreblocks.params.bpu_params.MicroBTBConfig.get_module" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.params.bpu_params.MicroBTBConfig.useful_cnt_width">
 <span class="sig-name descname"><span class="pre">useful_cnt_width</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.params.bpu_params.MicroBTBConfig.useful_cnt_width" title="Link to this definition"></a></dt>
@@ -143,7 +256,8 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.bpu_params.MicroBTBConfig.validate">
 <span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.bpu_params.MicroBTBConfig.validate" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Raise ValueError for invalid parameters.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -1019,7 +1133,7 @@ when creating an instance of a instruction) full-size values should be always us
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:11 2026-09-16.
+      <span class="lastupdated">Last updated on 21:02 2026-09-16.
       </span></p>
   </div>
 
