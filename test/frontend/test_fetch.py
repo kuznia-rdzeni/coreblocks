@@ -293,6 +293,16 @@ class TestFetchUnit(TestCaseWithSimulator):
     def read_prediction_mock(self, ftq_ptr):
         return self.pred_of_ptr.get((ftq_ptr["ptr"], ftq_ptr["parity"])) or self.empty_prediction()
 
+    @def_method_mock(lambda self: self.fetch.ras_peek)
+    def ras_peek_mock(self):
+        return {"valid": 0, "addr": 0}
+
+    @def_method_mock(lambda self: self.fetch.ras_predict)
+    def ras_predict_mock(self, ftq_ptr, ras_action, addr):
+        @MethodMock.effect
+        def _():
+            pass
+
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
             access_fault = FetchLayouts.FaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
