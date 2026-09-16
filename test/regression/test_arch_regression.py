@@ -167,7 +167,7 @@ async def run_test(sim_backend, test_name: str):
 def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
     for elf_path in elf_paths:
         assert run_cocotb_entrypoint(
-            "arch_elf_entrypoint", traces=traces, additional_args=[f"TESTNAME={elf_path}"]
+            "arch_elf_entrypoint", traces=traces, additional_env={"TESTNAME": str(elf_path)}
         ), f"Test failed for {elf_path}"
 
 

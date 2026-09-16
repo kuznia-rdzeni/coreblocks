@@ -4,7 +4,6 @@ import re
 import os
 from typing import Any, Optional
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
 from pathlib import Path
 import shutil
 from filelock import FileLock
@@ -12,19 +11,22 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as eT
 import argparse
+import logging
 
 import cocotb
-from cocotb.clock import Clock, Timer
-from cocotb.handle import ModifiableObject
-from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
+import cocotb.logging
+from cocotb.clock import Clock
+from cocotb.triggers import Timer, SimTimeoutError
+from cocotb.handle import LogicObject, LogicArrayObject
+from cocotb.triggers import Event, with_timeout
 from cocotb.utils import get_sim_time
-from cocotb_bus.bus import Bus
-from cocotb.result import SimTimeoutError
+from cocotb_tools.runner import VerilatorControlFile, Verilog
 
 from .memory import *
 from .memory_emulation import CoreMemoryEmulation
 from .common import SimulationBackend, SimulationExecutionResult
-from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, REPO_ROOT, ensure_core_verilog_generated
+from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, CORE_V_VLT, REPO_ROOT, ensure_core_verilog_generated
+from .cocotb_runner import VerilatorManualPublic
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
@@ -35,43 +37,29 @@ TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
 COCOTB_BUILD_ROOT = BUILD_ROOT / "cocotb"
 
 
-@dataclass
-class WishboneMasterSignals:
-    adr: Any = 0
-    we: Any = 0
-    sel: Any = 0
-    dat_w: Any = 0
-
-
-@dataclass
-class WishboneSlaveSignals:
-    dat_r: Any = 0
-    ack: Any = 0
-    err: Any = 0
-    rty: Any = 0
-
-
-class WishboneBus(Bus):
-    _signals = ["cyc", "stb", "we", "adr", "dat_r", "dat_w", "ack"]
-    _optional_signals = ["sel", "err", "rty"]
-
-    cyc: ModifiableObject
-    stb: ModifiableObject
-    we: ModifiableObject
-    adr: ModifiableObject
-    dat_r: ModifiableObject
-    dat_w: ModifiableObject
-    ack: ModifiableObject
-    sel: ModifiableObject
-    err: ModifiableObject
-    rty: ModifiableObject
+class WishboneBus:
+    cyc: LogicObject
+    stb: LogicObject
+    we: LogicObject
+    adr: LogicArrayObject
+    dat_r: LogicArrayObject
+    dat_w: LogicArrayObject
+    ack: LogicObject
+    sel: LogicObject | None
+    err: LogicObject | None
+    rty: LogicObject | None
 
     def __init__(self, entity, name):
-        # case_insensitive is a workaround for cocotb_bus/verilator problem
-        # see https://github.com/cocotb/cocotb/issues/3259
-        super().__init__(
-            entity, name, self._signals, self._optional_signals, bus_separator="__", case_insensitive=False
-        )
+        self.cyc = entity[f"{name}__cyc"]
+        self.stb = entity[f"{name}__stb"]
+        self.we = entity[f"{name}__we"]
+        self.adr = entity[f"{name}__adr"]
+        self.dat_r = entity[f"{name}__dat_r"]
+        self.dat_w = entity[f"{name}__dat_w"]
+        self.ack = entity[f"{name}__ack"]
+        self.sel = getattr(entity, f"{name}__sel", None)
+        self.err = getattr(entity, f"{name}__err", None)
+        self.rty = getattr(entity, f"{name}__rty", None)
 
 
 class WishboneSlave:
@@ -79,7 +67,7 @@ class WishboneSlave:
         self,
         entity,
         name: str,
-        clock,
+        clock: LogicObject,
         memory: CoreMemoryEmulation,
         is_instr_bus: bool,
         word_bits: int = 2,
@@ -94,28 +82,23 @@ class WishboneSlave:
         self.word_bits = word_bits
         self.delay = delay
         self.bus = WishboneBus(entity, name)
-        self.bus.drive(WishboneSlaveSignals())
 
     async def start(self):
-        clock_edge_event = FallingEdge(self.clock)
+        clock_edge_event = self.clock.falling_edge
 
         while True:
             while not (self.bus.stb.value and self.bus.cyc.value):
                 await clock_edge_event  # type: ignore
 
-            sig_m = WishboneMasterSignals()
-            self.bus.sample(sig_m)
+            addr = int(self.bus.adr.value) << self.word_bits
 
-            addr = sig_m.adr << self.word_bits
-
-            sig_s = WishboneSlaveSignals()
-            if sig_m.we:
+            if self.bus.we.value:
                 resp = self.memory.write(
                     WriteRequest(
                         addr=addr,
-                        data=sig_m.dat_w,
+                        data=int(self.bus.dat_w.value),
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel,
+                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else ~0,
                     )
                 )
             else:
@@ -123,30 +106,36 @@ class WishboneSlave:
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel,
+                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else ~0,
                         exec=self.is_instr_bus,
                     )
                 )
-                sig_s.dat_r = resp.data
-
-            match resp.status:
-                case ReplyStatus.OK:
-                    sig_s.ack = 1
-                case ReplyStatus.ERROR:
-                    if not self.bus.err:
-                        raise ValueError("Bus doesn't support err")
-                    sig_s.err = 1
-                case ReplyStatus.RETRY:
-                    if not self.bus.rty:
-                        raise ValueError("Bus doesn't support rty")
-                    sig_s.rty = 1
 
             for _ in range(self.delay):
                 await clock_edge_event  # type: ignore
 
-            self.bus.drive(sig_s)
+            match resp.status:
+                case ReplyStatus.OK:
+                    self.bus.ack.value = 1
+                case ReplyStatus.ERROR:
+                    if self.bus.err is None:
+                        raise ValueError("Bus doesn't support err")
+                    self.bus.err.value = 1
+                case ReplyStatus.RETRY:
+                    if self.bus.rty is None:
+                        raise ValueError("Bus doesn't support rty")
+                    self.bus.rty.value = 1
+
+            if isinstance(resp, ReadReply):
+                self.bus.dat_r.value = resp.data
+
             await clock_edge_event  # type: ignore
-            self.bus.drive(WishboneSlaveSignals())
+
+            self.bus.ack.value = 0
+            if self.bus.err is not None:
+                self.bus.err.value = 0
+            if self.bus.rty is not None:
+                self.bus.rty.value = 0
 
 
 class CocotbSimulation(SimulationBackend):
@@ -164,30 +153,28 @@ class CocotbSimulation(SimulationBackend):
         self.log_level = os.environ["__TRANSACTRON_LOG_LEVEL"]
         self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
 
-        cocotb.logging.getLogger().setLevel(self.log_level)
+        cocotb.log.setLevel(self.log_level)
 
-    def get_cocotb_handle(self, path_components: list[str]) -> ModifiableObject:
+    def get_cocotb_handle(self, path_components: list[str]) -> LogicObject:
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
             try:
                 # As the component may start with '_' character, we need to use '_id'
                 # function instead of 'getattr' - this is required by cocotb.
-                obj = obj._id(component, extended=False)
-            except AttributeError:
+                obj = obj[component]
+            except KeyError:
                 # Try with escaped or unescaped name
                 if component[0] != "\\" and component[-1] != " ":
-                    obj = obj._id("\\" + component + " ", extended=False)
+                    obj = obj[rf"\{component} "]
                 elif component[0] == "\\":
-                    obj = obj._id(component[1:], extended=False)
+                    obj = obj[component[1:]]
                 else:
                     raise
 
         return obj
 
-    async def profile_handler(self, clock, profile: Profile):
-        clock_edge_event = RisingEdge(clock)
-
+    async def profile_handler(self, clock: LogicObject, profile: Profile):
         while True:
             samples = ProfileSamples()
 
@@ -206,9 +193,9 @@ class CocotbSimulation(SimulationBackend):
             cprof = CycleProfile.make(samples, self.gen_info.profile_data)
             profile.cycles.append(cprof)
 
-            await clock_edge_event  # type: ignore
+            await clock.rising_edge
 
-    async def evlog_handler(self, clock, evlog: EventLog):
+    async def evlog_handler(self, clock: LogicObject, evlog: EventLog):
         generated = self.gen_info.evlog
         if not generated.schema.sites:
             return
@@ -219,18 +206,15 @@ class CocotbSimulation(SimulationBackend):
 
         sampler = GeneratedEvLogSampler(generated, resolve)
 
-        clock_edge_event = FallingEdge(clock)
         cycle = 0
 
         while True:
             sampler.sample(cycle, evlog)
             cycle += 1
-            await clock_edge_event  # type: ignore
+            await clock.falling_edge
 
-    async def logging_handler(self, clock):
-        clock_edge_event = FallingEdge(clock)
-
-        log_level = cocotb.logging.getLogger().level
+    async def logging_handler(self, clock: LogicObject):
+        log_level = cocotb.log.level
 
         logs = [
             (rec, self.get_cocotb_handle(rec.trigger_location))
@@ -249,7 +233,7 @@ class CocotbSimulation(SimulationBackend):
 
                 formatted_msg = rec.format(*values)
 
-                cocotb_log = cocotb.logging.getLogger(rec.logger_name)
+                cocotb_log = logging.getLogger(f"{rec.logger_name}.0x{0:x}")
 
                 cocotb_log.log(
                     rec.level,
@@ -259,10 +243,10 @@ class CocotbSimulation(SimulationBackend):
                     formatted_msg,
                 )
 
-                if rec.level >= cocotb.logging.ERROR:
+                if rec.level >= logging.ERROR:
                     assert False, f"Assertion failed at {rec.location[0], rec.location[1]}: {formatted_msg}"
 
-            await clock_edge_event  # type: ignore
+            await clock.falling_edge
 
     async def run(
         self,
@@ -270,8 +254,7 @@ class CocotbSimulation(SimulationBackend):
         timeout_cycles: int = 5000,
         get_interrupt_value: Optional[Callable[[], int]] = None,
     ) -> SimulationExecutionResult:
-        clk = Clock(self.dut.clk, 1, "ns")
-        cocotb.start_soon(clk.start())
+        Clock(self.dut.clk, 1, "ns").start()
 
         start_time = get_sim_time("ns")
 
@@ -292,7 +275,7 @@ class CocotbSimulation(SimulationBackend):
             async def interrupt_generator_process():
                 while True:
                     self.dut.interrupts.value = get_interrupt_value()
-                    await RisingEdge(self.dut.clk)
+                    await self.dut.clk.rising_edge
 
             cocotb.start_soon(interrupt_generator_process())
 
@@ -324,9 +307,9 @@ class CocotbSimulation(SimulationBackend):
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}
             for reg_name, reg_loc in metric_loc.regs.items():
-                value = int(self.get_cocotb_handle(reg_loc))
+                value = int(self.get_cocotb_handle(reg_loc).value)
                 result.metric_values[metric_name][reg_name] = value
-                cocotb.logging.info(f"Metric {metric_name}/{reg_name}={value}")
+                cocotb.log.info(f"Metric {metric_name}/{reg_name}={value}")
 
         return result
 
@@ -365,40 +348,58 @@ def _extend_env_path_like(value: str, to_add: str) -> str:
         return to_add
 
 
+VERILATOR_WARNING_FLAGS = [
+    "-Wno-CASEINCOMPLETE",
+    "-Wno-CASEOVERLAP",
+    "-Wno-WIDTHEXPAND",
+    "-Wno-WIDTHTRUNC",
+    "-Wno-UNSIGNED",
+    "-Wno-CMPCONST",
+    "-Wno-LITENDIAN",
+    "-Wno-UNOPTFLAT",
+]
+
+
+def _verilator_version() -> tuple[int, ...]:
+    output = subprocess.run(["verilator", "--version"], check=True, capture_output=True, text=True).stdout
+    return tuple(int(part) for part in output.split()[1].split("."))
+
+
 def run_cocotb_entrypoint(
     entrypoint_module_name: str,
     traces: bool,
+    testcases: list[str] | None = None,
     additional_args: list[str] | None = None,
     additional_env: dict[str, str] | None = None,
-    ensure_built: bool = True,
 ) -> bool:
-    if ensure_built:
-        ensure_cocotb_built(traces)
+    runner = ensure_cocotb_built(traces)
 
-    arglist = ["make", "-C", str(TEST_ROOT)]
-
-    arglist += [f"MODULE={entrypoint_module_name}"]
-    arglist += [f"SIM_BUILD={get_cocotb_build_dir(traces)}"]
-    arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
-    arglist += [f"VERILOG_SOURCES={CORE_V}"]
-    if traces:
-        arglist += ["TRACES=1"]
-
+    arglist = []
     if additional_args is not None:
         arglist += additional_args
 
     env = os.environ.copy()
     env["PATH"] = _extend_env_path_like(env.get("PATH", ""), str(TEST_ROOT.resolve()))
     env["PYTHONPATH"] = _extend_env_path_like(env.get("PYTHONPATH", ""), str(REPO_ROOT.resolve()))
-    env["SIM"] = os.environ.get("SIM", "verilator")
+    env["_COREBLOCKS_GEN_INFO"] = str(CORE_V_JSON.resolve())
     if additional_env is not None:
         env.update(additional_env)
 
     with tempfile.NamedTemporaryFile("r") as tmp_result_file:
-        arglist += [f"COCOTB_RESULTS_FILE={tmp_result_file.name}"]
+        result = runner.test(
+            test_module=entrypoint_module_name,
+            hdl_toplevel="top",
+            hdl_toplevel_lang="verilog",
+            build_dir=get_cocotb_build_dir(traces),
+            waves=traces,
+            test_args=arglist,
+            extra_env=env,
+            results_xml=tmp_result_file.name,
+            testcase=testcases,
+            test_dir=TEST_ROOT,
+        )
 
-        subprocess.run(arglist, env=env, check=True)
-        tree = eT.parse(tmp_result_file.name)
+        tree = eT.parse(result)
         return len(list(tree.iter("failure"))) == 0
 
 
@@ -412,7 +413,7 @@ def clean_cocotb_build():
             shutil.rmtree(path, ignore_errors=True)
 
 
-def ensure_cocotb_built(traces: bool):
+def ensure_cocotb_built(traces: bool) -> VerilatorManualPublic:
     ensure_core_verilog_generated()
 
     path = get_cocotb_build_dir(traces)
@@ -421,19 +422,37 @@ def ensure_cocotb_built(traces: bool):
 
     path.mkdir(parents=True, exist_ok=True)
 
+    def do_build(skip_build):
+        runner = VerilatorManualPublic(skip_build)
+
+        args = []
+        args += VERILATOR_WARNING_FLAGS
+        if _verilator_version() >= (5, 40):
+            args += ["-Wno-ALWNEVER"]
+
+        runner.build(
+            sources=[
+                Verilog(CORE_V),
+                VerilatorControlFile(CORE_V_VLT),
+            ],
+            build_dir=path,
+            waves=traces,
+            build_args=args,
+            hdl_toplevel="top",
+        )
+
+        return runner
+
     if stamp.exists():
-        return
+        return do_build(True)
 
     with FileLock(lock):
-        if stamp.exists():
-            return
+        if not stamp.exists():
+            runner = do_build(False)
+            stamp.touch()
+            return runner
 
-        assert run_cocotb_entrypoint(
-            entrypoint_module_name="empty_module",
-            traces=traces,
-            ensure_built=False,
-        ), "Failed to build cocotb testbench"
-        stamp.touch()
+    return do_build(True)
 
 
 def main():
