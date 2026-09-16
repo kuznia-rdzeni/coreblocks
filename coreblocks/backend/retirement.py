@@ -417,8 +417,10 @@ class Retirement(Elaboratable):
 
         # Run side fx on first non-pure instr, if exception not encountered
         impure_mask = Signal(self.gen_params.retirement_superscalarity)
+        pure_prefix = Signal(self.gen_params.retirement_superscalarity)
         pure_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         m.d.comb += impure_mask.eq(Cat(~entry.pure for entry in rob_entries.entries))
+        m.d.comb += pure_prefix.eq(mask_before_first_set_bit(impure_mask))
         m.d.comb += pure_count.eq(count_trailing_zeros(impure_mask))
         side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
@@ -436,9 +438,7 @@ class Retirement(Elaboratable):
             current_tag_expr += entry.rob_data.tag_increment
             current_tag = Signal(self.gen_params.tag_bits)
             m.d.comb += current_tag.eq(current_tag_expr)
-            m.d.comb += pure_inactive_offset[i].eq(
-                ~active_tags[current_tag] & mask_before_first_set_bit(impure_mask)[i]
-            )
+            m.d.comb += pure_inactive_offset[i].eq(~active_tags[current_tag] & pure_prefix[i])
 
         m.d.comb += self.pure_active_count.eq(pure_count - popcount(pure_inactive_offset))
 
