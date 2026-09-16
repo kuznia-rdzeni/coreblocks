@@ -107,13 +107,13 @@ jobs:
           submodules: recursive
 
       - name: Build embench
-        run: cd test/external/embench && make
+        run: cd test/external/embench && make build-fast
 
       - uses: actions/upload-artifact@v7
         with:
-          name: "embench"
+          name: "embench-fast"
           path: |
-            test/external/embench/build
+            test/external/embench/build-fast
 
   run-perf-benchmarks:
     name: Run performance benchmarks
@@ -149,13 +149,13 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: "embench"
-          path: test/external/embench/build
+          name: "embench-fast"
+          path: test/external/embench/build-fast
 
       - name: Run benchmarks
         run: |
           . venv/bin/activate
-          scripts/run_benchmarks.py --evlog -o perf_benchmark.json --summary perf.md
+          scripts/run_benchmarks.py --fast --evlog -o perf_benchmark.json --summary perf.md
           cat perf.md >> $GITHUB_STEP_SUMMARY
 
       - name: Convert event logs to the pipeline viewer format

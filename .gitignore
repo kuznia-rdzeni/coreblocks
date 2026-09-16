@@ -55,6 +55,8 @@ test/external/riscv-tests/test-*
 # embench benchmark
 test/external/embench/build
 test/external/embench/logs
+test/external/embench/build-fast
+test/external/embench/logs-fast
 /test/benchmark/benchmark_results
 
 # Documentation build
