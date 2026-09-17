@@ -244,7 +244,7 @@ class CocotbSimulation(SimulationBackend):
 
                 logger.log(
                     rec.level,
-                    "%s:%d] %s",
+                    "[%s:%d] %s",
                     rec.location[0],
                     rec.location[1],
                     formatted_msg,
