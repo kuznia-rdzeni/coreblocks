@@ -261,8 +261,8 @@ class InstrDecoder(Elaboratable):
             self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes)) & ~rs2_invalid),
         ]
 
-        with m.If(self.optype == OpType.FENCEI):
-            # The unused fields in the FENCE.I instruction, funct12, rs1, and rd, are
+        with m.If((self.optype == OpType.FENCEI) | (self.optype == OpType.FENCE)):
+            # The unused fields in the FENCE.I instruction, funct12, rs1, and rd, and for FENCE: rs1, and rd are
             # reserved for finer-grain fences in future extensions. For forward compatibility,
             # base implementations shall ignore these fields, and standard software shall zero these fields.
             m.d.comb += [
