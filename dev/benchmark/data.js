@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789678687894,
+  "lastUpdate": 1789678691113,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -88507,6 +88507,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 9981,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 698,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1288,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 3578,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7bd596eb4cb2fcf9e9abf0fb53c1309d6863a4bd",
+          "message": "ignore rs1/rd fields in FENCE instructions (#1112)",
+          "timestamp": "2026-09-17T22:00:14+02:00",
+          "tree_id": "96ac96869d6c7222426001695a9e6cfb650a266d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7bd596eb4cb2fcf9e9abf0fb53c1309d6863a4bd"
+        },
+        "date": 1789678690397,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 58.19,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 9809,
             "unit": "LUT4"
           },
           {
