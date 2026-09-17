@@ -17,10 +17,6 @@ ARCH_EXPECTED_FAIL = {
     # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [#1086] lr.w needs rs2=0
-    r"Ssstrict(Sm|S|U)_IllegalInstr-05.elf",
-    # [#1089] fence.i with nonzero rd free physical register
-    r"Zifencei-.*",
     # [riscv/riscv-arch-test#2248] sail always implements mcountinhibit, but coreblocks doesn't
     r"Sm_mcsr_access",
     r"Sm_mcsr_cntr",

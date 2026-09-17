@@ -20,6 +20,8 @@ import test.benchmark.benchmark  # noqa: E402
 from test.benchmark.benchmark import BenchmarkResult  # noqa: E402
 from test.sim.common import SimulationBackend  # noqa: E402
 from test.sim.pysim import PySimulation  # noqa: E402
+from test.sim.cxxsim import CxxSimulation  # noqa: E402
+from test.sim.cxx_build import clean_cxxsim_build  # noqa: E402
 from test.sim.cocotb import clean_cocotb_build, run_cocotb_entrypoint  # noqa: E402
 from test.sim.verilog import clean_core_verilog  # noqa: E402
 
@@ -28,10 +30,10 @@ def cd_to_topdir():
     os.chdir(str(topdir))
 
 
-def load_benchmarks():
+def load_benchmarks(fast: bool):
     all_tests = test.benchmark.benchmark.get_all_benchmark_names()
     if len(all_tests) == 0:
-        res = subprocess.run(["make", "-C", "test/external/embench"])
+        res = subprocess.run(["make", "-C", "test/external/embench"] + (["build-fast"] if fast else []))
         if res.returncode != 0:
             print("Couldn't build benchmarks")
             sys.exit(1)
@@ -39,45 +41,49 @@ def load_benchmarks():
         all_tests = test.benchmark.benchmark.get_all_benchmark_names()
 
     exclude = {
-        "cubic",
-        "huffbench",
+        "huffbench",  # TODO: debug why it fails
         "nbody",
         "picojpeg",
         "primecount",
         "qrduino",
-        "sglib-combined",
-        "st",
         "wikisort",
-        "matmult-int",
-        "edn",
-        "nettle-aes",
-        "md5sum",
-        "tarfind",
     }
+
+    # Each benchmark repeats LOCAL_SCALE_FACTOR * CPU_MHZ times, truncated to an integer. In the fast build
+    # (cpu_mhz = 0.01) this is zero for benchmarks with LOCAL_SCALE_FACTOR < 100, so they would not run anything.
+    if fast:
+        exclude |= {
+            "cubic",
+            "sglib-combined",
+            "st",
+            "matmult-int",
+            "edn",
+            "nettle-aes",
+            "md5sum",
+            "tarfind",
+        }
 
     ret = list(set(all_tests) - exclude)
     ret.sort()
     return ret
 
 
-def clean_build_artifacts(backend: Literal["pysim", "cocotb"]):
+def clean_build_artifacts(backend: Literal["pysim", "cocotb", "cxxsim"]):
     if backend == "pysim":
         return
 
     print("Discarding the generated Verilog and the built testbench...")
 
     clean_core_verilog()
-    clean_cocotb_build()
+    if backend == "cocotb":
+        clean_cocotb_build()
+    elif backend == "cxxsim":
+        clean_cxxsim_build()
 
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     return run_cocotb_entrypoint(
-        "benchmark_entrypoint",
-        traces=traces,
-        additional_args=[
-            "--no-print-directory",
-            f"TESTCASE={','.join(benchmarks)}",
-        ],
+        "benchmark_entrypoint", traces=traces, additional_args=["--no-print-directory"], testcases=benchmarks
     )
 
 
@@ -116,7 +122,16 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, jobs: int) ->
     return run_benchmarks_with_backend(benchmarks, make_backend, jobs)
 
 
-def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool, jobs: int) -> bool:
+def run_benchmarks_with_cxxsim(benchmarks: list[str], traces: bool, jobs: int) -> bool:
+    if traces:
+        raise RuntimeError("The cxxsim backend does not support traces")
+
+    return run_benchmarks_with_backend(benchmarks, lambda _: CxxSimulation(), jobs)
+
+
+def run_benchmarks(
+    benchmarks: list[str], backend: Literal["pysim", "cocotb", "cxxsim"], traces: bool, jobs: int
+) -> bool:
     # The cocotb backend schedules the benchmarks inside its own testbench.
     parallelism = "" if backend == "cocotb" else f", {jobs} at a time"
     print(f"Running {len(benchmarks)} benchmarks with the {backend} backend{parallelism}", flush=True)
@@ -125,6 +140,8 @@ def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], t
         return run_benchmarks_with_cocotb(benchmarks, traces)
     elif backend == "pysim":
         return run_benchmarks_with_pysim(benchmarks, traces, jobs)
+    elif backend == "cxxsim":
+        return run_benchmarks_with_cxxsim(benchmarks, traces, jobs)
     return False
 
 
@@ -179,7 +196,9 @@ def main():
     parser.add_argument("--log-filter", default=".*", action="store", help="Regexp used to filter out logs.")
     parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
     parser.add_argument("--evlog", action="store_true", help="Write captured event logs")
-    parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
+    parser.add_argument(
+        "-b", "--backend", default="cocotb", choices=["cocotb", "pysim", "cxxsim"], help="Simulation backend"
+    )
     parser.add_argument(
         "--clean",
         action="store_true",
@@ -199,11 +218,17 @@ def main():
         help="Selects output file to write information to. Default: %(default)s",
     )
     parser.add_argument("--summary", default="", action="store", help="Write Markdown summary to this file")
+    parser.add_argument(
+        "--fast", action="store_true", help="Use the build-fast build (cpu_mhz = 0.01) instead of the default one"
+    )
     parser.add_argument("benchmark_name", nargs="?")
 
     args = parser.parse_args()
 
-    benchmarks = load_benchmarks()
+    if args.fast:
+        os.environ["__COREBLOCKS_EMBENCH_FAST"] = "1"
+
+    benchmarks = load_benchmarks(args.fast)
 
     if args.list:
         for name in benchmarks:

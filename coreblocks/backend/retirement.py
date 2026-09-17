@@ -14,7 +14,16 @@ from coreblocks.interface.layouts import (
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
 from transactron.evlog import EventSource
-from transactron.utils import DependencyContext, HardwareLogger, count_trailing_zeros, OneHotMux, popcount
+from transactron.utils import (
+    DependencyContext,
+    HardwareLogger,
+    clear_lowest_set_bit,
+    count_trailing_zeros,
+    OneHotMux,
+    mask_before_first_set_bit,
+    mask_from_first_set_bit,
+    popcount,
+)
 from transactron.lib.metrics import *
 
 from coreblocks.telemetry import RobFlush, RobRetire
@@ -190,18 +199,18 @@ class Retirement(Elaboratable):
         m.d.comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
         m.d.comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
         m.d.comb += done_count.eq(count_trailing_zeros(~done_mask))
-        m.d.comb += done_ignore_mask.eq(~done_mask | -(~done_mask))
-        m.d.comb += limiting_instruction_mask.eq((tag_incr_mask & (tag_incr_mask - 1)) | done_ignore_mask)
+        m.d.comb += done_ignore_mask.eq(mask_from_first_set_bit(~done_mask))
+        m.d.comb += limiting_instruction_mask.eq(clear_lowest_set_bit(tag_incr_mask) | done_ignore_mask)
 
         m.d.comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
-        m.d.comb += retiring_mask.eq(~(limiting_instruction_mask | -limiting_instruction_mask))
+        m.d.comb += retiring_mask.eq(mask_before_first_set_bit(limiting_instruction_mask))
         m.d.comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
 
         m.d.comb += first_tag_incr_mask.eq(tag_incr_mask | done_ignore_mask)
         first_tag_incr_pos = count_trailing_zeros(first_tag_incr_mask)
         m.d.comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
         tag_active_mask_suffix = Mux(
-            active_tags[last_retired_tag], ~(first_tag_incr_mask | -first_tag_incr_mask), 0
+            active_tags[last_retired_tag], mask_before_first_set_bit(first_tag_incr_mask), 0
         )  # last retired tag until limiting incr (if exsists)
         tag_active_mask_prefix = (
             -active_tags[next_last_retired_tag] << first_tag_incr_pos
@@ -211,7 +220,7 @@ class Retirement(Elaboratable):
         exception_bits = Signal(self.gen_params.retirement_superscalarity)
         m.d.comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask)
         m.d.comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
-        m.d.comb += active_no_trap_count.eq(popcount(~(exception_bits | -exception_bits) & tag_active_mask))
+        m.d.comb += active_no_trap_count.eq(popcount(mask_before_first_set_bit(exception_bits) & tag_active_mask))
         m.d.comb += exception.eq((exception_bits & retiring_mask).any())
 
         # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
@@ -407,9 +416,11 @@ class Retirement(Elaboratable):
             return {"flushing": fsm.ongoing("TRAP_FLUSH")}
 
         # Run side fx on first non-pure instr, if exception not encountered
-        impure_mask = Signal(range(self.gen_params.retirement_superscalarity))
+        impure_mask = Signal(self.gen_params.retirement_superscalarity)
+        pure_prefix = Signal(self.gen_params.retirement_superscalarity)
         pure_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         m.d.comb += impure_mask.eq(Cat(~entry.pure for entry in rob_entries.entries))
+        m.d.comb += pure_prefix.eq(mask_before_first_set_bit(impure_mask))
         m.d.comb += pure_count.eq(count_trailing_zeros(impure_mask))
         side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
@@ -427,7 +438,7 @@ class Retirement(Elaboratable):
             current_tag_expr += entry.rob_data.tag_increment
             current_tag = Signal(self.gen_params.tag_bits)
             m.d.comb += current_tag.eq(current_tag_expr)
-            m.d.comb += pure_inactive_offset[i].eq(~active_tags[current_tag] & (~(impure_mask | -impure_mask))[i])
+            m.d.comb += pure_inactive_offset[i].eq(~active_tags[current_tag] & pure_prefix[i])
 
         m.d.comb += self.pure_active_count.eq(pure_count - popcount(pure_inactive_offset))
 

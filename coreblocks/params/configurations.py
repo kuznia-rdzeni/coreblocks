@@ -1,5 +1,5 @@
 from coreblocks.arch.isa import Extension
-from coreblocks.params.bpu_params import BranchPredictionConfig, MicroBTBConfig
+from coreblocks.params.bpu_params import BranchPredictionConfig, MicroBTBConfig, RASConfig
 from coreblocks.params.core_configuration import CoreConfiguration
 from coreblocks.arch.isa_consts import SatpMode
 
@@ -66,7 +66,7 @@ small_linux = CoreConfiguration(
                 MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
-            rs_entries=2,
+            rs_entries=4,
         ),
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
         CSRBlockComponent(),
@@ -85,7 +85,7 @@ full = CoreConfiguration(
                 ZbkxComponent(),
                 ZbsComponent(),
             ],
-            rs_entries=2,  # reduced RS size to reduce impact of bad predictions
+            rs_entries=4,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
@@ -98,14 +98,14 @@ full = CoreConfiguration(
                 ExceptionUnitComponent(),
                 PrivilegedUnitComponent(supervisor_enable=True),
             ],
-            rs_entries=2,  # reduced RS size to reduce impact of bad predictions
+            rs_entries=4,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
                 MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
-            rs_entries=2,
+            rs_entries=4,
         ),
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
@@ -120,7 +120,7 @@ full = CoreConfiguration(
     retirement_superscalarity=2,
     interrupt_custom_count=15,
     hpm_counters_count=2,
-    bpu_config=BranchPredictionConfig(micro_btb=MicroBTBConfig(entries_log=5)),
+    bpu_config=BranchPredictionConfig(ras=RASConfig(entries_log=4), fast_predictor=MicroBTBConfig(entries_log=5)),
 )
 
 # Core configuration used in internal testbenches
