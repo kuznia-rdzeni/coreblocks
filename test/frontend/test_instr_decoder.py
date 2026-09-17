@@ -99,13 +99,29 @@ class TestDecoder(TestCaseWithSimulator):
             0x0320000F,
             Opcode.MISC_MEM,
             Funct3.FENCE,
-            rd=0,
-            rs1=0,
             succ=FenceTarget.MEM_R,
             pred=(FenceTarget.MEM_R | FenceTarget.MEM_W),
             fm=FenceFm.NONE,
             op=OpType.FENCE,
         ),
+        InstrTest(
+            0x0480010F,
+            Opcode.MISC_MEM,
+            Funct3.FENCE,
+            succ=FenceTarget.DEV_I,
+            pred=FenceTarget.DEV_O,
+            fm=FenceFm.NONE,
+            op=OpType.FENCE,
+        ), # non-zero rd
+        InstrTest(
+            0x0841000F,
+            Opcode.MISC_MEM,
+            Funct3.FENCE,
+            succ=FenceTarget.DEV_O,
+            pred=FenceTarget.DEV_I,
+            fm=FenceFm.NONE,
+            op=OpType.FENCE,
+        ), # non-zero rs1
         # ECALL
         InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, op=OpType.ECALL),
         # EBREAK
