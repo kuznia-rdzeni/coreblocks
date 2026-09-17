@@ -159,16 +159,18 @@ class CocotbSimulation(SimulationBackend):
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
-            next = getattr(obj, component, None)
-            if next is None:
-                next = getattr(obj, rf"\{component} ", None)
-            if next is None:
-                next = getattr(obj, component[1:], None)
-
-            if next is None:
-                raise KeyError(f"Could not find component {component} in path {path_components}")
-
-            obj = next
+            try:
+                # As the component may start with '_' character, we need to use '[...]'
+                # function instead of 'getattr' - this is required by cocotb.
+                obj = obj[component]
+            except KeyError:
+                # Try with escaped or unescaped name
+                if component[0] != "\\" and component[-1] != " ":
+                    obj = obj[rf"\{component} "]
+                elif component[0] == "\\":
+                    obj = obj[component[1:]]
+                else:
+                    raise
 
         return obj
 
