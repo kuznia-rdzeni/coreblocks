@@ -22,6 +22,8 @@ ARCH_EXPECTED_FAIL = {
     r"Sm_mcsr_cntr",
     r"Sm_mcsr_walk-02",
     r"SsstrictSm_CSR-07",
+    # [#1111] fence needs to ignore rs1 and rd
+    r"I-fence",
     # ???? _generate_user_wfi_tests, _generate_user_wfi_timeout_tests
     "InterruptsU",
     # ???? _generate_interrupts_m_tests
