@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789640216038,
+  "lastUpdate": 1789678687894,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29269,6 +29269,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f1d4e6f1eea954683be2e9b1ed7e51f032030358"
         },
         "date": 1789640189872,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.572202126684789,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820929569432563,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.585963629920039,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6885176002400392,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39399365515436946,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5492887956161828,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5357049361528841,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5292372303580681,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7bd596eb4cb2fcf9e9abf0fb53c1309d6863a4bd",
+          "message": "ignore rs1/rd fields in FENCE instructions (#1112)",
+          "timestamp": "2026-09-17T22:00:14+02:00",
+          "tree_id": "96ac96869d6c7222426001695a9e6cfb650a266d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7bd596eb4cb2fcf9e9abf0fb53c1309d6863a4bd"
+        },
+        "date": 1789678673945,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
