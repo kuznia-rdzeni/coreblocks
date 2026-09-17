@@ -229,7 +229,7 @@ class CocotbSimulation(SimulationBackend):
                 rec,
                 self.get_cocotb_handle(rec.trigger_location),
                 [self.get_cocotb_handle(field) for field in rec.fields_location],
-                logging.getLogger(f"{rec.logger_name}.0x{0:x}")
+                logging.getLogger(f"{rec.logger_name}.0x{0:x}"),
             )
             for rec in self.gen_info.logs
             if rec.level >= log_level and re.search(self.log_filter, rec.logger_name)
