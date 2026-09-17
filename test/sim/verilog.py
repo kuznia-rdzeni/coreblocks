@@ -43,11 +43,10 @@ def _make_verilator_control(path, core_json) -> None:
     signals = _get_public_signals(core_json)
     with open(path, "w") as file:
         file.write("`verilator_config\n")
+        file.write('public_flat_rw -module "top" -port "*"\n')
         for sig in signals:
             sig_name = sig[-1]
             sig_module = ".".join(sig[:-1])
-            if len(sig) > 2:
-                sig_module = f"\\{sig_module}"
             file.write(f'public_flat_rd -module "{sig_module}" -var "{sig_name}"\n')
 
 
