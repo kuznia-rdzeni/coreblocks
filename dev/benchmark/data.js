@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789631570817,
+  "lastUpdate": 1789640203095,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29205,6 +29205,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/11d5d871421bf46bea5027262b86452420f83726"
         },
         "date": 1789631543491,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.572202126684789,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820929569432563,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.585963629920039,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6885176002400392,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39399365515436946,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5492887956161828,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5357049361528841,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5292372303580681,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f1d4e6f1eea954683be2e9b1ed7e51f032030358",
+          "message": "make cocotb fast (#1110)",
+          "timestamp": "2026-09-17T11:14:49+02:00",
+          "tree_id": "fabd1195a01482224d185b4f310895bb58659696",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f1d4e6f1eea954683be2e9b1ed7e51f032030358"
+        },
+        "date": 1789640189872,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
