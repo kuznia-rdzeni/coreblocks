@@ -160,7 +160,7 @@ class CocotbSimulation(SimulationBackend):
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
             try:
-                # As the component may start with '_' character, we need to use '_id'
+                # As the component may start with '_' character, we need to use '[...]'
                 # function instead of 'getattr' - this is required by cocotb.
                 obj = obj[component]
             except KeyError:
@@ -175,19 +175,27 @@ class CocotbSimulation(SimulationBackend):
         return obj
 
     async def profile_handler(self, clock: LogicObject, profile: Profile):
+        transaction_handles = {}
+        method_handles = {}
+        for transaction_id, location in self.gen_info.transaction_signals_location.items():
+            request_val = self.get_cocotb_handle(location.ready)
+            runnable_val = self.get_cocotb_handle(location.runnable)
+            grant_val = self.get_cocotb_handle(location.run)
+            transaction_handles[transaction_id] = (request_val, runnable_val, grant_val)
+
+        for method_id, location in self.gen_info.method_signals_location.items():
+            run_val = self.get_cocotb_handle(location.run)
+            method_handles[method_id] = run_val
+
         while True:
             samples = ProfileSamples()
 
-            for transaction_id, location in self.gen_info.transaction_signals_location.items():
-                request_val = self.get_cocotb_handle(location.ready)
-                runnable_val = self.get_cocotb_handle(location.runnable)
-                grant_val = self.get_cocotb_handle(location.run)
+            for transaction_id, (req, runnable, grant) in transaction_handles.items():
                 samples.transactions[transaction_id] = TransactionSamples(
-                    bool(request_val.value), bool(runnable_val.value), bool(grant_val.value)
+                    bool(req.value), bool(runnable.value), bool(grant.value)
                 )
 
-            for method_id, location in self.gen_info.method_signals_location.items():
-                run_val = self.get_cocotb_handle(location.run)
+            for method_id, run_val in method_handles.items():
                 samples.methods[method_id] = MethodSamples(bool(run_val.value))
 
             cprof = CycleProfile.make(samples, self.gen_info.profile_data)
@@ -217,27 +225,26 @@ class CocotbSimulation(SimulationBackend):
         log_level = cocotb.log.level
 
         logs = [
-            (rec, self.get_cocotb_handle(rec.trigger_location))
+            (
+                rec,
+                self.get_cocotb_handle(rec.trigger_location),
+                [self.get_cocotb_handle(field) for field in rec.fields_location],
+                logging.getLogger(f"{rec.logger_name}.0x{0:x}"),
+            )
             for rec in self.gen_info.logs
             if rec.level >= log_level and re.search(self.log_filter, rec.logger_name)
         ]
 
         while True:
-            for rec, trigger_handle in logs:
+            for rec, trigger_handle, field_handles, logger in logs:
                 if not trigger_handle.value:
                     continue
 
-                values: list[int] = []
-                for field in rec.fields_location:
-                    values.append(int(self.get_cocotb_handle(field).value))
+                formatted_msg = rec.format(*(int(field.value) for field in field_handles))
 
-                formatted_msg = rec.format(*values)
-
-                cocotb_log = logging.getLogger(f"{rec.logger_name}.0x{0:x}")
-
-                cocotb_log.log(
+                logger.log(
                     rec.level,
-                    "%s:%d] %s",
+                    "[%s:%d] %s",
                     rec.location[0],
                     rec.location[1],
                     formatted_msg,
