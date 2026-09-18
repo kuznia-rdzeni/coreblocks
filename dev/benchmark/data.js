@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789754643374,
+  "lastUpdate": 1789754645998,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -82942,6 +82942,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 381,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1c15aa861a7d3ad761f65f7fd5142f594f35a811",
+          "message": "frontend/bpu: split the BPU-FTQ interface & train from the prediction's own PC and metadata (#1106)",
+          "timestamp": "2026-09-18T19:15:19+02:00",
+          "tree_id": "577c1ab3423779347b5759fe2603d475b7d2a959",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1c15aa861a7d3ad761f65f7fd5142f594f35a811"
+        },
+        "date": 1789754645176,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 44.17,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20814,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9383,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 383,
             "unit": "Slice"
           },
           {
