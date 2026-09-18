@@ -21,7 +21,8 @@ class BranchPredictionUnit(Elaboratable):
     """Branch-prediction pipeline built from the configured predictor composition."""
 
     request: Provided[Method]
-    write_prediction: Required[Method]
+    write_fetch_target: Required[Method]
+    write_prediction_details: Required[Method]
     update: Provided[Method]
     flush: Provided[Method]
 
@@ -30,7 +31,8 @@ class BranchPredictionUnit(Elaboratable):
         self.layouts = gen_params.get(BranchPredictionLayouts)
 
         self.request = Method(i=self.layouts.request)
-        self.write_prediction = Method(i=self.layouts.write_prediction)
+        self.write_fetch_target = Method(i=self.layouts.fetch_target)
+        self.write_prediction_details = Method(i=self.layouts.prediction_details)
         self.update = Method(i=self.layouts.update)
         self.flush = Method()
 
@@ -76,6 +78,7 @@ class BranchPredictionUnit(Elaboratable):
             next_pc = Signal(self.gen_params.isa.xlen)
 
             fast_prediction = fast.response_s1(m)
+            fast_meta = fast_prediction.meta
             m.d.av_comb += [
                 recognized.eq(fast_prediction.valid & (fast_prediction.cfi_idx >= stage.entry_idx)),
                 usable.eq(recognized & fast_prediction.target_valid),
@@ -94,23 +97,32 @@ class BranchPredictionUnit(Elaboratable):
                 prediction.cfi_target.eq(fast_target),
                 prediction.cfi_target_valid.eq(usable),
             ]
-            self.write_prediction(m, pc=next_pc, ftq_ptr=stage.ftq_ptr, prediction=prediction)
+            self.write_fetch_target(m, pc=next_pc, ftq_ptr=stage.ftq_ptr)
+            self.write_prediction_details(
+                m,
+                ftq_ptr=stage.ftq_ptr,
+                pc=stage.pc,
+                prediction=prediction,
+                meta=fast_meta,
+            )
 
         @def_method(m, self.update)
-        def _(pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+        def _(pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
+            offset = 0
             predictors = tuple([fast])
             for predictor in predictors:
                 predictor.update(
                     m,
                     pc=pc,
-                    branch_mask=C(0, self.gen_params.fetch_width),
+                    branch_mask=branch_mask,
                     cfi_target=cfi_target,
                     cfi_idx=cfi_idx,
                     cfi_type=cfi_type,
                     taken=taken,
                     mispredict=mispredict,
-                    meta=C(0, predictor.meta_width),
+                    meta=meta[offset : offset + predictor.meta_width],
                 )
+                offset += predictor.meta_width
 
         @def_method(m, self.flush, nonexclusive=True)
         def _():
