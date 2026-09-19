@@ -33,7 +33,7 @@
 2:
 
 #define RVMODEL_INTERRUPT_LATENCY 100
-#define RVMODEL_TIMER_INT_SOON_DELAY 100
+#define RVMODEL_TIMER_INT_SOON_DELAY 10000
 
 ##### Machine Timer / Software (via CLINT) #####
 
