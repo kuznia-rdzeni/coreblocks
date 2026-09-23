@@ -17,21 +17,19 @@ ARCH_EXPECTED_FAIL = {
     # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [riscv/riscv-arch-test#2248] sail always implements mcountinhibit, but coreblocks doesn't
-    r"Sm_mcsr_access",
-    r"Sm_mcsr_cntr",
-    r"Sm_mcsr_walk-02",
+    # [upstream] sail always implements mcountinhibit, but coreblocks doesn't
+    # wait for riscv-arch-test to use next release of sail-riscv
     r"SsstrictSm_CSR-07",
-    # ???? _generate_user_wfi_tests, _generate_user_wfi_timeout_tests
-    "InterruptsU",
-    # ???? _generate_interrupts_m_tests
-    "InterruptsSSm",
+    # [#1114] read from time CSR after write to mtime MMIO should see the updated value
+    # "cg: Sm_mcsr_cg; cp: cp_mtime_write; bin: "
+    # [?] ?we take more cycles than tests expected to restart pipeline after csr read?
+    # "cg: Sm_mcsr_cg; cp: cp_mcycle_wraparound; bin: mcycle_wrap"
+    # [#937] writes to CSRs don't stop automatic writes from happening
+    # "cg: Sm_mcsr_cg; cp: cp_minstret_wraparound; bin: minstret_wrap"
+    r"Sm_mcsr_cntr",
 }
 
-ARCH_EXPECTED_TIMEOUT = {
-    # ???? _generate_wfi_s_tests, _generate_user_msi_tests, _generate_user_mei_tests
-    "InterruptsS",
-}
+ARCH_EXPECTED_TIMEOUT = set()
 
 
 def is_arch_expected_failing(test_name: str, failset: set[str] | None = None) -> bool:
