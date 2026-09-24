@@ -27,11 +27,15 @@ class TestBranchPredictionUnit(TestCaseWithSimulator):
     def fall_through(self, pc: int) -> int:
         return ((pc >> self.fbl) + 1) << self.fbl
 
-    @def_method_mock(lambda self: self.bpu.write_prediction)
-    def write_prediction_mock(self, pc, ftq_ptr, prediction):
+    @def_method_mock(lambda self: self.bpu.write_fetch_target)
+    def write_fetch_target_mock(self, pc, ftq_ptr):
         @MethodMock.effect
         def eff():
             self.predictions.append(pc)
+
+    @def_method_mock(lambda self: self.bpu.write_prediction_details)
+    def write_prediction_details_mock(self, ftq_ptr, pc, prediction, meta):
+        pass
 
     async def predict(self, sim: TestbenchContext, pc: int) -> int:
         self.predictions.clear()
@@ -56,7 +60,9 @@ class TestBranchPredictionUnit(TestCaseWithSimulator):
         async def proc(sim: TestbenchContext):
             assert await self.predict(sim, pc) == self.fall_through(pc)
 
-            await self.bpu.update.call(sim, pc=pc, cfi_target=target, cfi_idx=0, cfi_type=CfiType.BRANCH, taken=1)
+            await self.bpu.update.call(
+                sim, pc=pc, branch_mask=1, cfi_valid=1, cfi_target=target, cfi_idx=0, cfi_type=CfiType.BRANCH, taken=1
+            )
 
             assert await self.predict(sim, pc) == target
 
@@ -67,7 +73,9 @@ class TestBranchPredictionUnit(TestCaseWithSimulator):
         pc = 0x100
 
         async def proc(sim: TestbenchContext):
-            await self.bpu.update.call(sim, pc=pc, cfi_target=0xDEAD, cfi_idx=0, cfi_type=CfiType.BRANCH, taken=0)
+            await self.bpu.update.call(
+                sim, pc=pc, branch_mask=1, cfi_valid=1, cfi_target=0xDEAD, cfi_idx=0, cfi_type=CfiType.BRANCH, taken=0
+            )
             assert await self.predict(sim, pc) == self.fall_through(pc)
 
         with self.run_simulation(self.bpu) as sim:

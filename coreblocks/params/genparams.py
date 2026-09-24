@@ -123,6 +123,8 @@ class GenParams(DependentCache):
         self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
         self.fetch_width_log = exact_log2(self.fetch_width)
 
+        self.bpd_meta_width = self.bpu_config.bpd_meta_width(self.fetch_width)
+
         self.instr_buffer_size = cfg.instr_buffer_size
         self.extra_verification = cfg.extra_verification
 
