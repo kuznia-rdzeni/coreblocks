@@ -20,7 +20,7 @@ ARCH_EXPECTED_FAIL = {
     # [upstream] sail always implements mcountinhibit, but coreblocks doesn't
     # wait for riscv-arch-test to use next release of sail-riscv
     r"SsstrictSm_CSR-07",
-    # [?] ?we take more cycles than tests expected to restart pipeline after csr read?
+    # [#1115] value of mcycleh gets overflown multiple times?
     # "cg: Sm_mcsr_cg; cp: cp_mcycle_wraparound; bin: mcycle_wrap"
     # [#937] writes to CSRs don't stop automatic writes from happening
     # "cg: Sm_mcsr_cg; cp: cp_minstret_wraparound; bin: minstret_wrap"
