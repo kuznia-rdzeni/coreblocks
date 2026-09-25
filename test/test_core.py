@@ -191,6 +191,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, False, configurations.tiny),
         ("csr", "csr.asm", 400, {1: 1, 2: 4}, True, configurations.full),
         ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, True, configurations.full),
+        ("counter_wraparound", "counter_wraparound.asm", 300, {}, True, configurations.full),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, False, configurations.full),
