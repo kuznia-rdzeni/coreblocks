@@ -11,26 +11,23 @@ profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
 ARCH_EXPECTED_FAIL = {
-    # [?] misaligned exceptions should be either before address translation at the very end
-    "ExceptionsS",
-    "sv32_exceptions_mprv_(S|U)_Mmode",
-    # [?] trap loop
-    "sv32_exceptions_(S|U)mode",
-    # [?] sail requires size of reservation set <= 12
+    # [#961] with virtual memory, we need reservation set <=2^12
     ".*exceptions.*zalrsc.*",
     "pmpzalrsc_cfg_wr",
-    # misaligned amo should cause write flavoured exception
+    # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [?] ?????
-    "InterruptsU",
+    # [upstream] sail always implements mcountinhibit, but coreblocks doesn't
+    # wait for riscv-arch-test to use next release of sail-riscv
+    r"SsstrictSm_CSR-07",
+    # [#1114] write to mtime is not visible in time csr even after fence
+    # "cg: Sm_mcsr_cg; cp: cp_mtime_write; bin: "
+    # [#937] writes to CSRs don't stop automatic writes from happening
+    # "cg: Sm_mcsr_cg; cp: cp_minstret_wraparound; bin: minstret_wrap"
+    r"Sm_mcsr_cntr",
 }
 
-ARCH_EXPECTED_TIMEOUT = {
-    "InterruptsS",
-    "InterruptsSSm",
-    "U",
-}
+ARCH_EXPECTED_TIMEOUT = set()
 
 
 def is_arch_expected_failing(test_name: str, failset: set[str] | None = None) -> bool:

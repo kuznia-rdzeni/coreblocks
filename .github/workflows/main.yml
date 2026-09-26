@@ -163,7 +163,7 @@ jobs:
     name: Build arch regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/riscv/act4-build:sha-15d2c68b1fa14b3e3eefbc1baeed59f05b60cb73
+      image: ghcr.io/riscv/act4-build:sha-5ae425847bd9404b3aab5140c9259fe6a0807047
       options: --user root
     timeout-minutes: 20
     steps:
@@ -211,7 +211,8 @@ jobs:
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Build arch regression tests
-        run: make -C test/external/riscv-arch-test -j $(nproc)
+        working-directory: test/external/riscv-arch-test
+        run: make
 
       - name: Upload riscv-arch-test tests
         uses: actions/upload-artifact@v7

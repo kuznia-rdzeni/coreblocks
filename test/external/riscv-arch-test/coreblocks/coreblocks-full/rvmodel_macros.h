@@ -7,7 +7,7 @@
 
 #define RVMODEL_ENDTEST_ADDRESS 0xF0000000
 #define RVMODEL_CONSOLE_ADDRESS 0xF0001000
-#define RVMODEL_ACCESS_FAULT_ADDRESS 0x00000000
+// #define RVMODEL_ACCESS_FAULT_ADDRESS 0x00000000
 #define RVMODEL_INTERRUPT_GENERATOR_ADDRESS 0xF0002000
 
 #define RVMODEL_HALT_PASS  \
@@ -33,7 +33,7 @@
 2:
 
 #define RVMODEL_INTERRUPT_LATENCY 100
-#define RVMODEL_TIMER_INT_SOON_DELAY 100
+#define RVMODEL_TIMER_INT_SOON_DELAY 10000
 
 ##### Machine Timer / Software (via CLINT) #####
 
@@ -104,17 +104,5 @@
   li _R2, PLIC_SCLAIM_ADDRESS;                                              \
   lw _R1, 0(_R2);                                                           \
   sw _R1, 0(_R2);
-
-#define RVMODEL_SET_MSW_INT(_R1, _R2)             \
-  li _R1, 1                                      ;\
-  li _R2, RVMODEL_MSIP_ADDRESS                   ;\
-  sw _R1, 0(_R2)
-
-#define RVMODEL_CLR_MSW_INT(_R1, _R2)             \
-  li _R2, RVMODEL_MSIP_ADDRESS                   ;\
-  sw zero, 0(_R2)
-
-#define RVMODEL_SET_SSW_INT(_R1, _R2)
-#define RVMODEL_CLR_SSW_INT(_R1, _R2)
 
 #endif // _RVMODEL_MACROS_H

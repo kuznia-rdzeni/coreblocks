@@ -154,6 +154,7 @@ class CocotbSimulation(SimulationBackend):
         self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
 
         cocotb.log.setLevel(self.log_level)
+        logging.getLogger().setLevel(self.log_level)
 
     def get_cocotb_handle(self, path_components: list[str]) -> LogicObject:
         obj = self.dut
