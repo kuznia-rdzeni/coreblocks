@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790791284962,
+  "lastUpdate": 1791061279512,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29589,6 +29589,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e81b9b00f903b73b75157c17f40334b3974fca0b"
         },
         "date": 1790791256780,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.572202126684789,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820929569432563,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5842747501518414,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6924762948491924,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39385518239106804,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.54674429175169,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5401988678027748,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5357919846274475,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9605675f8c3e95b23ad040bc0a1176d477258fac",
+          "message": "benchmarks: increase stack size to 16K, re-enable huffbench (#1118)",
+          "timestamp": "2026-10-03T22:14:45+02:00",
+          "tree_id": "d7fe78904bde4f0fa86fc0b6af6b6cf91b36ddb0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9605675f8c3e95b23ad040bc0a1176d477258fac"
+        },
+        "date": 1791061265923,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
