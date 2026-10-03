@@ -1,7 +1,7 @@
 OUTPUT_ARCH( "riscv" )
 ENTRY(_start)
 
-_STACK_SIZE = 0x1000;
+_STACK_SIZE = 0x4000;
 
 MEMORY
 {

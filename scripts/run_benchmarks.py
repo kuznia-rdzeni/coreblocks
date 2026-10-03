@@ -41,7 +41,6 @@ def load_benchmarks(fast: bool):
         all_tests = test.benchmark.benchmark.get_all_benchmark_names()
 
     exclude = {
-        "huffbench",  # TODO: debug why it fails
         "nbody",
         "picojpeg",
         "primecount",
@@ -54,6 +53,7 @@ def load_benchmarks(fast: bool):
     if fast:
         exclude |= {
             "cubic",
+            "huffbench",
             "sglib-combined",
             "st",
             "matmult-int",
