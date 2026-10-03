@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791061288834,
+  "lastUpdate": 1791061290957,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -87022,6 +87022,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1099,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9605675f8c3e95b23ad040bc0a1176d477258fac",
+          "message": "benchmarks: increase stack size to 16K, re-enable huffbench (#1118)",
+          "timestamp": "2026-10-03T22:14:45+02:00",
+          "tree_id": "d7fe78904bde4f0fa86fc0b6af6b6cf91b36ddb0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9605675f8c3e95b23ad040bc0a1176d477258fac"
+        },
+        "date": 1791061290501,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.22,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 53345,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 17940,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1100,
             "unit": "Slice"
           },
           {
