@@ -1,5 +1,5 @@
 from coreblocks.arch.isa import Extension
-from coreblocks.params.bpu_params import BranchPredictionConfig, MicroBTBConfig, RASConfig
+from coreblocks.params.bpu_params import BranchPredictionConfig, MicroBTBConfig, RASConfig, MainBTBConfig, BimodalConfig
 from coreblocks.params.core_configuration import CoreConfiguration
 from coreblocks.arch.isa_consts import SatpMode
 
@@ -120,7 +120,12 @@ full = CoreConfiguration(
     retirement_superscalarity=2,
     interrupt_custom_count=15,
     hpm_counters_count=2,
-    bpu_config=BranchPredictionConfig(ras=RASConfig(entries_log=4), fast_predictor=MicroBTBConfig(entries_log=5)),
+    bpu_config=BranchPredictionConfig(
+        ras=RASConfig(entries_log=4),
+        fast_predictor=MicroBTBConfig(entries_log=5),
+        cfi_predictor=MainBTBConfig(),
+        direction_predictor=BimodalConfig(),
+    ),
 )
 
 # Core configuration used in internal testbenches
