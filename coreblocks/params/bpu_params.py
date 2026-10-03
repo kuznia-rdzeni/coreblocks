@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
     from coreblocks.frontend.bpu.component import BPUComponent, FastPredictor, CfiPredictor, DirectionPredictor
     from coreblocks.frontend.bpu.micro_btb import MicroBTB
+    from coreblocks.frontend.bpu.main_btb import MainBTB
     from coreblocks.frontend.bpu.bimodal import Bimodal
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "BranchPredictionConfig",
     "MicroBTBConfig",
     "RASConfig",
+    "MainBTBConfig",
     "BimodalConfig",
 ]
 
@@ -95,6 +97,51 @@ class MicroBTBConfig(FastPredictorConfig):
         from coreblocks.frontend.bpu.micro_btb import MicroBTB
 
         return MicroBTB(gen_params, self)
+
+
+@dataclass(frozen=True)
+class MainBTBConfig(CfiPredictorConfig):
+    """Configuration of the main BTB."""
+
+    sets_log: int = 6
+    """Log of the number of sets."""
+
+    ways: int = 4
+    """Number of ways in a set. A way holds a single CFI, so this is also the maximum
+    number of CFIs of one fetch block that the BTB can predict."""
+
+    tag_width: int = 16
+    """Width of the stored tag. Tags narrower than the fetch block address make different
+    blocks alias onto the same entry."""
+
+    target_width: int = 20
+    """Number of the target's low bits stored in an entry, counted in the minimal
+    instruction width. The remaining high bits are reconstructed from the fetch block
+    address and a two-bit carry."""
+
+    def meta_width(self, fetch_width: int) -> int:
+        from coreblocks.arch import CfiType
+
+        position_width = (fetch_width - 1).bit_length()
+        return self.ways * (2 + position_width + CfiType.as_shape().width)
+
+    def candidate_count(self) -> int:
+        return self.ways
+
+    def validate(self):
+        if self.sets_log < 1:
+            raise ValueError("Main BTB must have at least 2 sets")
+        if self.ways < 2 or self.ways & (self.ways - 1) != 0:
+            raise ValueError("Main BTB way count must be a power of two, at least 2")
+        if self.tag_width < 1:
+            raise ValueError("Main BTB tag must be at least 1 bit wide")
+        if self.target_width < 1:
+            raise ValueError("Main BTB target must be at least 1 bit wide")
+
+    def get_module(self, gen_params: "GenParams") -> "MainBTB":
+        from coreblocks.frontend.bpu.main_btb import MainBTB
+
+        return MainBTB(gen_params, self)
 
 
 @dataclass(frozen=True)
