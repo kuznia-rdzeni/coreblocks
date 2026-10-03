@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
     from coreblocks.frontend.bpu.component import BPUComponent, FastPredictor, CfiPredictor, DirectionPredictor
     from coreblocks.frontend.bpu.micro_btb import MicroBTB
+    from coreblocks.frontend.bpu.bimodal import Bimodal
 
 __all__ = [
     "BPUComponentConfig",
@@ -17,6 +18,7 @@ __all__ = [
     "BranchPredictionConfig",
     "MicroBTBConfig",
     "RASConfig",
+    "BimodalConfig",
 ]
 
 
@@ -93,6 +95,31 @@ class MicroBTBConfig(FastPredictorConfig):
         from coreblocks.frontend.bpu.micro_btb import MicroBTB
 
         return MicroBTB(gen_params, self)
+
+
+@dataclass(frozen=True)
+class BimodalConfig(DirectionPredictorConfig):
+    """Configuration of the position-indexed bimodal direction predictor."""
+
+    sets_log: int = 8
+    """Log of the number of table rows."""
+
+    counter_width: int = 2
+    """Width of each saturating direction counter."""
+
+    def meta_width(self, fetch_width: int) -> int:
+        return fetch_width * self.counter_width
+
+    def validate(self):
+        if self.sets_log < 1:
+            raise ValueError("Bimodal predictor must have at least 2 sets")
+        if self.counter_width < 2:
+            raise ValueError("Bimodal counters must be at least 2 bits wide")
+
+    def get_module(self, gen_params: "GenParams") -> "Bimodal":
+        from coreblocks.frontend.bpu.bimodal import Bimodal
+
+        return Bimodal(gen_params, self)
 
 
 @dataclass(frozen=True)
