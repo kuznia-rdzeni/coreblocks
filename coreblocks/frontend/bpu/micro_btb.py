@@ -76,7 +76,7 @@ class MicroBTB(FastPredictor):
 
         req_fb = Signal(self.tag_width)
         req_valid = Signal()
-        m.d.sync += req_valid.eq(self.request_s0.run & ~self.flush.run)
+        m.d.sync += req_valid.eq(self.request_s0.run)
 
         def match_vec(fb: Value) -> list[Value]:
             return [(entry.useful != 0) & (entry.tag == fb) for entry in entries]
@@ -117,10 +117,6 @@ class MicroBTB(FastPredictor):
                 "target": req_entry.target,
                 "meta": C(0, self.meta_width),
             }
-
-        @def_method(m, self.flush, nonexclusive=True)
-        def _():
-            pass
 
         @def_method(m, self.update)
         def _(pc, branch_mask, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
