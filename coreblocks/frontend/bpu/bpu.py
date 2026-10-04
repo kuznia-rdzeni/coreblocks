@@ -23,13 +23,13 @@ class BranchPredictionUnit(Elaboratable):
 
     request: Provided[Method]
     write_fetch_target: Required[Method]
-    """Pass S1's next fetch PC for an FTQ entry. Called for every request that is not flushed."""
+    """Pass S1's next fetch PC for an FTQ entry. May still be called in a flush cycle."""
     correct_fetch_target: Required[Method]
     """Replace an FTQ entry's next fetch PC with S2's prediction when it differs from S1's."""
     write_prediction_details: Required[Method]
     update: Provided[Method]
     flush: Provided[Method]
-    """Discard every request in the BPU, including one made in the same cycle."""
+    """Discard every request in the BPU, including one made in the same cycle, except that cycle's fetch targets."""
 
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
@@ -215,7 +215,7 @@ class BranchPredictionUnit(Elaboratable):
 
             m.d.av_comb += next_pc.eq(Mux(usable, fast_prediction.target, stage.fallthrough))
             self.perf_s1_redirects.incr(m, enable_call=live & usable)
-            with m.If(live):
+            with m.If(stage.live):
                 self.write_fetch_target(m, pc=next_pc, ftq_ptr=stage.ftq_ptr)
             if backing_enabled:
                 assert cfi is not None and direction is not None
@@ -278,7 +278,7 @@ class BranchPredictionUnit(Elaboratable):
                         meta=meta,
                     )
 
-                with m.If(live & correction):
+                with m.If(stage.live & correction):
                     self.correct_fetch_target(m, pc=next_pc, ftq_ptr=stage.ftq_ptr)
                     m.d.comb += s2_flush.eq(1)
 

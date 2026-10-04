@@ -655,7 +655,7 @@ class TestBranchPredictionUnit(TestCaseWithSimulator):
         with self.run_simulation(self.bpu) as sim:
             sim.add_testbench(proc)
 
-    def test_flush_discards_pending_request(self):
+    def test_flush_keeps_same_cycle_fetch_target(self):
         self.build(
             (FastCase(PC, 1, 1, CfiType.JAL, 1, 0x280),),
             (CfiCase(PC, (Candidate(1, 1, CfiType.JAL, 1, 0x280),)),),
@@ -667,7 +667,7 @@ class TestBranchPredictionUnit(TestCaseWithSimulator):
             await self.bpu.flush.call(sim)
             for _ in range(5):
                 await sim.tick()
-            assert not self.targets
+            assert list(self.targets) == [{"pc": 0x280, "ftq_ptr": {"ptr": 0, "parity": 0}, "correction": 0}]
             assert not self.details
 
         with self.run_simulation(self.bpu) as sim:
