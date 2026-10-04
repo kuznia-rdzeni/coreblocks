@@ -3,20 +3,23 @@ from collections import deque
 from dataclasses import dataclass
 
 from transactron.testing import (
+    CallTrigger,
     TestCaseWithSimulator,
     def_method_mock,
     SimpleTestCircuit,
     TestbenchContext,
+    TestbenchIO,
     ProcessContext,
 )
+from transactron.lib.adapters import Adapter
 from transactron.testing.method_mock import MethodMock
 
 from transactron.utils import DependencyContext, ModuleConnector
 
 from coreblocks.arch import CfiType, RasAction
 from coreblocks.frontend.ftq import FetchTargetQueue
-from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import BranchPredictionConfig, GenParams, MicroBTBConfig
+from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
@@ -35,17 +38,21 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         self.start_pc = 0x100
         self.gen_params = GenParams(configurations.test.replace(start_pc=self.start_pc))
         self.ifu_requests: deque = deque()
-        self.bpu_requests: deque = deque()
+        self.bpu_corrections: deque = deque()
+        self.bpu_corrections_done: int = 0
         self.bpu_updates: deque = deque()
         self.bpu_flush_count: int = 0
+        self.ifu_ready: bool = True
 
         self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
-        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
+        ftq = FetchTargetQueue(self.gen_params)
+        self.ftq = SimpleTestCircuit(ftq, exclude=["stall_guard"])
+        self.stall_guard = TestbenchIO(Adapter.create(ftq.stall_guard, nonexclusive=True))
+        self.dut = ModuleConnector(ftq=self.ftq, stall_guard=self.stall_guard, csr_instances=self.csr_instances)
 
-    @def_method_mock(lambda self: self.ftq.stall_guard)
+    @def_method_mock(lambda self: self.stall_guard)
     def stall_guard_mock(self):
         pass
 
@@ -56,12 +63,13 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             self.bpu_flush_count += 1
 
     @def_method_mock(lambda self: self.ftq.bpu_update)
-    def bpu_update_mock(self, pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
+    def bpu_update_mock(self, pc, branch_mask, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
         @MethodMock.effect
         def eff():
             self.bpu_updates.append(
                 {
                     "pc": pc,
+                    "branch_mask": branch_mask,
                     "cfi_target": cfi_target,
                     "cfi_idx": cfi_idx,
                     "cfi_type": cfi_type,
@@ -70,13 +78,12 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 }
             )
 
+    # Requests are handled by `auto_bpu_process`
     @def_method_mock(lambda self: self.ftq.bpu_request)
     def bpu_request_mock(self, pc, ftq_ptr):
-        @MethodMock.effect
-        def eff():
-            self.bpu_requests.append(pc)
+        pass
 
-    @def_method_mock(lambda self: self.ftq.ifu_request)
+    @def_method_mock(lambda self: self.ftq.ifu_request, enable=lambda self: self.ifu_ready)
     def ifu_request_mock(self, pc, ftq_ptr, fetch_gen):
         @MethodMock.effect
         def eff():
@@ -91,13 +98,45 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         return res["stale"]
 
     async def auto_bpu_process(self, sim: ProcessContext):
-        """Responds to each BPU request by predicting PC+4 as the next PC."""
-        while True:
-            if self.bpu_requests:
-                pc = self.bpu_requests.popleft()
-                await self.ftq.bpu_fetch_target.call(sim, pc=pc + 4, ftq_ptr={"ptr": 0, "parity": 0})
-            else:
-                await sim.tick()
+        """
+        A BPU that predicts PC+4 for each request and issues corrections from
+        `correct_via_bpu`. Like the real one, it drops requests that were flushed or
+        corrected, including one made in the same cycle as the flush.
+        """
+        request, flush = self.ftq.bpu_request, self.ftq.bpu_flush
+        target, correct = self.ftq.bpu_fetch_target, self.ftq.bpu_correct_fetch_target
+        pending: deque[int] = deque()
+        async for *_, request_done, request_pc, flush_done, target_done, correct_done in sim.tick().sample(
+            request.adapter.done,
+            request.adapter.data_out.pc,
+            flush.adapter.done,
+            target.adapter.done,
+            correct.adapter.done,
+        ):
+            if target_done:
+                pending.popleft()
+            if correct_done:
+                self.bpu_corrections.popleft()
+                self.bpu_corrections_done += 1
+                pending.clear()
+            if flush_done:
+                pending.clear()
+            elif request_done:
+                pending.append(request_pc)
+
+            target.disable(sim)
+            correct.disable(sim)
+            if self.bpu_corrections:
+                correct.call_init(sim, self.bpu_corrections[0])
+            elif pending:
+                target.call_init(sim, pc=pending[0] + 4, ftq_ptr={"ptr": 0, "parity": 0})
+
+    async def correct_via_bpu(self, sim: TestbenchContext, pc: int, ftq_ptr: dict):
+        """Issue a correction through `auto_bpu_process` and wait for it."""
+        done = self.bpu_corrections_done
+        self.bpu_corrections.append({"pc": pc, "ftq_ptr": ftq_ptr})
+        while self.bpu_corrections_done == done:
+            await sim.tick()
 
     def test_alloc_sends_ifu_request_with_start_pc(self):
         async def proc(sim: TestbenchContext):
@@ -308,6 +347,197 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
+    def test_bpu_correction_rewinds_younger_entries(self):
+        correction_pc = 0x600
+
+        async def proc(sim: TestbenchContext):
+            for _ in range(15):
+                await sim.tick()
+            assert len(self.ifu_requests) >= 4
+
+            retained = self.ifu_requests[1]
+            squashed = self.ifu_requests[3]
+            requests_before = len(self.ifu_requests)
+
+            await self.correct_via_bpu(
+                sim,
+                pc=correction_pc,
+                ftq_ptr={"ptr": retained["ftq_ptr"], "parity": retained["parity"]},
+            )
+
+            assert await self.check_stale(sim, retained) == 0
+            assert await self.check_stale(sim, squashed) == 1
+
+            for _ in range(15):
+                await sim.tick()
+            reissued = list(self.ifu_requests)[requests_before:]
+            assert any(request["pc"] == correction_pc and request["ftq_ptr"] == 2 for request in reissued)
+            assert await self.check_stale(sim, squashed) == 1
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_bpu_correction_does_not_skip_unfetched_entries(self):
+        correction_pc = 0x600
+        corrected_ptr = 2
+        self.ifu_ready = False
+
+        async def proc(sim: TestbenchContext):
+            for _ in range(15):
+                await sim.tick()
+            assert not self.ifu_requests
+
+            await self.correct_via_bpu(
+                sim,
+                pc=correction_pc,
+                ftq_ptr={"ptr": corrected_ptr, "parity": 0},
+            )
+
+            self.ifu_ready = True
+            for _ in range(60):
+                await sim.tick()
+
+            fetched = [request["ftq_ptr"] for request in self.ifu_requests]
+            assert fetched[: corrected_ptr + 1] == list(range(corrected_ptr + 1))
+            assert any(
+                request["pc"] == correction_pc and request["ftq_ptr"] == corrected_ptr + 1
+                for request in self.ifu_requests
+            )
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_bpu_correction_rewinds_consumed_predictions(self):
+        targets = {0: 0x400, 1: 0x500, 2: 0x600}
+
+        async def proc(sim: TestbenchContext):
+            for ptr, target in targets.items():
+                await self.ftq.bpu_prediction_details.call(
+                    sim,
+                    ftq_ptr={"ptr": ptr, "parity": 0},
+                    pc=self.start_pc,
+                    prediction={
+                        "branch_mask": 0,
+                        "cfi_idx": 0,
+                        "cfi_type": CfiType.JAL,
+                        "cfi_target": target,
+                        "cfi_target_valid": 1,
+                    },
+                    meta=0,
+                )
+
+            for ptr in (0, 1):
+                read = await self.ftq.read_prediction.call(sim, ftq_ptr={"ptr": ptr, "parity": 0})
+                assert read["cfi_target"] == targets[ptr]
+
+            await self.ftq.bpu_correct_fetch_target.call(
+                sim,
+                pc=0x700,
+                ftq_ptr={"ptr": 0, "parity": 0},
+            )
+
+            read = await self.ftq.read_prediction.call(sim, ftq_ptr={"ptr": 1, "parity": 0})
+            assert read["cfi_target"] == targets[1]
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
+    def test_bpu_correction_preserves_unconsumed_prediction(self):
+        target = 0x400
+
+        async def proc(sim: TestbenchContext):
+            await self.ftq.bpu_prediction_details.call(
+                sim,
+                ftq_ptr={"ptr": 0, "parity": 0},
+                pc=self.start_pc,
+                prediction={
+                    "branch_mask": 0,
+                    "cfi_idx": 0,
+                    "cfi_type": CfiType.JAL,
+                    "cfi_target": target,
+                    "cfi_target_valid": 1,
+                },
+                meta=0,
+            )
+            await self.ftq.bpu_correct_fetch_target.call(
+                sim,
+                pc=0x300,
+                ftq_ptr={"ptr": 0, "parity": 0},
+            )
+
+            read = await self.ftq.read_prediction.call(sim, ftq_ptr={"ptr": 0, "parity": 0})
+            assert read["cfi_target"] == target
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
+    def test_ifu_redirect_has_priority_over_bpu_correction(self):
+        correction_pc = 0x600
+        redirect_pc = 0x700
+
+        async def proc(sim: TestbenchContext):
+            for _ in range(5):
+                await sim.tick()
+            self.ifu_requests.clear()
+
+            await (
+                CallTrigger(sim)
+                .call(
+                    self.ftq.bpu_correct_fetch_target,
+                    pc=correction_pc,
+                    ftq_ptr={"ptr": 0, "parity": 0},
+                )
+                .call(
+                    self.ftq.ifu_writeback,
+                    ftq_ptr={"ptr": 0, "parity": 0},
+                    redirect=1,
+                    stall=0,
+                    cfi_idx=0,
+                    cfi_type=0,
+                    cfi_target=redirect_pc,
+                )
+                .until_done()
+            )
+
+            for _ in range(5):
+                await sim.tick()
+            assert self.ifu_requests[0]["pc"] == redirect_pc
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
+    def test_bpu_correction_has_priority_over_s1_target(self):
+        correction_pc = 0x600
+
+        async def proc(sim: TestbenchContext):
+            for _ in range(5):
+                await sim.tick()
+            self.ifu_requests.clear()
+
+            await (
+                CallTrigger(sim)
+                .call(
+                    self.ftq.bpu_fetch_target,
+                    pc=0x500,
+                    ftq_ptr={"ptr": 1, "parity": 0},
+                )
+                .call(
+                    self.ftq.bpu_correct_fetch_target,
+                    pc=correction_pc,
+                    ftq_ptr={"ptr": 0, "parity": 0},
+                )
+                .until_done()
+            )
+
+            for _ in range(5):
+                await sim.tick()
+            assert [(request["pc"], request["ftq_ptr"]) for request in self.ifu_requests] == [(correction_pc, 1)]
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
 
 class TestFetchTargetQueueFull(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
@@ -333,7 +563,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_update)
-    def bpu_update_mock(self, pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
+    def bpu_update_mock(self, pc, branch_mask, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_request)
@@ -383,6 +613,39 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
+    def test_bpu_correction_is_accepted_when_full_and_preserved_until_commit(self):
+        ftq_size = self.gen_params.ftq_size
+        corrected_pc = 0x600
+
+        async def proc(sim: TestbenchContext):
+            # Fill the queue and let the final S1 target occupy the FAU.
+            for _ in range(20):
+                await sim.tick()
+            assert list(self.ifu_requests) == [self.start_pc + 4 * i for i in range(ftq_size)]
+            assert not self.bpu_requests
+
+            result = await self.ftq.bpu_correct_fetch_target.call_try(
+                sim,
+                pc=corrected_pc,
+                ftq_ptr={"ptr": ftq_size - 1, "parity": 0},
+            )
+            assert result is not None, "An S2 correction must be accepted immediately"
+
+            # Correcting the last entry frees no slots; retain the target while full.
+            for _ in range(5):
+                await sim.tick()
+            assert len(self.ifu_requests) == ftq_size
+
+            await self.ftq.commit.call(sim, ftq_ptr={"ptr": 1, "parity": 0})
+            for _ in range(5):
+                await sim.tick()
+            assert len(self.ifu_requests) == ftq_size + 1
+            assert self.ifu_requests[-1] == corrected_pc
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
 
 class TestFetchTargetQueueTrain(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
@@ -425,7 +688,7 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_update)
-    def bpu_update_mock(self, pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
+    def bpu_update_mock(self, pc, branch_mask, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
         @MethodMock.effect
         def eff():
             self.bpu_updates.append(

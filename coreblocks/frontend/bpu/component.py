@@ -63,7 +63,11 @@ class BPUComponentLayouts:
 
 
 class BPUComponent(Elaboratable):
-    """Shared layouts and training interface for BPU components."""
+    """Shared layouts and training interface for BPU components.
+
+    Components are simple fixed-latency pipelines: every request gets read out one cycle
+    per stage later, even if the BPU has flushed it, so they never need to drop anything.
+    """
 
     update: Provided[Method]
     """Train on a resolved CFI using this component's prediction metadata."""
@@ -84,13 +88,11 @@ class FastPredictor(BPUComponent):
 
     request_s0: Provided[Method]
     response_s1: Provided[Method]
-    flush: Provided[Method]
 
     def __init__(self, gen_params: GenParams, meta_width: int):
         super().__init__(gen_params, meta_width)
         self.request_s0 = Method(i=self.component_layouts.request)
         self.response_s1 = Method(o=self.component_layouts.fast_prediction)
-        self.flush = Method()
 
 
 class CfiPredictor(BPUComponent):
@@ -99,7 +101,6 @@ class CfiPredictor(BPUComponent):
     request_s0: Provided[Method]
     response_s1: Provided[Method]
     response_s2: Provided[Method]
-    flush: Provided[Method]
 
     def __init__(self, gen_params: GenParams, meta_width: int, candidate_count: int):
         super().__init__(gen_params, meta_width)
@@ -107,7 +108,6 @@ class CfiPredictor(BPUComponent):
         self.request_s0 = Method(i=self.component_layouts.request)
         self.response_s1 = Method(o=self.component_layouts.cfi_hints(candidate_count))
         self.response_s2 = Method(o=self.component_layouts.cfi_prediction(candidate_count))
-        self.flush = Method()
 
 
 class DirectionPredictor(BPUComponent):
@@ -116,7 +116,6 @@ class DirectionPredictor(BPUComponent):
     request_s0: Provided[Method]
     accept_s1_hints: Provided[Method]
     response_s2: Provided[Method]
-    flush: Provided[Method]
 
     def __init__(self, gen_params: GenParams, meta_width: int, candidate_count: int):
         super().__init__(gen_params, meta_width)
@@ -128,4 +127,3 @@ class DirectionPredictor(BPUComponent):
             )
         )
         self.response_s2 = Method(o=self.component_layouts.direction_prediction)
-        self.flush = Method()

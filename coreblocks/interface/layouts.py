@@ -684,7 +684,6 @@ class BranchPredictionLayouts:
         self.update = make_layout(
             fields.pc,
             ("branch_mask", gen_params.fetch_width),
-            ("cfi_valid", 1),
             fields.cfi_target,
             fields.cfi_idx,
             fields.cfi_type,
