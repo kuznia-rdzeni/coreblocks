@@ -163,7 +163,7 @@ jobs:
     name: Build arch regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/riscv/act4-build:sha-5ae425847bd9404b3aab5140c9259fe6a0807047
+      image: ghcr.io/riscv/act4-build:sha-3aa11845f2c2aaddff458afa5aeaa734e2d254ba
       options: --user root
     timeout-minutes: 20
     steps:
