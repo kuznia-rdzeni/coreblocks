@@ -1,4 +1,5 @@
 import pytest
+from hypothesis import given, settings, strategies as st
 
 from transactron.testing import (
     TestCaseWithSimulator,
@@ -20,13 +21,18 @@ class TestTreePLRU(TestCaseWithSimulator):
             sim.add_testbench(proc)
 
     @pytest.mark.parametrize("ways", [2, 4, 8])
-    def test_touched_way_is_not_the_victim(self, ways):
+    @settings(deadline=None)
+    @given(data=st.data())
+    def test_touched_way_is_not_the_victim(self, ways: int, data: st.DataObject):
+        touches = data.draw(
+            st.lists(st.integers(min_value=0, max_value=ways - 1), min_size=1, max_size=64), label="touches"
+        )
         dut = SimpleTestCircuit(TreePLRU(ways))
 
         async def proc(sim: TestbenchContext):
-            # Whatever the accumulated state, touching a way must steer the victim
-            # descent away from it, so it is never the immediate next victim
-            for way in range(ways):
+            # Keep the full sweep, then explore accumulated states and repeated
+            # touches with a sequence that Hypothesis can shrink on failure.
+            for way in [*range(ways), *touches]:
                 await dut.touch[0].call(sim, way=way)
                 assert (await dut.get_victim.call(sim))["way"] != way
 
