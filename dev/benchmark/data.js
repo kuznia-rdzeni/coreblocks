@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791461119829,
+  "lastUpdate": 1791461122269,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -83752,6 +83752,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 385,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "41434f2bb271adf428658ef1da0c7767e13c46a1",
+          "message": "yet another riscv-arch-test update (#1123)",
+          "timestamp": "2026-10-08T13:24:14+02:00",
+          "tree_id": "b55be5d7657a74e315198715fb3e3e25c3b2ff02",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/41434f2bb271adf428658ef1da0c7767e13c46a1"
+        },
+        "date": 1791461121734,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.24,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20851,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9383,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 384,
             "unit": "Slice"
           },
           {
