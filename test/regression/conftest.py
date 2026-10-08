@@ -11,15 +11,15 @@ profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
 ARCH_EXPECTED_FAIL = {
-    # [#961] with virtual memory, we need reservation set <=2^12
+    # [upstream riscv/riscv-arch-test#2206] upstream makes the alignment and
+    # permission checks before the local SC failure tests (if SC matches LR),
+    # so the misaligned exception is not raised on coreblocks if the SC doesn't match,
+    # while upstream expects it.
     ".*exceptions.*zalrsc.*",
     "pmpzalrsc_cfg_wr",
     # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [upstream] sail always implements mcountinhibit, but coreblocks doesn't
-    # wait for riscv-arch-test to use next release of sail-riscv
-    r"SsstrictSm_CSR-07",
     # [#1114] write to mtime is not visible in time csr even after fence
     # "cg: Sm_mcsr_cg; cp: cp_mtime_write; bin: "
     # [#937] writes to CSRs don't stop automatic writes from happening
