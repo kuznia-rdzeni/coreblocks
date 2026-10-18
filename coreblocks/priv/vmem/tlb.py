@@ -504,14 +504,13 @@ class SetAssociativeTLB(Elaboratable):
             ask_backing = Signal()
 
             m.d.av_comb += miss.eq(~cam.full_match.any())
-
-            if self.gen_params.vmem_params.supports_auto_a_d_management:
-                if ~miss & req.is_store & ~cam.matched_entry.permissions.d:
-                    m.d.av_comb += ask_backing.eq(1)
-
             max_class = self.gen_params.vmem_params.max_tlb_size_class
-            with m.If(miss & (requested_class == max_class)):
-                m.d.av_comb += ask_backing.eq(1)
+
+            with m.If(miss):
+                m.d.av_comb += ask_backing.eq(requested_class == max_class)
+            if self.gen_params.vmem_params.supports_auto_a_d_management:
+                with m.Elif(req.is_store & ~cam.matched_entry.permissions.d):
+                    m.d.av_comb += ask_backing.eq(1)
 
             with m.If(ask_backing):
                 self.perf_misses.incr(m)
