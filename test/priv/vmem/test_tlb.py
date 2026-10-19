@@ -138,6 +138,7 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
             self.translated.append(
                 {
                     "ppn": ppn,
+                    "asid": self.asid,
                     "permissions": {
                         "r": permissions.r,
                         "w": permissions.w,

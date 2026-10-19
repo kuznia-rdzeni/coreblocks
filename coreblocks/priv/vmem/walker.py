@@ -149,6 +149,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
         ppn = Signal(self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)
         access_fault = Signal()
         page_fault = Signal()
+        walked_asid = Signal(self.gen_params.vmem_params.asidlen)
 
         accessed = Signal()
         permissions = Signal(self.layout.permissions)
@@ -239,6 +240,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                     m.d.sync += walk_level.eq(0)
 
             m.d.sync += ppn.eq(csr.s_mode.satp_ppn)
+            m.d.sync += walked_asid.eq(csr.s_mode.satp_asid)
 
         @def_method(m, self.accept, ready=fsm.ongoing("DONE"))
         def _():
@@ -266,6 +268,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
             return {
                 "result": result,
                 "ppn": ppn,
+                "asid": walked_asid,
                 "permissions": permissions,
                 "size_class": walk_level,
             }
