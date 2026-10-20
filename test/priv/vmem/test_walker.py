@@ -310,3 +310,20 @@ class TestPageTableWalker(TestCaseWithSimulator):
             sim.add_mock(self.bus_read_req_proc())
             sim.add_mock(self.bus_read_resp_proc())
             sim.add_testbench(self.random_translations_process)
+
+    def test_bare_mode_faults(self):
+        async def bare_mode_test(sim: TestbenchContext):
+            sim.set(self.csr_instances.s_mode.satp_mode, SatpMode.BARE)
+            for _ in range(16):
+                vpn = random.randint(0, (1 << SatpMode.SV32.vpn_bits()) - 1)
+                is_write = random.random() < 0.5
+                await sim.tick()
+                await self.dut.request.call(sim, vpn=vpn, is_store=is_write)
+                ret = await self.dut.accept.call(sim)
+                assert ret.result == AddressTranslationLayouts.TLBResult.PAGE_FAULT
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_mock(self.bus_read_req_proc())
+            sim.add_mock(self.bus_read_resp_proc())
+
+            sim.add_testbench(bare_mode_test)

@@ -140,6 +140,8 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
         assert pte_layout.as_shape().width == self.bus.params.data_width
         offset_bits = exact_log2(pte_bytes)
 
+        skip_walk = Signal()
+
         max_levels = max(mode.level_count() for mode in self.gen_params.vmem_params.supported_non_bare_schemes)
 
         walk_level = Signal(range(max_levels))
@@ -165,7 +167,10 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
             with m.State("IDLE"):
                 with m.If(self.request.run):
                     log.info(m, 1, "Starting page table walk for VPN {:x}", self.request.data_in.vpn)
-                    m.next = "ISSUE"
+                    with m.If(skip_walk):
+                        m.next = "DONE"
+                    with m.Else():
+                        m.next = "ISSUE"
             with m.State("DONE"):
                 with m.If(self.accept.run):
                     m.next = "IDLE"
@@ -225,6 +230,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
         @def_method(m, self.request, ready=fsm.ongoing("IDLE"))
         def _(arg):
             m.d.sync += [
+                walk_level.eq(0),
                 walk_vpn.eq(arg.vpn),
                 is_store.eq(arg.is_store),
                 access_fault.eq(0),
@@ -235,9 +241,13 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                 for mode in self.gen_params.vmem_params.supported_non_bare_schemes:
                     with m.Case(mode):
                         m.d.sync += walk_level.eq(mode.level_count() - 1)
+                with m.Case(SatpMode.BARE):
+                    m.d.sync += page_fault.eq(1)
+                    m.d.av_comb += skip_walk.eq(1)
                 with m.Default():
                     log.error(m, 1, "Unsupported SATP mode in page table walker")
-                    m.d.sync += walk_level.eq(0)
+                    m.d.sync += page_fault.eq(1)
+                    m.d.av_comb += skip_walk.eq(1)
 
             m.d.sync += ppn.eq(csr.s_mode.satp_ppn)
             m.d.sync += walked_asid.eq(csr.s_mode.satp_asid)
@@ -251,7 +261,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                 for level in range(max_levels):
                     with m.Case(level):
                         level_vpn_bits = bits_per_level * level
-                        m.d.comb += ppn_misaligned.eq(ppn[:level_vpn_bits].any())
+                        m.d.av_comb += ppn_misaligned.eq(ppn[:level_vpn_bits].any())
 
             with m.If(access_fault):
                 m.d.av_comb += result.eq(AddressTranslationLayouts.TLBResult.ACCESS_FAULT)
