@@ -229,6 +229,9 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
 
         @def_method(m, self.request, ready=fsm.ongoing("IDLE"))
         def _(arg):
+            # This method is the only place where satp CSR is sampled for generating PTEs.
+            # This ensures we never generate bad results due to satp changes during a translation.
+
             m.d.sync += [
                 walk_level.eq(0),
                 walk_vpn.eq(arg.vpn),
