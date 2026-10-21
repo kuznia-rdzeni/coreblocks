@@ -61,6 +61,8 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
 
         self.asid = -1
 
+        self.asid_override: int | None = None
+
     def size_class_mask(self, size_class: int):
         bits_per_size_class = self.gen_params.vmem_params.page_table_level_bits
         return -(1 << (bits_per_size_class * size_class))
@@ -132,12 +134,14 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
     def process_request(self, vpn, is_store):
         @MethodMock.effect
         def _():
-            ppn, permissions, size_class, result, global_ = self.lookup(vpn, self.asid)[0]
+            asid = self.asid if self.asid_override is None else self.asid_override
+            ppn, permissions, size_class, result, global_ = self.lookup(vpn, asid)[0]
 
             self.ready = True
             self.translated.append(
                 {
                     "ppn": ppn,
+                    "asid": asid,
                     "permissions": {
                         "r": permissions.r,
                         "w": permissions.w,
@@ -423,7 +427,6 @@ class TestTLBCache(TestCaseWithSimulator):
         self.backing.add_translation(vpn1, ppn1, permissions=permissions, asid=asid)
         self.backing.add_translation(vpn2, ppn2, permissions=permissions, asid=asid)
         sim.set(self.csr_instances.s_mode.satp_asid, asid)
-        await sim.tick()
 
         # First access -> miss -> causes backing lookup and fills TLB
         await self.request.call(sim, vpn=vpn1, is_store=0)
@@ -450,6 +453,43 @@ class TestTLBCache(TestCaseWithSimulator):
 
         assert len(self.backing.translated) == 2
 
+    async def caches_correct_asid(self, sim: TestbenchContext):
+        vpn = 0xABCDE
+        ppn1 = 0x1ABCD
+        asid1 = 3
+        ppn2 = 0x23456
+        asid2 = 6
+        permissions = Permissions(r=1, w=0, x=0, u=1, d=0)
+
+        # Prime the cache by causing a miss and letting the backing fill it.
+        self.backing.add_translation(vpn, ppn1, permissions=permissions, asid=asid1)
+        self.backing.add_translation(vpn, ppn2, permissions=permissions, asid=asid2)
+
+        sim.set(self.csr_instances.s_mode.satp_asid, asid1)
+        self.backing.asid_override = asid2
+        await sim.tick()
+
+        # The backing resolver responds with different ASID than expected.
+        await self.request.call(sim, vpn=vpn, is_store=0)
+        _ = await self.accept.call(sim)
+        assert len(self.backing.translated) == 1
+
+        self.backing.asid_override = None
+
+        # Make sure that the entry was saved with the ASID from response and not the requested ASID
+        await self.request.call(sim, vpn=vpn, is_store=0)
+        ret = await self.accept.call(sim)
+        assert ret["ppn"] == ppn1
+        assert len(self.backing.translated) == 2
+
+        sim.set(self.csr_instances.s_mode.satp_asid, asid2)
+        await sim.tick()
+
+        await self.request.call(sim, vpn=vpn, is_store=0)
+        ret = await self.accept.call(sim)
+        assert ret["ppn"] == ppn2
+        assert len(self.backing.translated) == 2
+
     def test_translation_is_cached(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
@@ -472,3 +512,10 @@ class TestTLBCache(TestCaseWithSimulator):
             sim.add_mock(self.backing.process_request())
             sim.add_mock(self.backing.process_accept())
             sim.add_testbench(self.single_cycle_process)
+
+    def test_caches_correct_asid(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_process(self.backing.asid_get)
+            sim.add_mock(self.backing.process_request())
+            sim.add_mock(self.backing.process_accept())
+            sim.add_testbench(self.caches_correct_asid)
