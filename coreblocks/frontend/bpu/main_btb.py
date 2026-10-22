@@ -165,24 +165,26 @@ class MainBTB(CfiPredictor):
 
         @def_method(m, self.request_s0, ready=~clearing)
         def _(pc):
+            s1_pipe.write(
+                m,
+                tag=tag_of(pc),
+                set_idx=set_index(pc),
+                position=fparams.fb_instr_idx(pc),
+                target_high=target_high(pc),
+            )
+
             with m.If(~self.flush.run):
-                table.read_req(m, addr=set_index(pc))
-                s1_pipe.write(
-                    m,
-                    tag=tag_of(pc),
-                    set_idx=set_index(pc),
-                    position=fparams.fb_instr_idx(pc),
-                    target_high=target_high(pc),
-                )
+                table.read[0].request(m, addr=set_index(pc))
 
         @def_method(m, self.flush, nonexclusive=True)
         def _():
+            s1_pipe.clear(m)
             s2_pipe.clear(m)
 
         @def_method(m, self.response_s1)
         def _():
             s1 = s1_pipe.read(m)
-            row = table.read_resp(m).data
+            row = table.read[0].response(m).data
             entries = [row[way] for way in range(self.ways)]
 
             raw_hit = Signal(self.ways)

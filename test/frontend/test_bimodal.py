@@ -74,7 +74,7 @@ class TestBimodal(TestCaseWithSimulator):
                 .call(self.bimodal.request_s0, pc=0x1010)
                 .call(self.bimodal.flush)
             )
-            assert None not in results
+            assert all(result is not None for result in results)
             assert await self.bimodal.response_s2.call_try(sim) is None
             assert await self.bimodal.accept_s1_hints.call_try(sim, pc=0x1010, hints=self.empty_hints) is None
             assert (await self.lookup(sim, 0x1000))["taken"] == 0

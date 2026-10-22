@@ -83,7 +83,7 @@ class Bimodal(DirectionPredictor):
         @def_method(m, self.request_s0, ready=~clearing)
         def _(pc):
             with m.If(~self.flush.run):
-                table.read_req(m, addr=set_index(pc))
+                table.read[0].request(m, addr=set_index(pc))
 
         @def_method(m, self.flush, nonexclusive=True)
         def _():
@@ -91,7 +91,7 @@ class Bimodal(DirectionPredictor):
 
         @def_method(m, self.accept_s1_hints)
         def _(pc, hints):
-            row = table.read_resp(m).data
+            row = table.read[0].response(m).data
 
             taken = Cat(row[position][-1] for position in range(fetch_width))
             s2_pipe.write(m, taken=taken, meta=Value.cast(row))

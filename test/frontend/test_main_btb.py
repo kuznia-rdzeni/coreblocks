@@ -152,7 +152,7 @@ class TestMainBTB(TestCaseWithSimulator):
                 .call(self.btb.request_s0, pc=self.pc(0x11))
                 .call(self.btb.flush)
             )
-            assert None not in results
+            assert all(result is not None for result in results)
             assert await self.btb.response_s2.call_try(sim) is None
             assert await self.btb.response_s1.call_try(sim) is None
             assert (await self.lookup(sim, pc))["hit"] == 1
