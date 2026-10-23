@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791461124577,
+  "lastUpdate": 1792742883608,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29717,6 +29717,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/41434f2bb271adf428658ef1da0c7767e13c46a1"
         },
         "date": 1791461100224,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.572202126684789,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820929569432563,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5842747501518414,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6924762948491924,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39385518239106804,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.54674429175169,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5401988678027748,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5357919846274475,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4f93e71348f3dd3ac37c66cf6b3f42a77a46a4f5",
+          "message": "update yosys :sob: (#1133)",
+          "timestamp": "2026-10-23T09:17:55+02:00",
+          "tree_id": "1bd75e0b3535df8294f4000c162ed456d9412290",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4f93e71348f3dd3ac37c66cf6b3f42a77a46a4f5"
+        },
+        "date": 1792742870324,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
