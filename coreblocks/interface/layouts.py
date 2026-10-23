@@ -231,6 +231,7 @@ class AddressTranslationLayouts:
         self.tlb_accept = make_layout(
             ("result", self.TLBResult),
             self.ppn,
+            self.asid,
             ("permissions", self.permissions),
             self.size_class,
         )

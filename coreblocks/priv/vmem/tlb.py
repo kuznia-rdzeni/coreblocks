@@ -252,6 +252,7 @@ class FullyAssociativeTLB(Elaboratable):
 
             ret = {
                 "result": AddressTranslationLayouts.TLBResult.HIT,
+                "asid": current_asid,
                 "permissions": cam.matched_entry.permissions,
                 "ppn": cam.matched_entry.ppn,
                 "size_class": cam.matched_entry.size_class,
@@ -278,10 +279,11 @@ class FullyAssociativeTLB(Elaboratable):
                 with Transaction(name=f"Refill_{port}").body(m):
                     refill_semaphore.release(m)
 
-                    m.d.av_comb += cam.checked_vpn.eq(vpn_req)
-                    m.d.av_comb += cam.checked_asid.eq(current_asid)
-
                     resp = self.backing_resolver.accept(m)
+
+                    m.d.av_comb += cam.checked_vpn.eq(vpn_req)
+                    m.d.av_comb += cam.checked_asid.eq(resp.asid)
+
                     m.d.av_comb += refill_ret.eq(resp)
                     result_fwd.write(m, resp)
                     m.d.sync += slow_path.eq(0)
@@ -293,7 +295,7 @@ class FullyAssociativeTLB(Elaboratable):
                             entries[cam.replace_candidate],
                             {
                                 "valid": 1,
-                                "asid": current_asid,
+                                "asid": resp.asid,
                                 "vpn": vpn_req,
                                 "ppn": resp.ppn,
                                 "size_class": resp.size_class,
@@ -504,14 +506,13 @@ class SetAssociativeTLB(Elaboratable):
             ask_backing = Signal()
 
             m.d.av_comb += miss.eq(~cam.full_match.any())
-
-            if self.gen_params.vmem_params.supports_auto_a_d_management:
-                if ~miss & req.is_store & ~cam.matched_entry.permissions.d:
-                    m.d.av_comb += ask_backing.eq(1)
-
             max_class = self.gen_params.vmem_params.max_tlb_size_class
-            with m.If(miss & (requested_class == max_class)):
-                m.d.av_comb += ask_backing.eq(1)
+
+            with m.If(miss):
+                m.d.av_comb += ask_backing.eq(requested_class == max_class)
+            if self.gen_params.vmem_params.supports_auto_a_d_management:
+                with m.Elif(req.is_store & ~cam.matched_entry.permissions.d):
+                    m.d.av_comb += ask_backing.eq(1)
 
             with m.If(ask_backing):
                 self.perf_misses.incr(m)
@@ -531,6 +532,7 @@ class SetAssociativeTLB(Elaboratable):
                 fwd.write(
                     m,
                     result=AddressTranslationLayouts.TLBResult.HIT,
+                    asid=current_asid,
                     permissions=cam.matched_entry.permissions,
                     ppn=cam.matched_entry.ppn,
                     size_class=cam.matched_entry.size_class,
@@ -571,7 +573,7 @@ class SetAssociativeTLB(Elaboratable):
                     new_entry = Signal(TLBEntry(self.gen_params))
                     m.d.top_comb += [
                         new_entry.valid.eq(1),
-                        new_entry.asid.eq(current_asid),
+                        new_entry.asid.eq(refill_response.asid),
                         new_entry.vpn.eq(req.vpn),
                         new_entry.ppn.eq(refill_response.ppn),
                         new_entry.size_class.eq(refill_response.size_class),

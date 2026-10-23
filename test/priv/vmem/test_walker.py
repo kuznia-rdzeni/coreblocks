@@ -21,6 +21,7 @@ from test.peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 class TranslationInfo:
     satp_ppn: int
     satp_mode: SatpMode
+    satp_asid: int
     vpn: int
     is_write: bool
     path: list[tuple[int, Optional[int]]]  # list of (PTE address, PTE value) pairs representing the translation path
@@ -83,9 +84,13 @@ class TestPageTableWalker(TestCaseWithSimulator):
         max_ppn = ((1 << self.gen_params.phys_addr_bits) >> PAGE_SIZE_LOG) - 1
         root_ppn = random.randint(0, max_ppn)
 
+        asidlen = self.gen_params.vmem_params.asidlen
+        asid = random.randint(0, (1 << asidlen) - 1)
+
         common = {
             "satp_ppn": root_ppn,
             "satp_mode": mode,
+            "satp_asid": asid,
             "vpn": vpn,
             "is_write": is_write,
         }
@@ -266,6 +271,11 @@ class TestPageTableWalker(TestCaseWithSimulator):
         if self.mem_results:
             return self.mem_results[-1]
 
+    def set_satp(self, sim: TestbenchContext, mode: SatpMode, ppn: int, asid: int):
+        sim.set(self.csr_instances.s_mode.satp_mode, mode)
+        sim.set(self.csr_instances.s_mode.satp_ppn, ppn)
+        sim.set(self.csr_instances.s_mode.satp_asid, asid)
+
     async def random_translations_process(self, sim: TestbenchContext):
         # allow PMP for S-mode
         sim.set(self.csr_instances.m_mode.pmpxcfg[6].value, 0b00001001)  # R=1, A=TOR
@@ -276,8 +286,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
             mode = random.choice([*self.gen_params.vmem_params.supported_non_bare_schemes])
             translation_info = self.gen_random_translation_path(mode)
 
-            sim.set(self.csr_instances.s_mode.satp_mode, translation_info.satp_mode)
-            sim.set(self.csr_instances.s_mode.satp_ppn, translation_info.satp_ppn)
+            self.set_satp(sim, translation_info.satp_mode, translation_info.satp_ppn, translation_info.satp_asid)
 
             # clean PPM
             if translation_info.pmp_failing is not None:
@@ -296,12 +305,17 @@ class TestPageTableWalker(TestCaseWithSimulator):
 
             await sim.tick()
             await self.dut.request.call(sim, vpn=translation_info.vpn, is_store=translation_info.is_write)
+
+            # corrupt satp to check if PTW correctly samples it
+            self.set_satp(sim, SatpMode.BARE, ~0, translation_info.satp_asid ^ 1)
+
             ret = await self.dut.accept.call(sim)
             assert not self.mem_expected
 
             assert ret.result == translation_info.result
             if translation_info.result == AddressTranslationLayouts.TLBResult.HIT:
                 assert ret.ppn == translation_info.ppn
+                assert ret.asid == translation_info.satp_asid
                 assert ret.permissions.as_bits() == translation_info.permissions
                 assert ret.size_class == SatpMode.level_count(translation_info.satp_mode) - len(translation_info.path)
 
@@ -310,3 +324,20 @@ class TestPageTableWalker(TestCaseWithSimulator):
             sim.add_mock(self.bus_read_req_proc())
             sim.add_mock(self.bus_read_resp_proc())
             sim.add_testbench(self.random_translations_process)
+
+    def test_bare_mode_faults(self):
+        async def bare_mode_test(sim: TestbenchContext):
+            sim.set(self.csr_instances.s_mode.satp_mode, SatpMode.BARE)
+            for _ in range(16):
+                vpn = random.randint(0, (1 << SatpMode.SV32.vpn_bits()) - 1)
+                is_write = random.random() < 0.5
+                await sim.tick()
+                await self.dut.request.call(sim, vpn=vpn, is_store=is_write)
+                ret = await self.dut.accept.call(sim)
+                assert ret.result == AddressTranslationLayouts.TLBResult.PAGE_FAULT
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_mock(self.bus_read_req_proc())
+            sim.add_mock(self.bus_read_resp_proc())
+
+            sim.add_testbench(bare_mode_test)
