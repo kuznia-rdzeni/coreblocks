@@ -42,7 +42,9 @@ jobs:
 
       - name: Push documentation
         # Deploy documentation only when on master
-        if: github.ref == 'refs/heads/master'
+        if: |
+          github.repository == 'kuznia-rdzeni/coreblocks' &&
+          github.ref == 'refs/heads/master'
         run: |
           . venv/bin/activate
           ./ci/push_gh_pages.sh
