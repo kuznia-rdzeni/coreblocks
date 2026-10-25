@@ -5,7 +5,7 @@ from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
 from transactron import Method, Methods, TModule, def_method, Priority, Transaction
-from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux
+from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux, AssignType
 from transactron.lib import (
     BasicFifo,
     Forwarder,
@@ -225,10 +225,6 @@ class FullyAssociativeTLB(Elaboratable):
         csr = self.dm.get_dependency(CSRInstancesKey())
 
         vpn_bits = self.gen_params.vmem_params.max_tlb_vpn_bits
-        asid_bits = self.gen_params.vmem_params.asidlen
-
-        current_asid = Signal(asid_bits)
-        m.d.av_comb += current_asid.eq(csr.s_mode.satp_asid)
 
         entries = Signal(ArrayLayout(TLBEntry(self.gen_params), self.entries))
         replacement_rr_index = Signal(range(self.entries))
@@ -252,7 +248,7 @@ class FullyAssociativeTLB(Elaboratable):
 
             ret = {
                 "result": AddressTranslationLayouts.TLBResult.HIT,
-                "asid": current_asid,
+                "asid": cam.checked_asid,
                 "permissions": cam.matched_entry.permissions,
                 "ppn": cam.matched_entry.ppn,
                 "size_class": cam.matched_entry.size_class,
@@ -301,6 +297,7 @@ class FullyAssociativeTLB(Elaboratable):
                                 "size_class": resp.size_class,
                                 "permissions": resp.permissions,
                             },
+                            fields=AssignType.ALL,
                         )
 
             with m.Elif(flush_queue.level != 0):
@@ -324,7 +321,7 @@ class FullyAssociativeTLB(Elaboratable):
                     self.perf_latency.start(m)
 
                     m.d.av_comb += cam.checked_vpn.eq(vpn)
-                    m.d.av_comb += cam.checked_asid.eq(current_asid)
+                    m.d.av_comb += cam.checked_asid.eq(csr.s_mode.satp_asid)
                     ask_backing, ret = do_query(cam, is_store)
 
                     with m.If(ask_backing):
@@ -340,7 +337,7 @@ class FullyAssociativeTLB(Elaboratable):
 
             with m.Else():
                 m.d.av_comb += cam.checked_vpn.eq(vpn_req)
-                m.d.av_comb += cam.checked_asid.eq(current_asid)
+                m.d.av_comb += cam.checked_asid.eq(csr.s_mode.satp_asid)
 
                 ask_backing, ret = do_query(cam, is_store_req)
 
@@ -435,11 +432,7 @@ class SetAssociativeTLB(Elaboratable):
         csr = self.dm.get_dependency(CSRInstancesKey())
 
         vpn_bits = self.gen_params.vmem_params.max_tlb_vpn_bits
-        asid_bits = self.gen_params.vmem_params.asidlen
         set_index_bits = (self.sets - 1).bit_length()
-
-        current_asid = Signal(asid_bits)
-        m.d.comb += current_asid.eq(csr.s_mode.satp_asid)
 
         m.submodules.cam = cam = TLBCAM(self.gen_params, self.ways)
 
@@ -494,7 +487,7 @@ class SetAssociativeTLB(Elaboratable):
             m.d.comb += set_rd.addr.eq(set_idx)
             m.d.comb += set_rd.en.eq(1)
 
-            m.d.sync += cam.checked_asid.eq(current_asid)
+            m.d.sync += cam.checked_asid.eq(csr.s_mode.satp_asid)
             m.d.sync += cam.checked_vpn.eq(vpn)
 
             request_pipe.write(m, vpn=vpn, is_store=is_store)
@@ -532,7 +525,7 @@ class SetAssociativeTLB(Elaboratable):
                 fwd.write(
                     m,
                     result=AddressTranslationLayouts.TLBResult.HIT,
-                    asid=current_asid,
+                    asid=cam.checked_asid,
                     permissions=cam.matched_entry.permissions,
                     ppn=cam.matched_entry.ppn,
                     size_class=cam.matched_entry.size_class,
@@ -571,14 +564,18 @@ class SetAssociativeTLB(Elaboratable):
                     m.d.sync += refill_in_progress.eq(0)
 
                     new_entry = Signal(TLBEntry(self.gen_params))
-                    m.d.top_comb += [
-                        new_entry.valid.eq(1),
-                        new_entry.asid.eq(refill_response.asid),
-                        new_entry.vpn.eq(req.vpn),
-                        new_entry.ppn.eq(refill_response.ppn),
-                        new_entry.size_class.eq(refill_response.size_class),
-                        new_entry.permissions.eq(refill_response.permissions),
-                    ]
+                    m.d.top_comb += assign(
+                        new_entry,
+                        {
+                            "valid": 1,
+                            "asid": refill_response.asid,
+                            "vpn": req.vpn,
+                            "ppn": refill_response.ppn,
+                            "size_class": refill_response.size_class,
+                            "permissions": refill_response.permissions,
+                        },
+                        fields=AssignType.ALL,
+                    )
 
                     m.d.comb += rd_wr.data.eq(cam.next_replacement_rr_index)
                     m.d.comb += rd_wr.addr.eq(refill_set_idx)
