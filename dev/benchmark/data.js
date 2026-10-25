@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792967838763,
+  "lastUpdate": 1792967840677,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -93735,6 +93735,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "74223e7815e9bce925caade714ba614b4a4bbfaa",
+          "message": "only push docs on main repo (#1139)",
+          "timestamp": "2026-10-25T22:51:24+01:00",
+          "tree_id": "d30c935452ad81863a9df0c2c62508384f1ab0cf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/74223e7815e9bce925caade714ba614b4a4bbfaa"
+        },
+        "date": 1792967840261,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.92,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 9106,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3664,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 158,
             "unit": "Slice"
           },
           {
