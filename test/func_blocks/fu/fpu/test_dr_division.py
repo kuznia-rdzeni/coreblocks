@@ -22,9 +22,7 @@ class TestDRDivision(TestCaseWithSimulator):
             result_fractional_bits=14,
             digit_w=DigitWidth.WIDTH_TWO,
         )
-        drd = SimpleTestCircuit(
-            DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS)
-        )
+        drd = SimpleTestCircuit(DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS))
 
         async def tests(sim: TestbenchContext):
             input_dict = {}

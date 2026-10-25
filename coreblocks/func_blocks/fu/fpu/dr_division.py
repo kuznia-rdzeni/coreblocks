@@ -116,9 +116,7 @@ class DrDivModule(Elaboratable):
         residual_negative = Signal()
         residual_is_zero = Signal()
         residual_is_minus_d = Signal()
-        otfc_response = Signal(
-            from_method_layout(otfc.method_layouts.otfc_result_out_layout)
-        )
+        otfc_response = Signal(from_method_layout(otfc.method_layouts.otfc_result_out_layout))
         qsf_response = Signal(from_method_layout(qsf.method_layouts.qsf_out_layout))
 
         with m.FSM(init="Idle"):
@@ -154,9 +152,7 @@ class DrDivModule(Elaboratable):
                             divisor=(divisor[-5:] << 0),
                         )
                     )
-                    otfc.otfc_add_digit(
-                        m, sign=qsf_response["sign"], q=qsf_response["q"]
-                    )
+                    otfc.otfc_add_digit(m, sign=qsf_response["sign"], q=qsf_response["q"])
                 m.d.sync += counter.eq(counter + 1)
                 # To check if the last residual is zero we keep this
                 # information in a separate flag before we compute new residual
