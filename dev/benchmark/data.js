@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793023968005,
+  "lastUpdate": 1793023970247,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -84390,6 +84390,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 21225,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9410,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 387,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d1f730e50210852cf11ccf5334368364271fcda9",
+          "message": "remove last possibility of ASID mismatch (#1143)",
+          "timestamp": "2026-10-26T14:26:22+01:00",
+          "tree_id": "f8e76018622460bb0d518abb91de24973666c45b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d1f730e50210852cf11ccf5334368364271fcda9"
+        },
+        "date": 1793023969631,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.99,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 21110,
             "unit": "LUT"
           },
           {
