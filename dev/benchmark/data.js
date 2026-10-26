@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793023972294,
+  "lastUpdate": 1793031458968,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29973,6 +29973,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d1f730e50210852cf11ccf5334368364271fcda9"
         },
         "date": 1793023946118,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.572202126684789,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820929569432563,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5842747501518414,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6924762948491924,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39385518239106804,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.54674429175169,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5401988678027748,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5357919846274475,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "953a37bc628cc55863a5530ba2cf8d8e8a19cec7",
+          "message": "Make time csr immediately visible (#1141)",
+          "timestamp": "2026-10-26T16:23:56+01:00",
+          "tree_id": "a93d389131e32ce16c8345bb365562114144d35b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/953a37bc628cc55863a5530ba2cf8d8e8a19cec7"
+        },
+        "date": 1793031447378,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
