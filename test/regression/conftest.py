@@ -20,8 +20,6 @@ ARCH_EXPECTED_FAIL = {
     # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [#1114] write to mtime is not visible in time csr even after fence
-    # "cg: Sm_mcsr_cg; cp: cp_mtime_write; bin: "
     # [#937] writes to CSRs don't stop automatic writes from happening
     # "cg: Sm_mcsr_cg; cp: cp_minstret_wraparound; bin: minstret_wrap"
     r"Sm_mcsr_cntr",

@@ -564,11 +564,13 @@ class CSRInstances(Elaboratable):
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
             self.csr_coreblocks_test_exit = CSRRegister(CSRAddress.COREBLOCKS_TEST_EXIT_CSR, gen_params)
 
+        self.time_value = Signal(64)
         self.time = CSRRegister(
             None,
             self.gen_params,
             width=64,
             ro_bits=~0,
+            fu_read_map=lambda _, __: self.time_value,
         )
         self.time_shadow = DoubleShadowCSR(
             self.gen_params,
@@ -595,13 +597,12 @@ class CSRInstances(Elaboratable):
         # then fallback to providing a cycle counter source.
         clint_mtime = DependencyContext.get().get_optional_dependency(ClintMtimeKey())
         if clint_mtime is not None:
-            time_source = clint_mtime
+            m.d.comb += self.time_value.eq(clint_mtime)
         else:
-            time_source = Signal(64)
-            m.d.sync += time_source.eq(time_source + 1)
+            m.d.sync += self.time_value.eq(self.time_value + 1)
 
         with Transaction().always_body(m):
-            self.time.write(m, time_source)
+            self.time.write(m, self.time_value)
 
         m.submodules.time = self.time
         m.submodules.time_shadow = self.time_shadow
