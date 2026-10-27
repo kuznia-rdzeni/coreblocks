@@ -1,11 +1,10 @@
 from coreblocks.func_blocks.fu.fpu.fpu_add_sub import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes
-from test.func_blocks.fu.fpu.fpu_test_common import FPUTester, python_to_float
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
 from test.func_blocks.fu.fpu.add_sub_test_cases import *
 from transactron.testing import *
 from amaranth import *
 import random
-import struct
 
 
 class TestAddSub(TestCaseWithSimulator):
@@ -13,36 +12,38 @@ class TestAddSub(TestCaseWithSimulator):
         params = FPUParams(sig_width=24, exp_width=8)
         tester = FPUTester(params)
         m = SimpleTestCircuit(FPUAddSubModule(fpu_params=params))
+        sfr = SoftFloatReference()
 
         async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
+            rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
             test_runs = 20
             random.seed(seed)
 
             for i in range(test_runs):
-                input_dict = {}
-                p_float_1 = python_to_float(random.uniform(0, 3.4028235 * (10**38)))
-                p_float_2 = python_to_float(random.uniform(0, 3.4028235 * (10**38)))
-                if i < test_runs / 2:
-                    input_dict["operation"] = 0
-                    result = python_to_float(p_float_1 + p_float_2)
+                float_1_raw = random.getrandbits(32)
+                float_2_raw = random.getrandbits(32)
+                test_addition = i < test_runs / 2
+
+                if test_addition:
+                    (expected_raw, expected_errors) = sfr.add(SF_F32, float_1_raw, float_2_raw, rm)
                 else:
-                    input_dict["operation"] = 1
-                    result = python_to_float(p_float_1 - p_float_2)
-                hex_1 = hex(struct.unpack("<I", struct.pack("<f", p_float_1))[0])
-                hex_2 = hex(struct.unpack("<I", struct.pack("<f", p_float_2))[0])
-                hex_result = hex(struct.unpack("<I", struct.pack("<f", result))[0])
+                    (expected_raw, expected_errors) = sfr.sub(SF_F32, float_1_raw, float_2_raw, rm)
 
-                input_dict["op_1"] = tester.converter.from_hex(hex_1)
-                input_dict["op_2"] = tester.converter.from_hex(hex_2)
-                input_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
+                input_dict = {
+                    "operation": 0 if test_addition else 1,
+                    "op_1": tester.converter.from_hex(float_1_raw),
+                    "op_2": tester.converter.from_hex(float_2_raw),
+                    "rounding_mode": rm,
+                }
 
-                result = tester.converter.from_hex(hex_result)
+                result = tester.converter.from_hex(expected_raw)
                 resp = await request_adapter.call(sim, input_dict)
 
                 assert result["sign"] == resp["sign"]
                 assert result["exp"] == resp["exp"]
                 assert result["sig"] == resp["sig"]
+                assert expected_errors == resp["errors"]
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.add_sub_request)
