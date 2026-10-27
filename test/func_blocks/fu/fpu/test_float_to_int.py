@@ -87,6 +87,22 @@ test_cases = [
         0,
         Errors.INVALID_OPERATION,
     ),
+    # Currently broken
+    # Test 8: 1.5 should round to 2
+    # TCase(
+    #     converter.from_hex("3FC00000"),
+    #     0,
+    #     2,
+    #     0
+    # ),
+    # Currently broken
+    # Test 9: -1.5 should round to -2
+    # TCase(
+    #     converter.from_hex("BFC00000"),
+    #     1,
+    #     max_un_int - 1,
+    #     0
+    # ),
 ]
 
 
