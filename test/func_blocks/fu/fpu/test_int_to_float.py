@@ -1,6 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.int_to_float import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, IntConversionValues, RoundingModes
-from test.func_blocks.fu.fpu.fpu_test_common import ToFloatConverter, python_to_float
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, ToFloatConverter, SoftFloatReference
 from transactron.testing import *
 from amaranth import *
 import random
@@ -13,6 +13,7 @@ class TestComp(TestCaseWithSimulator):
         int_values = IntConversionValues(int_width=64, sig_width=24, bias=127)
         converter = ToFloatConverter(params)
         itf = SimpleTestCircuit(IntToFloatModule(fpu_params=params, int_values=int_values))
+        sfr = SoftFloatReference()
 
         async def itf_ec_test(sim: TestbenchContext):
             input_dict = {}
@@ -39,24 +40,31 @@ class TestComp(TestCaseWithSimulator):
             assert max_negative_sig == resp["sig"]
 
         async def itf_python_test(sim: TestbenchContext):
+            rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
             random.seed(seed)
             test_runs = 20
-            for i in range(test_runs):
 
-                input_dict = {}
-                op = random.randint(-(2 ** (63)), 2 ** (64) - 1)
-                expected_resp = converter.from_float(python_to_float(op))
+            for _ in range(test_runs):
+                is_signed = random.binomialvariate()
+                input = random.getrandbits(64)
 
-                input_dict["op"] = op
-                input_dict["signed"] = 0 if op >= 0 else 1
-                input_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
+                in_fmt = SF_I64 if is_signed else SF_UI64
+
+                (expected_raw, expected_errors) = sfr.convert(in_fmt, SF_F32, input, rm)
+                expected = converter.from_hex(expected_raw)
+
+                input_dict = {
+                    "op": input,
+                    "signed": 1 if is_signed else 0,
+                    "rounding_mode": rm,
+                }
 
                 resp = await itf.itf_request.call(sim, input_dict)
-
-                assert expected_resp["sign"] == resp["sign"]
-                assert expected_resp["exp"] == resp["exp"]
-                assert expected_resp["sig"] == resp["sig"]
+                assert expected["sign"] == resp["sign"]
+                assert expected["exp"] == resp["exp"]
+                assert expected["sig"] == resp["sig"]
+                assert expected_errors == resp["errors"]
 
         async def test_process(sim: TestbenchContext):
             await itf_python_test(sim)
