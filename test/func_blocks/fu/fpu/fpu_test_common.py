@@ -1,20 +1,121 @@
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUCommonValues, FPUParams, RoundingModes
+from dataclasses import dataclass
+from coreblocks.func_blocks.fu.fpu.fpu_common import Errors, FPUCommonValues, FPUParams, RoundingModes
 from transactron.testing import *
-from enum import Enum
-from contextlib import contextmanager
-import struct
-import ctypes
-
-libm = ctypes.CDLL("libm.so.6")
+import softfloatpy
 
 
-@contextmanager
-def python_float_tester():
-    old_rm = libm.fegetround()
-    try:
-        yield old_rm
-    finally:
-        libm.fesetround(old_rm)
+FPU_RM_TO_SOFTFLOAT_RM = {
+    RoundingModes.ROUND_UP: softfloatpy.RoundingMode.MAX,
+    RoundingModes.ROUND_DOWN: softfloatpy.RoundingMode.MIN,
+    RoundingModes.ROUND_ZERO: softfloatpy.RoundingMode.MIN_MAG,
+    RoundingModes.ROUND_NEAREST_EVEN: softfloatpy.RoundingMode.NEAR_EVEN,
+    RoundingModes.ROUND_NEAREST_AWAY: softfloatpy.RoundingMode.NEAR_MAX_MAG,
+}
+
+SF_EXCEPTION_TO_FPU_ERRORS = {
+    softfloatpy.ExceptionFlag.INEXACT: Errors.INEXACT,
+    softfloatpy.ExceptionFlag.UNDERFLOW: Errors.UNDERFLOW,
+    softfloatpy.ExceptionFlag.OVERFLOW: Errors.OVERFLOW,
+    softfloatpy.ExceptionFlag.INFINITE: Errors.DIVISION_BY_ZERO,
+    softfloatpy.ExceptionFlag.INVALID: Errors.INVALID_OPERATION,
+}
+
+
+@dataclass(frozen=True)
+class SFFormat:
+    prefix: str
+    byte_width: int
+    sf_cls: type
+
+    def pack(self, word: int):
+        return self.sf_cls.from_bytes(word.to_bytes(self.byte_width, "big"))
+
+    def unpack(self, sf_val) -> int:
+        return int.from_bytes(sf_val.to_bytes(), "big")
+
+
+@dataclass(frozen=True)
+class SFIntegerFormat(SFFormat):
+    pass
+
+
+@dataclass(frozen=True)
+class SFFloatFormat(SFFormat):
+    canonical_nan: int
+
+    def unpack(self, sf_val) -> int:
+        if sf_val.is_nan():
+            return self.canonical_nan
+
+        return super().unpack(sf_val)
+
+
+SF_I64 = SFIntegerFormat("i64", 8, softfloatpy.Int64)
+SF_UI64 = SFIntegerFormat("ui64", 8, softfloatpy.UInt64)
+SF_F32 = SFFloatFormat(
+    "f32",
+    4,
+    softfloatpy.Float32,
+    0x7FC00000,
+)
+
+
+class SoftFloatReference:
+    def __init__(self):
+        softfloatpy.set_tininess_mode(softfloatpy.TininessMode.AFTER_ROUNDING)
+
+    @staticmethod
+    def _sf_exception_to_fpu_errors(sf_exceptions: int) -> int:
+        fpu_errors = 0
+        for sf_exception, fpu_error in SF_EXCEPTION_TO_FPU_ERRORS.items():
+            if sf_exceptions & sf_exception != 0:
+                fpu_errors |= int(fpu_error)
+
+        return fpu_errors
+
+    @staticmethod
+    def _execute_and_collect(rm: RoundingModes, fmt: SFFormat, f) -> tuple[int, int]:
+        softfloatpy.set_rounding_mode(FPU_RM_TO_SOFTFLOAT_RM[rm])
+        softfloatpy.set_exception_flags(0)
+
+        sf_result = f()
+        sf_exceptions = softfloatpy.get_exception_flags()
+
+        result_raw = fmt.unpack(sf_result)
+        exceptions_raw = SoftFloatReference._sf_exception_to_fpu_errors(sf_exceptions)
+        return (result_raw, exceptions_raw)
+
+    def op(self, op_name: str, fmt: SFFloatFormat, a: int, b: int, rm: RoundingModes) -> tuple[int, int]:
+        sf_op = getattr(softfloatpy, f"{fmt.prefix}_{op_name}")
+        sf_a = fmt.pack(a)
+        sf_b = fmt.pack(b)
+        return self._execute_and_collect(rm, fmt, lambda: sf_op(sf_a, sf_b))
+
+    def mul(self, fmt: SFFloatFormat, a: int, b: int, rm: RoundingModes) -> tuple[int, int]:
+        return self.op("mul", fmt, a, b, rm)
+
+    def add(self, fmt: SFFloatFormat, a: int, b: int, rm: RoundingModes) -> tuple[int, int]:
+        return self.op("add", fmt, a, b, rm)
+
+    def sub(self, fmt: SFFloatFormat, a: int, b: int, rm: RoundingModes) -> tuple[int, int]:
+        return self.op("sub", fmt, a, b, rm)
+
+    def convert(
+        self, sf_fmt_input: SFFormat, sf_fmt_output: SFFormat, input: int, rm: RoundingModes, exact: bool = True
+    ) -> tuple[int, int]:
+        to_float = isinstance(sf_fmt_output, SFFloatFormat)
+        # Conversion between integer types is not supported
+        assert to_float or isinstance(sf_fmt_input, SFFloatFormat)
+
+        sf_convert = getattr(softfloatpy, f"{sf_fmt_input.prefix}_to_{sf_fmt_output.prefix}")
+        sf_x = sf_fmt_input.pack(input)
+
+        if to_float:
+            return self._execute_and_collect(rm, sf_fmt_output, lambda: sf_convert(sf_x))
+        else:
+            return self._execute_and_collect(
+                rm, sf_fmt_output, lambda: sf_convert(sf_x, FPU_RM_TO_SOFTFLOAT_RM[rm], exact)
+            )
 
 
 class FPUTester:
@@ -41,18 +142,6 @@ class FPUTester:
             assert resp["errors"] == int(result[num][1], 16)
 
 
-def python_to_float(p_float: float) -> float:
-    try:
-        return struct.unpack("f", struct.pack("f", p_float))[0]
-    except OverflowError:
-        if p_float > 3.4028235e38:
-            return float("inf")
-        elif p_float < -3.4028235e38:
-            return float("-inf")
-        else:
-            raise
-
-
 class ToFloatConverter:
     def __init__(self, params: FPUParams):
         self.params = params
@@ -67,12 +156,8 @@ class ToFloatConverter:
         self.implicit_one = 1 << (self.params.sig_width - 1)
         self.cv = FPUCommonValues(self.params)
 
-    def from_float(self, fl):
-        fl_hex = hex(struct.unpack("<I", struct.pack("<f", fl))[0])
-        return self.from_hex(fl_hex)
-
-    def from_hex(self, hex_float):
-        number = int(hex_float, 16)
+    def from_hex(self, hex_float: int | str):
+        number = int(hex_float, 16) if isinstance(hex_float, str) else hex_float
         exp = (number >> self.sig_width) & self.exp_mask
         sig = number & self.sig_mask
         if exp != 0:
@@ -85,22 +170,3 @@ class ToFloatConverter:
             "is_nan": ((exp == self.cv.max_exp) & ((sig & (~self.implicit_one)) != 0)),
             "is_zero": ((exp == 0) & (sig == 0)),
         }
-
-
-class FenvRm(Enum):
-    FE_TONEAREST = 0x0000
-    FE_DOWNWARD = 0x400
-    FE_UPWARD = 0x800
-    FE_TOWARDZERO = 0xC00
-
-
-def fenv_rm_to_fpu_rm(fenv_rm):
-    match fenv_rm:
-        case FenvRm.FE_TONEAREST:
-            return RoundingModes.ROUND_NEAREST_EVEN
-        case FenvRm.FE_DOWNWARD:
-            return RoundingModes.ROUND_DOWN
-        case FenvRm.FE_UPWARD:
-            return RoundingModes.ROUND_UP
-        case FenvRm.FE_TOWARDZERO:
-            return RoundingModes.ROUND_ZERO
