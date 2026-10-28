@@ -6,6 +6,7 @@ from collections import deque
 from enum import Enum
 from inspect import isclass
 import random
+import pytest
 
 from transactron.utils import NameIntDict
 
@@ -20,6 +21,7 @@ from transactron.testing.functions import data_const_to_dict
 
 
 class TestWakeupSelect(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(
             configurations.test.replace(
