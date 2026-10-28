@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.fpu_comp import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, ComparisionTypes
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, FPUParams, ComparisionTypes
 from test.func_blocks.fu.fpu.fpu_test_common import FloatConverter
 from transactron.testing import *
 from amaranth import *
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 class TValues:
     def __init__(self):
-        tc = FloatConverter(FPUParams(sig_width=24, exp_width=8))
+        tc = FloatConverter(IEEE754_F32)
         self.pos_sign = 0
         self.neg_sign = 1
         self.smaller_mag = tc.to_input_data("81FFDFFE")
