@@ -129,25 +129,22 @@ class FPUTester:
         return f"{{ {fields} }}"
 
     @staticmethod
-    def compare_results(lhs, rhs):
+    def compare_results(lhs, rhs, fail_msg: str | None = None):
         lhs_str = FPUTester.fpu_output_to_string(lhs)
         rhs_str = FPUTester.fpu_output_to_string(rhs)
-        assert lhs == rhs, f"lhs: {lhs_str}, rhs: {rhs_str}"
+        fail_msg = f"lhs: {lhs_str}, rhs: {rhs_str}" + f"\n{fail_msg}" if fail_msg else ""
+        assert lhs == rhs, fail_msg
 
-    async def run_test_set(self, cases, result, common_input, sim: TestbenchContext, request_adapter: TestbenchIO):
-        assert len(cases) == len(result)
-        for num, case in enumerate(cases):
-            input_dict = {}
-            for key, value in common_input.items():
-                input_dict[key] = value
+    async def run_test_set(
+        self, cases, input_generator, expected_generator, sim: TestbenchContext, request_adapter: TestbenchIO
+    ):
+        for rm in RoundingModes:
+            for case in cases:
+                input_dict = input_generator(case, rm)
+                resp = await request_adapter.call(sim, input_dict)
+                expected = expected_generator(case, rm)
 
-            input_dict["op_1"] = self.converter.to_input_data(case[0])
-            input_dict["op_2"] = self.converter.to_input_data(case[1])
-            resp = await request_adapter.call(sim, input_dict)
-
-            (result_data, result_errors) = (result[num][0], result[num][1])
-            expected = self.converter.to_output_data(result_data, result_errors)
-            self.compare_results(resp, expected)
+                self.compare_results(resp, expected, f"For input dict: {input_dict}")
 
 
 class FloatData(NamedTuple):
