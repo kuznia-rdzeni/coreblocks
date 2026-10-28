@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.fpu_mul import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32
 from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
 from transactron.testing import *
 from test.func_blocks.fu.fpu.mul_test_cases import *
@@ -9,7 +9,7 @@ import random
 
 class TestMul(TestCaseWithSimulator):
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         tester = FPUTester(params)
         converter = tester.converter
         m = SimpleTestCircuit(FPUMulModule(fpu_params=params))
