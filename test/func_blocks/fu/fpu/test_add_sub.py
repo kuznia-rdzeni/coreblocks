@@ -42,114 +42,23 @@ class TestAddSub(TestCaseWithSimulator):
                 FPUTester.compare_results(result, resp)
 
         async def test_process(sim: TestbenchContext):
+            def construct_input(test_case_data, rounding_mode: RoundingModes):
+                return {
+                    "operation": 0,
+                    "op_1": tester.converter.to_input_data(test_case_data[0]),
+                    "op_2": tester.converter.to_input_data(test_case_data[1]),
+                    "rounding_mode": rounding_mode,
+                }
+
+            def get_expected(test_case_data, rounding_mode: RoundingModes):
+                (expected_raw, expected_errors) = sfr.add(SF_F32, test_case_data[0], test_case_data[1], rounding_mode)
+                return tester.converter.to_output_data(expected_raw, expected_errors)
+
             await python_float_test(sim, m.add_sub_request)
             await tester.run_test_set(
-                nc_add_rtne,
-                nc_add_rtne_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_rtna,
-                nc_add_rtna_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_up,
-                nc_add_up_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_down,
-                nc_add_down_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_zero,
-                nc_add_zero_resp,
-                {"rounding_mode": RoundingModes.ROUND_ZERO, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_rtne,
-                nc_sub_rtne_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_rtna,
-                nc_sub_rtna_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_up,
-                nc_sub_up_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_down,
-                nc_sub_down_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_zero,
-                nc_sub_zero_resp,
-                {"rounding_mode": RoundingModes.ROUND_ZERO, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                edge_cases_add,
-                edge_cases_add_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                edge_cases_sub,
-                edge_cases_sub_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                edge_cases_sub_down,
-                edge_cases_sub_down_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-            await tester.run_test_set(
-                edge_cases_sub_up,
-                edge_cases_sub_up_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 1},
+                add_sub_edge_cases,
+                construct_input,
+                get_expected,
                 sim,
                 m.add_sub_request,
             )
