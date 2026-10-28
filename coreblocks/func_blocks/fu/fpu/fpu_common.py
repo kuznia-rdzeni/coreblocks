@@ -1,3 +1,4 @@
+from attr import dataclass
 from amaranth.lib import enum, data
 import math
 
@@ -37,6 +38,7 @@ class FPUClasses(enum.IntFlag, shape=10):
     QUIET_NAN = enum.auto()
 
 
+@dataclass(frozen=True)
 class FPUParams:
     """FPU parameters
 
@@ -48,14 +50,11 @@ class FPUParams:
         Width of exponent
     """
 
-    def __init__(
-        self,
-        *,
-        sig_width: int = 24,
-        exp_width: int = 8,
-    ):
-        self.sig_width = sig_width
-        self.exp_width = exp_width
+    sig_width: int
+    exp_width: int
+
+
+IEEE754_F32 = FPUParams(24, 8)
 
 
 def create_data_output_layout(params: FPUParams):

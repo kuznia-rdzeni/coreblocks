@@ -1,5 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.fpu_error_module import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
+    IEEE754_F32,
     RoundingModes,
     FPUParams,
     Errors,
@@ -39,7 +40,7 @@ class TestFPUError(TestCaseWithSimulator):
             self.max_sub_norm_sig = (2 ** (self.params.sig_width - 1)) - 1
             self.qnan = 3 << (self.params.sig_width - 2) | 1
 
-    params = FPUParams(sig_width=24, exp_width=8)
+    params = IEEE754_F32
     help_values = HelpValues(params)
 
     @parameterized.expand([(params, help_values)])

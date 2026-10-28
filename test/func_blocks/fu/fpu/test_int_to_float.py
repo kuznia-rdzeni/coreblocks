@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.int_to_float import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, IntConversionValues, RoundingModes
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, IntConversionValues, RoundingModes
 from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, FloatConverter, SoftFloatReference
 from transactron.testing import *
 from amaranth import *
@@ -9,7 +9,7 @@ import random
 class TestComp(TestCaseWithSimulator):
 
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         int_values = IntConversionValues(int_width=64, sig_width=24, bias=127)
         converter = FloatConverter(params)
         itf = SimpleTestCircuit(IntToFloatModule(fpu_params=params, int_values=int_values))

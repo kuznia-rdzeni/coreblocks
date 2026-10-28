@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.fpu_add_sub import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes
 from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
 from test.func_blocks.fu.fpu.add_sub_test_cases import *
 from transactron.testing import *
@@ -9,7 +9,7 @@ import random
 
 class TestAddSub(TestCaseWithSimulator):
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         tester = FPUTester(params)
         m = SimpleTestCircuit(FPUAddSubModule(fpu_params=params))
         sfr = SoftFloatReference()

@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.float_to_int import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes, Errors
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes, Errors
 from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, FloatConverter, SoftFloatReference
 from transactron.testing import *
 from amaranth import *
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 # compute if rounding is needed, it may be worth to test all rounding modes or
 # modify rounding module to return one bit of information signifying if rounding occured
 
-converter = FloatConverter(FPUParams(sig_width=24, exp_width=8))
+converter = FloatConverter(IEEE754_F32)
 
 
 @dataclass
@@ -108,7 +108,7 @@ test_cases = [
 class TestFTI(TestCaseWithSimulator):
 
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         fti = SimpleTestCircuit(FloatToIntModule(fpu_params=params, int_width=64))
         sfr = SoftFloatReference()
 

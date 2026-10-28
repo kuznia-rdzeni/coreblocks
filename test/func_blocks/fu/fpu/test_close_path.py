@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.close_path import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, FPUParams
 from transactron import TModule
 from transactron.lib import AdapterTrans
 from transactron.testing import *
@@ -20,7 +20,7 @@ class TestClosePath(TestCaseWithSimulator):
             return m
 
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         close_path = TestClosePath.ClosePathModuleTest(params)
 
         async def normal_cases(sim: TestbenchContext):
