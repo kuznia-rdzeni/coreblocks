@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import NamedTuple
 from coreblocks.func_blocks.fu.fpu.fpu_common import Errors, FPUCommonValues, FPUParams, RoundingModes
 from transactron.testing import *
 import softfloatpy
@@ -121,12 +122,7 @@ class SoftFloatReference:
 class FPUTester:
     def __init__(self, params: FPUParams):
         self.params = params
-        self.converter = ToFloatConverter(params)
-
-    def __compare_results__(self, lhs, rhs):
-        assert lhs["sign"] == rhs["sign"]
-        assert lhs["exp"] == rhs["exp"]
-        assert lhs["sig"] == rhs["sig"]
+        self.converter = FloatConverter(params)
 
     async def run_test_set(self, cases, result, common_input, sim: TestbenchContext, request_adapter: TestbenchIO):
         assert len(cases) == len(result)
@@ -134,15 +130,23 @@ class FPUTester:
             input_dict = {}
             for key, value in common_input.items():
                 input_dict[key] = value
-            input_dict["op_1"] = self.converter.from_hex(case[0])
-            input_dict["op_2"] = self.converter.from_hex(case[1])
+
+            input_dict["op_1"] = self.converter.to_input_data(case[0])
+            input_dict["op_2"] = self.converter.to_input_data(case[1])
             resp = await request_adapter.call(sim, input_dict)
-            self.__compare_results__(resp, self.converter.from_hex(result[num][0]))
 
-            assert resp["errors"] == int(result[num][1], 16)
+            (result_data, result_errors) = (result[num][0], result[num][1])
+            expected = self.converter.to_output_data(result_data, result_errors)
+            assert resp == expected
 
 
-class ToFloatConverter:
+class FloatConverter:
+    class FloatData(NamedTuple):
+        sign: int
+        exp: int
+        sig: int
+        sig_with_implicit_one: int
+
     def __init__(self, params: FPUParams):
         self.params = params
         # Width of the entire floating point number.
@@ -156,17 +160,32 @@ class ToFloatConverter:
         self.implicit_one = 1 << (self.params.sig_width - 1)
         self.cv = FPUCommonValues(self.params)
 
-    def from_hex(self, hex_float: int | str):
-        number = int(hex_float, 16) if isinstance(hex_float, str) else hex_float
-        exp = (number >> self.sig_width) & self.exp_mask
-        sig = number & self.sig_mask
-        if exp != 0:
-            sig = sig | self.implicit_one
+    def _decode_float(self, raw_float: int | str) -> FloatData:
+        raw_float = int(raw_float, 16) if isinstance(raw_float, str) else raw_float
+        sign = (raw_float >> (self.all_width - 1)) & 0x1
+        exp = (raw_float >> self.sig_width) & self.exp_mask
+        sig = raw_float & self.sig_mask
+        sig_with_implicit_one = sig | self.implicit_one if exp != 0 else sig
+        return self.FloatData(sign, exp, sig, sig_with_implicit_one)
+
+    def to_input_data(self, raw_float: int | str) -> dict[str, int]:
+        (sign, exp, sig, sig_with_implicit_one) = self._decode_float(raw_float)
+        # Matches FPU data_input_layout
         return {
-            "sign": number >> (self.all_width - 1),
+            "sign": sign,
             "exp": exp,
-            "sig": sig,
-            "is_inf": ((exp == self.cv.max_exp) & ((sig & (~self.implicit_one)) == 0)),
-            "is_nan": ((exp == self.cv.max_exp) & ((sig & (~self.implicit_one)) != 0)),
+            "sig": sig_with_implicit_one,
+            "is_inf": ((exp == self.cv.max_exp) & (sig == 0)),
+            "is_nan": ((exp == self.cv.max_exp) & (sig != 0)),
             "is_zero": ((exp == 0) & (sig == 0)),
+        }
+
+    def to_output_data(self, raw_float: int | str, errors: int | str) -> dict[str, int]:
+        (sign, exp, _, sig_with_implicit_one) = self._decode_float(raw_float)
+        # Matches FPU data_output_layout
+        return {
+            "sign": sign,
+            "exp": exp,
+            "sig": sig_with_implicit_one,
+            "errors": int(errors, 16) if isinstance(errors, str) else errors,
         }

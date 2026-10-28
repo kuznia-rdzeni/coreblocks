@@ -1,6 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.fpu_comp import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, ComparisionTypes
-from test.func_blocks.fu.fpu.fpu_test_common import ToFloatConverter
+from test.func_blocks.fu.fpu.fpu_test_common import FloatConverter
 from transactron.testing import *
 from amaranth import *
 from dataclasses import dataclass
@@ -8,15 +8,15 @@ from dataclasses import dataclass
 
 class TValues:
     def __init__(self):
-        tc = ToFloatConverter(FPUParams(sig_width=24, exp_width=8))
+        tc = FloatConverter(FPUParams(sig_width=24, exp_width=8))
         self.pos_sign = 0
         self.neg_sign = 1
-        self.smaller_mag = tc.from_hex("81FFDFFE")
-        self.bigger_mag = tc.from_hex("81FFDFFF")
-        self.zero = tc.from_hex("00000000")
-        self.qnan = tc.from_hex("FFC00000")
-        self.snan = tc.from_hex("FFA00000")
-        self.inf = tc.from_hex("FF800000")
+        self.smaller_mag = tc.to_input_data("81FFDFFE")
+        self.bigger_mag = tc.to_input_data("81FFDFFF")
+        self.zero = tc.to_input_data("00000000")
+        self.qnan = tc.to_input_data("FFC00000")
+        self.snan = tc.to_input_data("FFA00000")
+        self.inf = tc.to_input_data("FF800000")
 
 
 @dataclass

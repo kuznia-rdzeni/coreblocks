@@ -32,18 +32,14 @@ class TestAddSub(TestCaseWithSimulator):
 
                 input_dict = {
                     "operation": 0 if test_addition else 1,
-                    "op_1": tester.converter.from_hex(float_1_raw),
-                    "op_2": tester.converter.from_hex(float_2_raw),
+                    "op_1": tester.converter.to_input_data(float_1_raw),
+                    "op_2": tester.converter.to_input_data(float_2_raw),
                     "rounding_mode": rm,
                 }
 
-                result = tester.converter.from_hex(expected_raw)
+                result = tester.converter.to_output_data(expected_raw, expected_errors)
                 resp = await request_adapter.call(sim, input_dict)
-
-                assert result["sign"] == resp["sign"]
-                assert result["exp"] == resp["exp"]
-                assert result["sig"] == resp["sig"]
-                assert expected_errors == resp["errors"]
+                assert result == resp
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.add_sub_request)

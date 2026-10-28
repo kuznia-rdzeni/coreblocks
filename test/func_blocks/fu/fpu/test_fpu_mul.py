@@ -26,20 +26,16 @@ class TestMul(TestCaseWithSimulator):
                     float_2_raw = random.getrandbits(32)
 
                     (expected_raw, expected_errors) = sfr.mul(SF_F32, float_1_raw, float_2_raw, rm)
-                    expected = converter.from_hex(expected_raw)
+                    expected = converter.to_output_data(expected_raw, expected_errors)
 
                     input_dict = {
-                        "op_1": converter.from_hex(float_1_raw),
-                        "op_2": converter.from_hex(float_2_raw),
+                        "op_1": converter.to_input_data(float_1_raw),
+                        "op_2": converter.to_input_data(float_2_raw),
                         "rounding_mode": rm,
                     }
 
                     resp = await request_adapter.call(sim, input_dict)
-
-                    assert expected["sign"] == resp["sign"]
-                    assert expected["exp"] == resp["exp"]
-                    assert expected["sig"] == resp["sig"]
-                    assert expected_errors == resp["errors"]
+                    assert expected == resp
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.mul_request)

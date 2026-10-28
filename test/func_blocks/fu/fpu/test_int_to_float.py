@@ -1,6 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.int_to_float import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, IntConversionValues, RoundingModes
-from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, ToFloatConverter, SoftFloatReference
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, FloatConverter, SoftFloatReference
 from transactron.testing import *
 from amaranth import *
 import random
@@ -11,7 +11,7 @@ class TestComp(TestCaseWithSimulator):
     def test_manual(self):
         params = FPUParams(sig_width=24, exp_width=8)
         int_values = IntConversionValues(int_width=64, sig_width=24, bias=127)
-        converter = ToFloatConverter(params)
+        converter = FloatConverter(params)
         itf = SimpleTestCircuit(IntToFloatModule(fpu_params=params, int_values=int_values))
         sfr = SoftFloatReference()
 
@@ -52,7 +52,7 @@ class TestComp(TestCaseWithSimulator):
                 in_fmt = SF_I64 if is_signed else SF_UI64
 
                 (expected_raw, expected_errors) = sfr.convert(in_fmt, SF_F32, input, rm)
-                expected = converter.from_hex(expected_raw)
+                expected = converter.to_output_data(expected_raw, expected_errors)
 
                 input_dict = {
                     "op": input,
@@ -61,10 +61,7 @@ class TestComp(TestCaseWithSimulator):
                 }
 
                 resp = await itf.itf_request.call(sim, input_dict)
-                assert expected["sign"] == resp["sign"]
-                assert expected["exp"] == resp["exp"]
-                assert expected["sig"] == resp["sig"]
-                assert expected_errors == resp["errors"]
+                assert expected == resp
 
         async def test_process(sim: TestbenchContext):
             await itf_python_test(sim)
