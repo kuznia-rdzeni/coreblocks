@@ -18,7 +18,7 @@ from coreblocks.frontend.bpu.bpu import BranchPredictionUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import FlushICacheKey, RollbackKey, UnsafeInstructionResolvedKey
+from coreblocks.interface.keys import CoreStateKey, FlushICacheKey, RollbackKey, UnsafeInstructionResolvedKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 log = logging.HardwareLogger("frontend")
@@ -42,12 +42,13 @@ class RollbackTagger(Elaboratable):
 
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
+        self.dm = DependencyContext.get()
 
         self.get_instr = Method(o=gen_params.get(DecodeLayouts).decode_result)
         self.push_instr = Method(i=gen_params.get(DecodeLayouts).tagged_decode_result)
 
         self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
-        DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
+        self.dm.add_dependency(RollbackKey(), self.rollback)
 
     def elaborate(self, platform):
         m = TModule()
@@ -73,6 +74,12 @@ class RollbackTagger(Elaboratable):
         def _(tag, pc, ftq_ptr):
             m.d.sync += rollback_tag.eq(tag)
             m.d.sync += rollback_tag_v.eq(1)
+
+        with Transaction().always_body(m):
+            # Rollback state is be cancelled only on a core flush
+            core_state = self.dm.get_dependency(CoreStateKey())(m)
+            with m.If(core_state.flushing):
+                m.d.sync += rollback_tag_v.eq(0)
 
         return m
 
