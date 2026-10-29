@@ -140,6 +140,7 @@ class TestICacheBypass(TestCaseWithSimulator):
     isa_xlen: int
     fetch_block: int
 
+    @pytest.fixture(autouse=True)
     def setup_method(self) -> None:
         self.gen_params = GenParams(
             configurations.test.replace(xlen=self.isa_xlen, fetch_block_bytes_log=self.fetch_block, icache_enable=False)

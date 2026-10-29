@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 import random
+import pytest
 from collections import deque
 
 from amaranth.lib.wiring import connect
@@ -302,6 +303,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
 
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
     def setup_method(self):
         self.memsize = 43  # test some weird depth
         self.iters = 300
