@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.fpu_sign_injection import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, FPUParams
 from transactron import TModule
 from transactron.lib import AdapterTrans
 from transactron.testing import *
@@ -18,7 +18,7 @@ class TestSI(TestCaseWithSimulator):
             return m
 
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         si = TestSI.SIModuleTest(params)
 
         async def si_test(sim: TestbenchContext):

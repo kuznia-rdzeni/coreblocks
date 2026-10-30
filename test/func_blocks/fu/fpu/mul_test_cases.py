@@ -13,6 +13,10 @@ edge_cases_mul = [
     ["7F000000", "00400000"],
     # overflow
     ["7F000000", "7F000000"],
+    # Currently broken
+    # underflow-to-zero
+    # -5.622009438871166e-42 * 7.479011060625431e-37 = -0.0
+    # ["80000FAC", "037E7F60"],
 ]
 
 edge_cases_mul_resp = [
@@ -23,6 +27,7 @@ edge_cases_mul_resp = [
     ["00000001", "03"],
     ["3F800000", "00"],
     ["7F800000", "05"],
+    # ["80000000", "03"],
 ]
 
 rne_cases_mul = [
