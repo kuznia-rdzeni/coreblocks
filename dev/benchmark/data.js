@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793384196386,
+  "lastUpdate": 1793384199149,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -94971,6 +94971,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 157,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "17de98ae230d2d618ecc0370abec35a13c911d34",
+          "message": "Fix handling tags after full core flush (#1149)",
+          "timestamp": "2026-10-30T17:55:03+01:00",
+          "tree_id": "4f2bd0cd7bdab636c04f5e53418c66903574b492",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/17de98ae230d2d618ecc0370abec35a13c911d34"
+        },
+        "date": 1793384198337,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 71.36,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8806,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3664,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 155,
             "unit": "Slice"
           },
           {
