@@ -17,6 +17,8 @@ class DrDivParams:
         width of the fractional part of the float
     result_fractional_bits: int
         Fractional bits of the result we want to compute. The integer bits are always zero before shift
+    digit_w : DigitWidth
+        Width of digit
     """
 
     def __init__(
@@ -25,10 +27,12 @@ class DrDivParams:
         iterations: int,
         fractional_bits: int,
         result_fractional_bits: int,
+        digit_w: DigitWidth,
     ):
         self.iterations = iterations
         self.fractional_bits = fractional_bits
         self.result_fractional_bits = result_fractional_bits
+        self.digit_w = digit_w
 
 
 class DrDivMethodLayout:
@@ -83,7 +87,10 @@ class DrDivModule(Elaboratable):
     def __init__(self, *, div_params: DrDivParams, qsf_params: QSFParams):
         self.div_params = div_params
         self.qsf_params = qsf_params
-        self.otfc_params = OTFCParams(result_width=self.div_params.result_fractional_bits)
+        self.otfc_params = OTFCParams(
+            result_width=self.div_params.result_fractional_bits,
+            digit_width=self.div_params.digit_w,
+        )
         self.method_layouts = DrDivMethodLayout(dr_div_params=div_params)
         self.div_init = Method(i=self.method_layouts.division_init_in_layout)
         self.div_result = Method(o=self.method_layouts.division_run_out_layout)
