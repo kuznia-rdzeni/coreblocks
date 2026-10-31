@@ -123,7 +123,7 @@ class OTFCModule(Elaboratable):
                 b_shift = (sign) | (q == 0)
                 m.d.comb += a.eq((a1 << 1) | a0)
                 m.d.comb += b.eq((b1 << 1) | b0)
-            elif self.otfc_params.digit_width == DigitWidth.WIDTH_ONE:
+            else:
                 m.d.comb += a.eq(q)
                 m.d.comb += b.eq(q == 0)
                 a_shift = ~sign

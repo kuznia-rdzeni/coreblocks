@@ -27,7 +27,7 @@ class DrDivParams:
         iterations: int,
         fractional_bits: int,
         result_fractional_bits: int,
-        digit_w: DigitalWidth,
+        digit_w: DigitWidth,
     ):
         self.iterations = iterations
         self.fractional_bits = fractional_bits

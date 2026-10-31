@@ -51,6 +51,7 @@ class OTFUModule(Elaboratable):
     result (one number) in non redundant form, this module computes values of F
     which is a formula rather than one number, thus the process is a little bit more complex.
     The formulas comes from "Digital Arithmetic" by Milos D. Ercegovac and Tomas Lang
+
     Parameters
     ----------
     otfu_params: OTFUParams
@@ -113,7 +114,9 @@ class OTFUModule(Elaboratable):
 
         @def_method(m, self.otfu_add_digit)
         def _(sign, q):
-            k_update_bit = 1 << (self.otfu_params.result_width + additional_int_bits - 1)
+            k_update_bit = 1 << (
+                self.otfu_params.result_width + additional_int_bits - 1
+            )
             with m.If(q == 1):
                 with m.If(sign == 0):
                     m.d.sync += f_one.eq((f_one & k) | one_pattern)
