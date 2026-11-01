@@ -228,4 +228,8 @@ instructions_by_optype = {
         Encoding(Opcode.AMO, Funct3.W, Funct7.LR, rs2_zero=True),
         Encoding(Opcode.AMO, Funct3.W, Funct7.SC),
     ],
+    OpType.MOP: [
+        Encoding(Opcode.SYSTEM, Funct3.MOP),
+        Encoding(Opcode.SYSTEM, Funct3.MOP)
+    ],
 }
