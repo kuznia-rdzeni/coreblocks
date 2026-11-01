@@ -21,7 +21,7 @@ __all__ = ["AluFuncUnit", "ALUComponent"]
 
 
 class AluFn(DecoderManager):
-    def __init__(self, zba_enable=False, zbb_enable=False, zicond_enable=False) -> None:
+    def __init__(self, zba_enable=False, zbb_enable=False, zicond_enable=False, zimop_enable=False) -> None:
         self.zba_enable = zba_enable
         self.zbb_enable = zbb_enable
         self.zicond_enable = zicond_enable
@@ -65,6 +65,10 @@ class AluFn(DecoderManager):
         CZEROEQZ = auto()  # Move zero if condition if equal to zero
         CZERONEZ = auto()  # Move zero if condition is nonzero
 
+        # ZIMOP extension
+        MOPR  = auto() # Move zero
+        MOPRR = auto() # Move zero
+
     def get_instructions(self) -> Sequence[tuple]:
         return (
             [
@@ -105,6 +109,11 @@ class AluFn(DecoderManager):
                 (self.Fn.CZERONEZ, OpType.CZERO, Funct3.CZERONEZ),
             ]
             * self.zicond_enable
+            + [
+                (self.Fn.MOPR, OpType.MOP, Funct3.MOP),
+                (self.Fn.MOPRR, OpType.MOP, Funct3.MOP),
+            ]
+            * self.zimop_enable
         )
 
 
@@ -229,6 +238,11 @@ class Alu(Elaboratable):
                             m.d.comb += self.out.eq(output_fn(False))
                         with m.Else():
                             m.d.comb += self.out.eq(output_fn(True))
+
+            if self.zimop_enable:
+                with OneHotCase(fn):
+                    # TODO check if the size is right
+                    m.d.comb += self.out.eq(0);
 
         return m
 
