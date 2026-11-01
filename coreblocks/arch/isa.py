@@ -59,6 +59,10 @@ class Extension(enum.IntFlag):
     ZIHINTPAUSE = auto()
     #: Enables hardware performance counters
     ZIHPM = auto()
+    # Enables may-be operations
+    ZIMOP = auto()
+    # Enables compressed may-be operations
+    ZCMOP = auto()
     #: Integer multiplication operations
     ZMMUL = auto()
     #: Atomic memory operations
@@ -115,6 +119,7 @@ _extension_requirements = {
     Extension.ZFINX: Extension.F,
     Extension.ZDINX: Extension.D,
     Extension.ZHINX: Extension.ZFH,
+    Extension.ZCMOP: Extension.ZCA,
     Extension.ZCF: Extension.F | Extension.ZCA,
     Extension.ZCD: Extension.D | Extension.ZCA,
     Extension.ZCB: Extension.ZCA,
