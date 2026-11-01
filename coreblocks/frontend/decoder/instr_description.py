@@ -234,6 +234,6 @@ instructions_by_optype = {
     ],
     OpType.MOP: [
         Encoding(Opcode.SYSTEM, Funct3.MOP, bit25_val=0b0),
-        Encoding(Opcode.SYSTEM, Funct3.MOP, bit25_val=0b1)
+        Encoding(Opcode.SYSTEM, Funct3.MOP, instr_type_override=InstrType.R, inst bit25_val=0b1)
     ],
 }
