@@ -28,6 +28,8 @@ class Encoding:
     rs1_zero: bool
         `rs1` field is specified as constant zero in instruction encoding. Other fields are decoded
         accordingly to `InstrType`. Default is False.
+    bit25_val: Optional[Const]
+        The optional specified value of the 25th bit of the encoding. Default is None.
     """
 
     opcode: Opcode
@@ -39,6 +41,8 @@ class Encoding:
     rd_zero: bool = False
     rs1_zero: bool = False
     rs2_zero: bool = False
+    bit25_val: Optional[Const] = None
+
 
 
 #
@@ -229,7 +233,7 @@ instructions_by_optype = {
         Encoding(Opcode.AMO, Funct3.W, Funct7.SC),
     ],
     OpType.MOP: [
-        Encoding(Opcode.SYSTEM, Funct3.MOP),
-        Encoding(Opcode.SYSTEM, Funct3.MOP)
+        Encoding(Opcode.SYSTEM, Funct3.MOP, bit25_val=0b0),
+        Encoding(Opcode.SYSTEM, Funct3.MOP, bit25_val=0b1)
     ],
 }
