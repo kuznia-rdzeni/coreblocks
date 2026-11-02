@@ -40,7 +40,7 @@ def sample_optype_sets(draw: st.DrawFn):
 
 
 def rand_enable(data: st.DataObject) -> Callable[[], bool]:
-    rnd = random.Random(data.draw(st.integers(0, 2**32-1), label="rng_seed"))
+    rnd = random.Random(data.draw(st.integers(0, 2**32 - 1), label="rng_seed"))
     p = data.draw(st.sampled_from([1.0, 0.9, 0.7, 0.5]), label="enable_prob")
     return lambda: rnd.random() < p
 
@@ -83,8 +83,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
                 allow_partial_extensions=True,
                 frontend_superscalarity=ways,
                 func_units_config=tuple(
-                    MockedBlockComponent(optypes, rs_entries=rs_entries)
-                    for optypes in optype_sets
+                    MockedBlockComponent(optypes, rs_entries=rs_entries) for optypes in optype_sets
                 ),
             )
         )
@@ -110,10 +109,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
                 for _ in range(ways)
             ]
             rp_dsts = [draw(amaranth_consts(gen_params.phys_regs_bits)) for _ in range(count)]
-            rename_resps = [
-                draw(amaranth_structs(rat_layouts.crat_rename_out))
-                for _ in range(count)
-            ]
+            rename_resps = [draw(amaranth_structs(rat_layouts.crat_rename_out)) for _ in range(count)]
             rf_s1s = [draw(amaranth_structs(rf_layouts.rf_read_out)) for _ in range(count)]
             rf_s2s = [draw(amaranth_structs(rf_layouts.rf_read_out)) for _ in range(count)]
             tag_resp = draw(amaranth_structs(rat_layouts.crat_tag_out))
