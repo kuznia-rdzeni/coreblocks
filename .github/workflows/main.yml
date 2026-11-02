@@ -397,10 +397,10 @@ jobs:
           sudo apt-get install -y binutils-riscv64-unknown-elf
 
       - name: Run tests
-        run: ./scripts/run_tests.py -v
+        run: ./scripts/run_tests.py --ci -v
 
       - name: Check traces and profiles
-        run: ./scripts/run_tests.py -t -p -c 1 TestCore
+        run: ./scripts/run_tests.py --ci -t -p -c 1 TestCore
 
       - name: Check listing tests
         run: ./scripts/run_tests.py -l
