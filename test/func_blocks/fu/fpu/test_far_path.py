@@ -1,5 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.far_path import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
+    IEEE754_F32,
     RoundingModes,
     FPUParams,
 )
@@ -20,10 +21,10 @@ class TestFarPath(TestCaseWithSimulator):
             m.submodules.compute = self.far_path_request_adapter = TestbenchIO(AdapterTrans.create(fp.far_path_request))
             return m
 
-    params = FPUParams(sig_width=24, exp_width=8)
+    params = IEEE754_F32
 
     def test_far_path_addition(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         far_path = TestFarPath.FarPathModule(params)
 
         async def test_ors(sim: TestbenchContext):
