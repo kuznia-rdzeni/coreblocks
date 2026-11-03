@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793664404028,
+  "lastUpdate": 1793664406533,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -84886,6 +84886,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 382,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fd212475a75b8cf7dc2636afba81d4ac93a21aee",
+          "message": "Replaced signed(width) with range() (#1152)",
+          "timestamp": "2026-11-03T00:17:55+01:00",
+          "tree_id": "f84e1bfe2ba2d393a2ee026982b5f0eb0d598fdb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fd212475a75b8cf7dc2636afba81d4ac93a21aee"
+        },
+        "date": 1793664405816,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.83,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20936,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9410,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 386,
             "unit": "Slice"
           },
           {
