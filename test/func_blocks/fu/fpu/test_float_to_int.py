@@ -114,7 +114,7 @@ class TestFTI(TestCaseWithSimulator):
             rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
             random.seed(seed)
-            test_runs = 20
+            test_runs = 5000
 
             for _ in range(test_runs):
                 float_raw = random.getrandbits(32)
