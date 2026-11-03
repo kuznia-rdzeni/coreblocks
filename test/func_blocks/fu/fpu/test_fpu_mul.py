@@ -16,7 +16,7 @@ class TestMul(TestCaseWithSimulator):
         sfr = SoftFloatReference()
 
         async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
-            test_runs = 20
+            test_runs = 5000
             seed = 42
             random.seed(seed)
 

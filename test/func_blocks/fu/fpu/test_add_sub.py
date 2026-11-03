@@ -17,7 +17,7 @@ class TestAddSub(TestCaseWithSimulator):
         async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
             rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
-            test_runs = 20
+            test_runs = 5000
             random.seed(seed)
 
             for i in range(test_runs):
