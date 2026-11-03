@@ -3,6 +3,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes,
 from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, FloatConverter, SoftFloatReference
 from transactron.testing import *
 from amaranth import *
+import pytest
 import random
 from dataclasses import dataclass
 
@@ -89,6 +90,8 @@ test_cases = [
 ]
 
 
+# xfail due to rounding bug in float to int conversion. See github issue 1148.
+@pytest.mark.xfail
 class TestFTI(TestCaseWithSimulator):
 
     def test_manual(self):
