@@ -50,6 +50,8 @@ class InstrDecoder(Elaboratable):
         Twelve bits function identifier.
     funct12_v: Signal(1), out
         Signals if decoded instruction has funct12 identifier.
+    moptype: Signal(1), out
+        Signals which kind of MOP (MOP.R or MOP.RR) is used
     rd: Signal(gen.isa.reg_cnt_log), out
         Address of register to write instruction result.
     rd_v: Signal(1), out
@@ -108,6 +110,7 @@ class InstrDecoder(Elaboratable):
         self.funct7_v = Signal()
         self.funct12 = Signal(Funct12)
         self.funct12_v = Signal()
+        self.moptype = Signal()
 
         # Destination register
         self.rd = Signal(gen_params.isa.reg_cnt_log)
@@ -226,6 +229,7 @@ class InstrDecoder(Elaboratable):
         rs2_invalid = Signal()
 
         m.d.comb += self.optype.eq(OpType.UNKNOWN)
+        m.d.comb += self._extract(25, moptype)
 
         for enc in supported_encodings:
             funct7 = self.funct7 & ~(
@@ -239,6 +243,7 @@ class InstrDecoder(Elaboratable):
                 & (self.rd == 0 if enc.rd_zero else 1)
                 & (self.rs1 == 0 if enc.rs1_zero else 1)
                 & (self.rs2 == 0 if enc.rs2_zero else 1)
+                & (self.moptype == env.bit25_val if env.bit25_val in not None else 1)
             ):
                 m.d.comb += self.optype.eq(encoding_to_optype[enc])
 
@@ -346,6 +351,9 @@ class InstrDecoder(Elaboratable):
             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, self.imm)
             m.d.comb += imm_view.rs1.eq(self.rs1)
             m.d.comb += imm_view.rs2.eq(self.rs2)
+
+        # MOP type selection
+        with m.If(self.optype == OpType.)
 
         # Instruction simplification
 
