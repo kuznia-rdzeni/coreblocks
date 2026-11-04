@@ -1,5 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.dr_division import *
 from coreblocks.func_blocks.fu.fpu.qsf_tables import R4A2RED_PARAMS
+from coreblocks.func_blocks.fu.fpu.otfc import DigitWidth
 from transactron.testing import *
 from amaranth import *
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ class TestDRDivision(TestCaseWithSimulator):
             iterations=7,
             fractional_bits=10,
             result_fractional_bits=14,
+            digit_w=DigitWidth.WIDTH_TWO,
         )
         drd = SimpleTestCircuit(DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS))
 

@@ -10,10 +10,10 @@ class TCase:
     result: int
 
 
-class TestOTFC(TestCaseWithSimulator):
+class TestOTFCR4(TestCaseWithSimulator):
 
     def test_manual(self):
-        params = OTFCParams(result_width=12)
+        params = OTFCParams(result_width=12, digit_width=DigitWidth.WIDTH_TWO)
         otfc = SimpleTestCircuit(
             OTFCModule(
                 otfc_params=params,
