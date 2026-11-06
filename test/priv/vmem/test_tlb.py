@@ -3,11 +3,8 @@ from typing import Optional
 
 from attr import dataclass
 
-from amaranth import *
-
 import pytest
-from transactron import *
-from transactron.lib import Adapter, AdapterTrans
+from transactron.lib import AdapterTrans
 from transactron.utils import DependencyContext, ModuleConnector
 from transactron.testing import (
     ProcessContext,
@@ -25,7 +22,6 @@ from coreblocks.interface.keys import CSRInstancesKey, SFenceVMAKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
-from coreblocks.priv.vmem.iface import TLBBackingDevice
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 
 
@@ -38,20 +34,14 @@ class Permissions:
     d: int = 0
 
 
-class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
+class MockTLBBackingDevice:
     """Mock backing device for TLB testing."""
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, io: dict[str, TestbenchIO]):
         self.gen_params = gen_params
         self.csr_instances = DependencyContext.get().get_dependency(CSRInstancesKey())
-
-        self.layout = gen_params.get(AddressTranslationLayouts)
-
-        self.request_mock = TestbenchIO(Adapter(i=self.layout.tlb_request))
-        self.accept_mock = TestbenchIO(Adapter(o=self.layout.tlb_accept))
-
-        self.request = self.request_mock.adapter.iface
-        self.accept = self.accept_mock.adapter.iface
+        self.request_mock = io["request"]
+        self.accept_mock = io["accept"]
 
         # Storage for mock translations: (vpn, asid) -> (ppn, permissions, size_class, result)
         self.translations = dict()
@@ -164,11 +154,6 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
         if self.translated:
             return self.translated[-1]
 
-    def elaborate(self, platform):
-        m = TModule()
-        m.submodules += [self.request_mock, self.accept_mock]
-        return m
-
 
 @pytest.mark.parametrize(
     ("name",),
@@ -194,8 +179,6 @@ class TestTLBCache(TestCaseWithSimulator):
         self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        self.backing = MockTLBBackingDevice(self.gen_params)
-
         match self.name:
             case "fully_associative":
                 dut = FullyAssociativeTLB(self.gen_params, entries=16, ports=1)
@@ -209,9 +192,8 @@ class TestTLBCache(TestCaseWithSimulator):
             case _:
                 assert False, f"{self.name}: Invalid TLB type"
 
-        provide[TLBBackingDevice](dut.backing_resolver, self.backing)
-
-        self.dut = SimpleTestCircuit(dut, exclude=["backing_resolver"])
+        self.dut = SimpleTestCircuit(dut)
+        self.backing = MockTLBBackingDevice(self.gen_params, self.dut.backing_resolver)
 
         port = dut.get_port()
         self.request = TestbenchIO(AdapterTrans.create(port.request))
@@ -223,7 +205,6 @@ class TestTLBCache(TestCaseWithSimulator):
         self.m = ModuleConnector(
             dut=self.dut,
             sfence_vma=self.sfence_vma,
-            backing=self.backing,
             csrs=self.csr_instances,
             request=self.request,
             accept=self.accept,
