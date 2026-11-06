@@ -1,23 +1,15 @@
 from amaranth import *
-from dataclasses import dataclass
 from transactron import TModule
 from transactron.testing import TestbenchIO
 from transactron.lib.adapters import Adapter
 from coreblocks.peripherals.bus_adapter import BusParametersInterface, BusMasterInterface, CommonBusMasterMethodLayout
 
 
-__all__ = ["BusMockParameters", "MockMasterAdapter"]
-
-
-@dataclass
-class BusMockParameters(BusParametersInterface):
-    data_width: int
-    addr_width: int
-    granularity: int = 8
+__all__ = ["MockMasterAdapter"]
 
 
 class MockMasterAdapter(Elaboratable, BusMasterInterface):
-    def __init__(self, params: BusMockParameters):
+    def __init__(self, params: BusParametersInterface):
         self.params = params
         self.method_layouts = CommonBusMasterMethodLayout(params)
 

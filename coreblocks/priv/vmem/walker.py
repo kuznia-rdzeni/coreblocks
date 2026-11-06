@@ -6,7 +6,7 @@ from coreblocks.arch.isa_consts import PAGE_SIZE, SatpMode, PAGE_SIZE_LOG
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.interface.keys import CSRInstancesKey
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 from transactron import *
@@ -117,12 +117,15 @@ class PageTableWalker(TLBBackingMethods, Elaboratable):
     Implements Svade semantics (exception on missing A/D bits).
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+    bus: Required[BusMasterInterface]
+    """Data bus master."""
+
+    def __init__(self, gen_params: GenParams) -> None:
         super().__init__(gen_params)
         self.gen_params = gen_params
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.dm = DependencyContext.get()
-        self.bus = bus
+        self.bus = BusMasterMethods(gen_params.wb_params)
 
     def elaborate(self, platform):
         m = TModule()

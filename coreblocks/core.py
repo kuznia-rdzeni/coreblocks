@@ -29,7 +29,7 @@ from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
@@ -84,7 +84,8 @@ class Core(Component):
         self.l1i_tlb = None
         self.l1d_tlb = None
         if self.gen_params.vmem_params.supported_non_bare_schemes:
-            self.ptw = PageTableWalker(self.gen_params, bus=self.bus_master_data_adapter.ports[1])
+            self.ptw = PageTableWalker(self.gen_params)
+            provide[BusMasterInterface](self.ptw.bus, self.bus_master_data_adapter.ports[1])
             self.l2_tlb = SetAssociativeTLB(
                 self.gen_params,
                 entries=self.gen_params.tlb_config.l2tlb_entries,
@@ -110,7 +111,8 @@ class Core(Component):
             self.dm.add_dependency(InstructionAddressTranslatorBackingDeviceKey(), self.l1i_tlb.get_port)
             self.dm.add_dependency(DataAddressTranslatorBackingDeviceKey(), self.l1d_tlb.get_port)
 
-        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter.ports[0])
+        self.frontend = CoreFrontend(gen_params=self.gen_params)
+        provide[BusMasterInterface](self.frontend.instr_bus, self.bus_master_instr_adapter.ports[0])
 
         self.rf_allocator = PriorityEncoderAllocator(
             gen_params.phys_regs,

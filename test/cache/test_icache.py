@@ -5,7 +5,6 @@ import pytest
 
 from amaranth.utils import exact_log2
 
-from transactron.utils import ModuleConnector
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
@@ -15,7 +14,6 @@ from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, def_me
 from transactron.testing.functions import MethodData
 from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
-from ..peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
 @parameterized_class(
@@ -42,16 +40,8 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
         )
         self.cp = self.gen_params.icache_params
 
-        bus_mock_params = BusMockParameters(
-            data_width=self.gen_params.isa.xlen,
-            addr_width=self.gen_params.isa.xlen,
-        )
-        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
-
-        self.refiller = SimpleCommonBusCacheRefiller(self.gen_params, self.bus_master_adapter)
+        self.refiller = SimpleCommonBusCacheRefiller(self.gen_params)
         self.tc = SimpleTestCircuit(self.refiller)
-
-        self.test_module = ModuleConnector(bus_master_adapter=self.bus_master_adapter, refiller=self.tc)
 
         random.seed(42)
 
@@ -77,7 +67,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     async def bus_mock(self, sim: TestbenchContext):
         while True:
-            req = await self.bus_master_adapter.request_read_mock.call(sim)
+            req = await self.tc.bus_master.request_read.call(sim)
 
             # Bus model is addressing words, so we need to shift it a bit to get the real address.
             addr = req.addr << exact_log2(self.cp.word_width_bytes)
@@ -89,7 +79,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             data = random.randrange(2**self.gen_params.isa.xlen)
             self.mem[addr] = data
 
-            await self.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
+            await self.tc.bus_master.get_read_response.call(sim, data=data, err=err)
 
     async def refiller_process(self, sim: TestbenchContext):
         while self.requests:
@@ -119,7 +109,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
                 assert ret["last"] == last
 
     def test(self):
-        with self.run_simulation(self.test_module) as sim:
+        with self.run_simulation(self.tc) as sim:
             sim.add_testbench(self.bus_mock, background=True)
             sim.add_testbench(self.refiller_process)
 
@@ -142,16 +132,10 @@ class TestICacheBypass(TestCaseWithSimulator):
         )
         self.cp = self.gen_params.icache_params
 
-        bus_mock_params = BusMockParameters(
-            data_width=self.gen_params.isa.xlen,
-            addr_width=self.gen_params.isa.xlen,
-        )
-        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
-
-        self.bypass = ICacheBypass(self.gen_params, self.bus_master_adapter)
+        self.bypass = ICacheBypass(self.gen_params)
         self.tc = SimpleTestCircuit(self.bypass)
 
-        self.m = ModuleConnector(bus_master_adapter=self.bus_master_adapter, bypass=self.tc)
+        self.m = self.tc
 
         random.seed(42)
 
@@ -178,7 +162,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     async def bus_mock(self, sim: TestbenchContext):
         while True:
-            req = await self.bus_master_adapter.request_read_mock.call(sim)
+            req = await self.tc.bus_master.request_read.call(sim)
 
             # Bus model is addressing words, so we need to shift it a bit to get the real address.
             addr = req.addr << exact_log2(self.cp.word_width_bytes)
@@ -191,7 +175,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
-            await self.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
+            await self.tc.bus_master.get_read_response.call(sim, data=data, err=err)
 
     async def user_process(self, sim: TestbenchContext):
         while self.requests:

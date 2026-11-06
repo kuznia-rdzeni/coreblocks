@@ -20,7 +20,7 @@ from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import CoreStateKey, FlushICacheKey, RollbackKey, UnsafeInstructionResolvedKey
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
 
 log = logging.HardwareLogger("frontend")
 
@@ -96,8 +96,12 @@ class CoreFrontend(Elaboratable):
 
     get_exception_information: Required[Method]
 
-    def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
+    instr_bus: Required[BusMasterInterface]
+    """Instruction bus master."""
+
+    def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
+        self.instr_bus = BusMasterMethods(gen_params.wb_params)
         self.connections = DependencyContext.get()
 
         layouts = self.gen_params.get(FetchLayouts)
@@ -105,11 +109,13 @@ class CoreFrontend(Elaboratable):
         self.instr_buffer = BasicFifo(layouts.fetch_result, self.gen_params.instr_buffer_size)
 
         if gen_params.icache_params.enable:
-            self.icache_refiller = SimpleCommonBusCacheRefiller(self.gen_params, instr_bus)
+            self.icache_refiller = SimpleCommonBusCacheRefiller(self.gen_params)
+            provide[BusMasterInterface](self.icache_refiller.bus_master, self.instr_bus)
             self.icache = ICache(self.gen_params)
             provide[CacheRefillerInterface](self.icache.refiller, self.icache_refiller)
         else:
-            self.icache = ICacheBypass(self.gen_params, instr_bus)
+            self.icache = ICacheBypass(self.gen_params)
+            provide[BusMasterInterface](self.icache.bus_master, self.instr_bus)
 
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 

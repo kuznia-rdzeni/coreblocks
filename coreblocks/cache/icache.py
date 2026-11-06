@@ -12,7 +12,7 @@ from coreblocks.params import GenParams, ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import OneHotMux, assign, logging
 from transactron.lib import *
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
 
 from coreblocks.cache.iface import CacheMethods, CacheRefillerInterface, CacheRefillerMethods
 from transactron.utils.transactron_helpers import make_layout
@@ -26,10 +26,13 @@ log = logging.HardwareLogger("frontend.icache")
 
 
 class ICacheBypass(CacheMethods, Elaboratable):
-    def __init__(self, gen_params: GenParams, bus_master: BusMasterInterface) -> None:
+    bus_master: Required[BusMasterInterface]
+    """Instruction bus master."""
+
+    def __init__(self, gen_params: GenParams) -> None:
         super().__init__(gen_params)
         self.params = gen_params.icache_params
-        self.bus_master = bus_master
+        self.bus_master = BusMasterMethods(gen_params.wb_params)
 
         if self.params.words_in_fetch_block != 1:
             raise ValueError("ICacheBypass only supports fetch block size equal to the word size.")

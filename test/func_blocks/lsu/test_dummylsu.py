@@ -14,7 +14,9 @@ from coreblocks.arch import *
 from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
-from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
+from ...peripherals.bus_mock import MockMasterAdapter
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from transactron import provide
 
 
 def generate_aligned_addr(max_reg_val: int) -> int:
@@ -69,9 +71,7 @@ class DummyLSUTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        bus_mock_params = BusMockParameters(data_width=self.gen.isa.ilen, addr_width=32)
-
-        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
+        self.bus_master_adapter = MockMasterAdapter(self.gen.wb_params)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionInformationRegisterLayouts).report)
@@ -97,7 +97,8 @@ class DummyLSUTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
+        m.submodules.func_unit = func_unit = LSUDummy(self.gen)
+        provide[BusMasterInterface](func_unit.bus, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans.create(func_unit.issue))
         m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter.create(func_unit.push_result))
