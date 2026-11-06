@@ -1,9 +1,9 @@
 from amaranth import *
-from coreblocks.cache.icache import CacheRefillerInterface
-from coreblocks.params import ICacheParameters
+from coreblocks.cache.iface import CacheRefillerMethods
+from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ICacheLayouts
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from transactron.core import Transaction, Method, TModule, def_method
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
+from transactron.core import Required, Transaction, TModule, def_method
 from transactron.lib import Forwarder
 
 from amaranth.utils import exact_log2
@@ -12,14 +12,15 @@ from amaranth.utils import exact_log2
 __all__ = ["SimpleCommonBusCacheRefiller"]
 
 
-class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface):
-        self.layouts = layouts
-        self.params = params
-        self.bus_master = bus_master
+class SimpleCommonBusCacheRefiller(CacheRefillerMethods, Elaboratable):
+    bus_master: Required[BusMasterInterface]
+    """Instruction bus master."""
 
-        self.start_refill = Method(i=layouts.start_refill)
-        self.accept_refill = Method(o=layouts.accept_refill)
+    def __init__(self, gen_params: GenParams):
+        super().__init__(gen_params)
+        self.layouts = gen_params.get(ICacheLayouts)
+        self.params = gen_params.icache_params
+        self.bus_master = BusMasterMethods(gen_params.wb_params)
 
     def elaborate(self, platform):
         m = TModule()

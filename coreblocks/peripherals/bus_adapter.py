@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Protocol
 
 from amaranth import *
@@ -6,12 +5,14 @@ from amaranth import *
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.peripherals.axi_lite import AXILiteMaster
 
-from transactron import Method, Methods, def_method, TModule, def_methods
+from transactron import Method, Provided, def_method, def_methods, TModule
 from transactron.lib import Serializer
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
+    "BusParametersInterface",
     "BusMasterInterface",
+    "BusMasterMethods",
     "WishboneMasterAdapter",
     "AXILiteMasterAdapter",
 ]
@@ -42,26 +43,26 @@ class BusMasterInterface(Protocol):
 
     The bus interface is the preferred way to gain access to a specific bus.
     It simplifies interchangeability of buses on the core configuration level.
-
-    Parameters
-    ----------
-    params : BusParametersInterface
-        Parameters of the bus.
-    request_read : Method
-        A method that is used to send a read request to a bus.
-    request_write : Method
-        A method that is used to send a write request to a bus.
-    get_read_response : Method
-        A method that is used to receive a response from a bus for a previously sent read request.
-    get_write_response : Method
-        A method that is used to receive a response from a bus for a previously sent write request.
     """
 
     params: BusParametersInterface
-    request_read: Method
-    request_write: Method
-    get_read_response: Method
-    get_write_response: Method
+    """Parameters of the bus."""
+
+    request_read: Provided[Method]
+    """A method that is used to send a read request to a bus.
+    Input layout is `CommonBusMasterMethodLayout.request_read_layout`."""
+
+    request_write: Provided[Method]
+    """A method that is used to send a write request to a bus.
+    Input layout is `CommonBusMasterMethodLayout.request_write_layout`."""
+
+    get_read_response: Provided[Method]
+    """A method that is used to receive a response from a bus for a previously sent read request.
+    Output layout is `CommonBusMasterMethodLayout.read_response_layout`."""
+
+    get_write_response: Provided[Method]
+    """A method that is used to receive a response from a bus for a previously sent write request.
+    Output layout is `CommonBusMasterMethodLayout.write_response_layout`."""
 
 
 class CommonBusMasterMethodLayout:
@@ -107,6 +108,19 @@ class CommonBusMasterMethodLayout:
         self.write_response_layout = make_layout(("err", 1))
 
 
+class BusMasterMethods(BusMasterInterface):
+    """Fresh, undefined `BusMasterInterface` methods."""
+
+    def __init__(self, params: BusParametersInterface):
+        self.params = params
+        self.method_layouts = CommonBusMasterMethodLayout(params)
+
+        self.request_read = Method(i=self.method_layouts.request_read_layout)
+        self.request_write = Method(i=self.method_layouts.request_write_layout)
+        self.get_read_response = Method(o=self.method_layouts.read_response_layout)
+        self.get_write_response = Method(o=self.method_layouts.write_response_layout)
+
+
 class WishboneMasterAdapter(Elaboratable):
     """
     An adapter for Wishbone master.
@@ -128,10 +142,11 @@ class WishboneMasterAdapter(Elaboratable):
     method_layouts: CommonBusMasterMethodLayout
         Layouts of common bus master methods.
 
-    ports: list[BusMasterInterface]
-        List of bus master interfaces for each port. Each interface contains methods for read and write requests
-        and responses. The number of interfaces is equal to `port_count`.
     """
+
+    ports: Provided[list[BusMasterInterface]]
+    """List of bus master interfaces for each port. Each interface contains methods for read and write requests
+    and responses. The number of interfaces is equal to `port_count`."""
 
     def __init__(self, bus: WishboneMaster, port_count: int = 1):
         self.bus = bus
@@ -141,29 +156,7 @@ class WishboneMasterAdapter(Elaboratable):
 
         self.port_count = port_count
 
-        self.request_read = Methods(port_count, i=self.method_layouts.request_read_layout)
-        self.request_write = Methods(port_count, i=self.method_layouts.request_write_layout)
-        self.get_read_response = Methods(port_count, o=self.method_layouts.read_response_layout)
-        self.get_write_response = Methods(port_count, o=self.method_layouts.write_response_layout)
-
-        @dataclass(frozen=True)
-        class _Port(BusMasterInterface):
-            params: BusParametersInterface
-            request_read: Method
-            request_write: Method
-            get_read_response: Method
-            get_write_response: Method
-
-        self.ports = [
-            _Port(
-                params=self.params,
-                request_read=self.request_read[i],
-                request_write=self.request_write[i],
-                get_read_response=self.get_read_response[i],
-                get_write_response=self.get_write_response[i],
-            )
-            for i in range(port_count)
-        ]
+        self.ports = [BusMasterMethods(self.params) for _ in range(port_count)]
 
     def elaborate(self, platform):
         m = TModule()
@@ -175,23 +168,23 @@ class WishboneMasterAdapter(Elaboratable):
         )
         m.submodules.bus_serializer = bus_serializer
 
-        @def_methods(m, self.request_read)
+        @def_methods(m, [port.request_read for port in self.ports])
         def _(i, arg):
             we = C(0, unsigned(1))
             data = C(0, unsigned(self.params.data_width))
             bus_serializer.serialize_in[0 + 2 * i](m, addr=arg.addr, data=data, we=we, sel=arg.sel)
 
-        @def_methods(m, self.request_write)
+        @def_methods(m, [port.request_write for port in self.ports])
         def _(i, arg):
             we = C(1, unsigned(1))
             bus_serializer.serialize_in[1 + 2 * i](m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
 
-        @def_methods(m, self.get_read_response)
+        @def_methods(m, [port.get_read_response for port in self.ports])
         def _(i):
             res = bus_serializer.serialize_out[0 + 2 * i](m)
             return {"data": res.data, "err": res.err}
 
-        @def_methods(m, self.get_write_response)
+        @def_methods(m, [port.get_write_response for port in self.ports])
         def _(i):
             res = bus_serializer.serialize_out[1 + 2 * i](m)
             return {"err": res.err}
@@ -199,7 +192,7 @@ class WishboneMasterAdapter(Elaboratable):
         return m
 
 
-class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
+class AXILiteMasterAdapter(BusMasterMethods, Elaboratable):
     """
     An adapter for AXI Lite master.
 
@@ -240,15 +233,8 @@ class AXILiteMasterAdapter(Elaboratable, BusMasterInterface):
     """
 
     def __init__(self, bus: AXILiteMaster):
+        super().__init__(bus.axil_params)
         self.bus = bus
-        self.params = self.bus.axil_params
-
-        self.method_layouts = CommonBusMasterMethodLayout(self.params)
-
-        self.request_read = Method(i=self.method_layouts.request_read_layout)
-        self.request_write = Method(i=self.method_layouts.request_write_layout)
-        self.get_read_response = Method(o=self.method_layouts.read_response_layout)
-        self.get_write_response = Method(o=self.method_layouts.write_response_layout)
 
     def elaborate(self, platform):
         m = TModule()

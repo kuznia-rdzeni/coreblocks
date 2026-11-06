@@ -2,6 +2,11 @@ from typing import Protocol
 
 from transactron import Method, Provided
 
+from coreblocks.interface.layouts import AddressTranslationLayouts
+from coreblocks.params import GenParams
+
+__all__ = ["TLBBackingDevice", "TLBBackingMethods"]
+
 
 class TLBBackingDevice(Protocol):
     """Protocol for devices that can be used as a backing device for TLBs."""
@@ -13,3 +18,12 @@ class TLBBackingDevice(Protocol):
     accept: Provided[Method]
     """Method for accepting a translation response.
     Expected layout is `AddressTranslationLayouts.tlb_accept`."""
+
+
+class TLBBackingMethods(TLBBackingDevice):
+    """Fresh, undefined `TLBBackingDevice` methods."""
+
+    def __init__(self, gen_params: GenParams):
+        layout = gen_params.get(AddressTranslationLayouts)
+        self.request = Method(i=layout.tlb_request)
+        self.accept = Method(o=layout.tlb_accept)
