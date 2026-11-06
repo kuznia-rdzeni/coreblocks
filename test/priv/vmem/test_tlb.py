@@ -198,22 +198,24 @@ class TestTLBCache(TestCaseWithSimulator):
 
         match self.name:
             case "fully_associative":
-                dut = FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing, ports=1)
+                dut = FullyAssociativeTLB(self.gen_params, entries=16, ports=1)
             case "set_associative":
                 dut = SetAssociativeTLB(
                     self.gen_params,
                     ways=4,
                     entries=16,
-                    backing_resolver=self.backing,
                     ports=1,
                 )
             case _:
                 assert False, f"{self.name}: Invalid TLB type"
 
-        self.dut = SimpleTestCircuit(dut)
+        provide[TLBBackingDevice](dut.backing_resolver, self.backing)
 
-        self.request = TestbenchIO(AdapterTrans.create(dut.request[0]))
-        self.accept = TestbenchIO(AdapterTrans.create(dut.accept[0]))
+        self.dut = SimpleTestCircuit(dut, exclude=["backing_resolver"])
+
+        port = dut.get_port()
+        self.request = TestbenchIO(AdapterTrans.create(port.request))
+        self.accept = TestbenchIO(AdapterTrans.create(port.accept))
 
         sfence_vma, _ = DependencyContext.get().get_dependency(SFenceVMAKey())
         self.sfence_vma = TestbenchIO(AdapterTrans.create(sfence_vma))

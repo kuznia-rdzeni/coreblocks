@@ -12,7 +12,7 @@ from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from transactron import *
 from transactron.utils import DependencyContext, HardwareLogger
 
-from coreblocks.priv.vmem.iface import TLBBackingDevice
+from coreblocks.priv.vmem.iface import TLBBackingMethods
 
 
 __all__ = ["PageTableWalker"]
@@ -100,7 +100,7 @@ class PTEView(View):
         return is_bad
 
 
-class PageTableWalker(TLBBackingDevice, Elaboratable):
+class PageTableWalker(TLBBackingMethods, Elaboratable):
     """Hardware page table walker for RISC-V virtual memory translation.
 
     This module implements a page table walker that translates virtual page numbers (VPN)
@@ -118,10 +118,9 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+        super().__init__(gen_params)
         self.gen_params = gen_params
         self.layout = gen_params.get(AddressTranslationLayouts)
-        self.request = Method(i=self.layout.tlb_request)
-        self.accept = Method(o=self.layout.tlb_accept)
         self.dm = DependencyContext.get()
         self.bus = bus
 
