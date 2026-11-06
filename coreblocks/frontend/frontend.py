@@ -17,6 +17,7 @@ from coreblocks.frontend.stall_controller import StallController
 from coreblocks.frontend.bpu.bpu import BranchPredictionUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
+from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import CoreStateKey, FlushICacheKey, RollbackKey, UnsafeInstructionResolvedKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
@@ -103,18 +104,19 @@ class CoreFrontend(Elaboratable):
 
         self.instr_buffer = BasicFifo(layouts.fetch_result, self.gen_params.instr_buffer_size)
 
-        cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
-            self.icache_refiller = SimpleCommonBusCacheRefiller(cache_layouts, self.gen_params.icache_params, instr_bus)
-            self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
+            self.icache_refiller = SimpleCommonBusCacheRefiller(self.gen_params, instr_bus)
+            self.icache = ICache(self.gen_params)
+            provide[CacheRefillerInterface](self.icache.refiller, self.icache_refiller)
         else:
-            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, instr_bus)
+            self.icache = ICacheBypass(self.gen_params, instr_bus)
 
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
         self.stall_ctrl = StallController(self.gen_params)
 
-        self.fetch = FetchUnit(self.gen_params, self.icache)
+        self.fetch = FetchUnit(self.gen_params)
+        provide[CacheInterface](self.fetch.icache, self.icache)
 
         # TODO: change back to Pipe after Scheduler made superscalar
         self.output_pipe = Pipe(self.gen_params.get(SchedulerLayouts).scheduler_in)

@@ -5,7 +5,7 @@ from attr import dataclass
 
 import pytest
 from transactron.lib import AdapterTrans
-from transactron.utils import DependencyContext, ModuleConnector
+from transactron.utils import DependencyContext, ModuleConnector, UniformObject
 from transactron.testing import (
     ProcessContext,
     TestCaseWithSimulator,
@@ -37,11 +37,11 @@ class Permissions:
 class MockTLBBackingDevice:
     """Mock backing device for TLB testing."""
 
-    def __init__(self, gen_params: GenParams, io: dict[str, TestbenchIO]):
+    def __init__(self, gen_params: GenParams, io: UniformObject[TestbenchIO]):
         self.gen_params = gen_params
         self.csr_instances = DependencyContext.get().get_dependency(CSRInstancesKey())
-        self.request_mock = io["request"]
-        self.accept_mock = io["accept"]
+        self.request_mock = io.request
+        self.accept_mock = io.accept
 
         # Storage for mock translations: (vpn, asid) -> (ppn, permissions, size_class, result)
         self.translations = dict()
