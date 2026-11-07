@@ -189,7 +189,7 @@ class FloatToIntModule(Elaboratable):
 
             # Mux when magnitude greater than one and output is signed
             cases_mgeo_osig = Mux(op.sign, sig_neg_out_of_bound, sig_pos_out_of_bound)
-            # Mux when magintude greater than one
+            # Mux when magnitude greater than one
             cases_mgeo = Mux(signed, cases_mgeo_osig, (op.sign | un_pos_out_of_bound))
             out_of_bounds = Signal()
             m.d.av_comb += out_of_bounds.eq(
