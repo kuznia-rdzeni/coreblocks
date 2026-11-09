@@ -452,18 +452,17 @@ class SetAssociativeTLB(Elaboratable):
             bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
             return vpn.word_select(size_class, bits_per_level)
 
-        request = Method(i=self.layout.tlb_request)
-        accept = Method(o=self.layout.tlb_accept)
-
         m.submodules.port_serializer = port_serializer = Serializer(
             port_count=self.ports,
-            serialized_req_method=request,
-            serialized_resp_method=accept,
+            req_layout=self.layout.tlb_request,
+            resp_layout=self.layout.tlb_accept,
         )
+        request = port_serializer.server.request
+        accept = port_serializer.server.response
 
         for port in range(self.ports):
-            self.port_devices[port].request.provide(port_serializer.serialize_in[port])
-            self.port_devices[port].accept.provide(port_serializer.serialize_out[port])
+            self.port_devices[port].request.provide(port_serializer.ports[port].request)
+            self.port_devices[port].accept.provide(port_serializer.ports[port].response)
 
         @def_method(m, request, ready=~flushing)
         def _(vpn, is_store):

@@ -346,7 +346,7 @@ class CheckpointRAT(Elaboratable):
 
         @def_method(m, self.rollback)
         def _(tag: Value, ftq_ptr: Value, pc: Value):
-            tag_map.read_req(m, addr=tag)
+            tag_map.read[0].request(m, addr=tag)
             m.d.sync += rollback_tag_s1.eq(tag)
 
             # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking.
@@ -381,7 +381,7 @@ class CheckpointRAT(Elaboratable):
 
         checkpointed_tags_reset_mask_0 = Signal.like(checkpointed_tags)
         with Transaction().body(m):
-            rollback_checkpoint_id = tag_map.read_resp(m)
+            rollback_checkpoint_id = tag_map.read[0].response(m)
 
             # Delete suffix of used checkpoints on wrong speculation path, including currently
             # restored checkpoint that will no longer be used.
@@ -390,11 +390,11 @@ class CheckpointRAT(Elaboratable):
             # Rollback target tag still remains active, but without checkpoint
             m.d.comb += checkpointed_tags_reset_mask_0.eq(1 << rollback_target_tag)
 
-            storage.read_req(m, addr=rollback_checkpoint_id)
+            storage.read[0].request(m, addr=rollback_checkpoint_id)
             m.d.sync += rollback_tag_s2.eq(rollback_tag_s1)  # `CRAT.tag` unblock condition (= frat_tag_in_next_cycle)
 
         with Transaction().body(m):
-            rollback_frat = storage.read_resp(m)
+            rollback_frat = storage.read[0].response(m)
             m.d.sync += assign(self.frat, rollback_frat.data)  # (frat is locked)
             m.d.sync += rollback_frat_restore_finished.eq((rollback_target_tag == rollback_tag_s2) & ~self.rollback.run)
             log.debug(m, True, "frat restored to rollback tag 0x{:x}", rollback_tag_s2)
