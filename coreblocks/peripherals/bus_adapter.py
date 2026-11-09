@@ -2,11 +2,11 @@ from typing import Protocol
 
 from amaranth import *
 
-from coreblocks.peripherals.wishbone import WishboneMaster
-from coreblocks.peripherals.axi_lite import AXILiteMaster
+from coreblocks.peripherals.wishbone import WishboneMasterMethodLayout, WishboneParameters
+from coreblocks.peripherals.axi_lite import AXILiteMasterInterface, AXILiteMasterMethods, AXILiteParameters
 
-from transactron import Method, Provided, def_method, def_methods, TModule
-from transactron.lib import Serializer
+from transactron import Method, Provided, Required, def_method, def_methods, TModule
+from transactron.lib import RequestResponseInterface, Serializer
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
@@ -127,8 +127,8 @@ class WishboneMasterAdapter(Elaboratable):
 
     Parameters
     ----------
-    bus: WishboneMaster
-        Specific Wishbone master module which is to be adapted.
+    wb_params: WishboneParameters
+        Parameters of the adapted Wishbone master.
 
     port_count: int
         Number of ports to be created for the bus adapter. Each port will have its own set
@@ -144,29 +144,34 @@ class WishboneMasterAdapter(Elaboratable):
 
     """
 
+    bus: Required[RequestResponseInterface]
+    """Wishbone master which is adapted."""
+
     ports: Provided[list[BusMasterInterface]]
     """List of bus master interfaces for each port. Each interface contains methods for read and write requests
     and responses. The number of interfaces is equal to `port_count`."""
 
-    def __init__(self, bus: WishboneMaster, port_count: int = 1):
-        self.bus = bus
-        self.params = self.bus.wb_params
+    def __init__(self, wb_params: WishboneParameters, port_count: int = 1):
+        self.params = wb_params
 
         self.method_layouts = CommonBusMasterMethodLayout(self.params)
 
         self.port_count = port_count
+
+        wb_layouts = WishboneMasterMethodLayout(wb_params)
+        self.serializer = Serializer(
+            port_count=2 * port_count,
+            req_layout=wb_layouts.request_layout,
+            resp_layout=wb_layouts.response_layout,
+        )
+        self.bus = self.serializer.server
 
         self.ports = [BusMasterMethods(self.params) for _ in range(port_count)]
 
     def elaborate(self, platform):
         m = TModule()
 
-        bus_serializer = Serializer.create(
-            port_count=2 * self.port_count,
-            serialized_req_method=self.bus.request,
-            serialized_resp_method=self.bus.result,
-        )
-        m.submodules.bus_serializer = bus_serializer
+        m.submodules.bus_serializer = bus_serializer = self.serializer
 
         @def_methods(m, [port.request_read for port in self.ports])
         def _(i, arg):
@@ -200,8 +205,8 @@ class AXILiteMasterAdapter(BusMasterMethods, Elaboratable):
 
     Parameters
     ----------
-    bus: AXILiteMaster
-        Specific AXI Lite master module which is to be adapted.
+    axil_params: AXILiteParameters
+        Parameters of the adapted AXI Lite master.
 
     Attributes
     ----------
@@ -232,9 +237,12 @@ class AXILiteMasterAdapter(BusMasterMethods, Elaboratable):
         Output layout is `write_response_layout`.
     """
 
-    def __init__(self, bus: AXILiteMaster):
-        super().__init__(bus.axil_params)
-        self.bus = bus
+    bus: Required[AXILiteMasterInterface]
+    """AXI Lite master which is adapted."""
+
+    def __init__(self, axil_params: AXILiteParameters):
+        super().__init__(axil_params)
+        self.bus = AXILiteMasterMethods(axil_params)
 
     def elaborate(self, platform):
         m = TModule()

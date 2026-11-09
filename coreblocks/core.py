@@ -30,6 +30,7 @@ from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import BusMasterInterface, WishboneMasterAdapter
+from transactron.lib import RequestResponseInterface
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
@@ -71,11 +72,13 @@ class Core(Component):
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
-        self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
+        self.bus_master_instr_adapter = WishboneMasterAdapter(self.gen_params.wb_params)
         self.bus_master_data_adapter = WishboneMasterAdapter(
-            self.wb_master_data,
+            self.gen_params.wb_params,
             port_count=2 if self.gen_params.vmem_params.supported_non_bare_schemes else 1,
         )
+        provide[RequestResponseInterface](self.bus_master_instr_adapter.bus, self.wb_master_instr)
+        provide[RequestResponseInterface](self.bus_master_data_adapter.bus, self.wb_master_data)
 
         self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter.ports[0])
 

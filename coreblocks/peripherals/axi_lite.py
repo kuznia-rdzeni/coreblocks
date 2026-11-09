@@ -2,11 +2,18 @@ from typing import Protocol, TypeAlias, runtime_checkable
 from amaranth import *
 from amaranth.lib.wiring import Component, Signature, In, Out
 from amaranth_types import AbstractInterface, AbstractSignature
-from transactron import Method, def_method, TModule
+from transactron import Method, Provided, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib.connectors import Forwarder
 
-__all__ = ["AXILiteParameters", "AXILiteSignature", "AXILiteInterface", "AXILiteMaster"]
+__all__ = [
+    "AXILiteParameters",
+    "AXILiteSignature",
+    "AXILiteInterface",
+    "AXILiteMasterInterface",
+    "AXILiteMasterMethods",
+    "AXILiteMaster",
+]
 
 
 class AXILiteParameters:
@@ -188,6 +195,37 @@ class AXILiteMasterMethodLayouts:
         self.wr_response_layout = [
             ("resp", 2),
         ]
+
+
+class AXILiteMasterInterface(Protocol):
+    """Transactional interface of an AXI-Lite master."""
+
+    ra_request: Provided[Method]
+    """Initiates a request on the read address channel. Takes `ra_request_layout` as argument."""
+
+    rd_response: Provided[Method]
+    """Reads a response from the read data channel. Returns `rd_response_layout`."""
+
+    wa_request: Provided[Method]
+    """Initiates a request on the write address channel. Takes `wa_request_layout` as argument."""
+
+    wd_request: Provided[Method]
+    """Initiates a request on the write data channel. Takes `wd_request_layout` as argument."""
+
+    wr_response: Provided[Method]
+    """Reads a response from the write response channel. Returns `wr_response_layout`."""
+
+
+class AXILiteMasterMethods(AXILiteMasterInterface):
+    """Fresh, undefined `AXILiteMasterInterface` methods."""
+
+    def __init__(self, axil_params: AXILiteParameters):
+        layouts = AXILiteMasterMethodLayouts(axil_params)
+        self.ra_request = Method(i=layouts.ra_request_layout)
+        self.rd_response = Method(o=layouts.rd_response_layout)
+        self.wa_request = Method(i=layouts.wa_request_layout)
+        self.wd_request = Method(i=layouts.wd_request_layout)
+        self.wr_response = Method(o=layouts.wr_response_layout)
 
 
 class AXILiteMaster(Component):
