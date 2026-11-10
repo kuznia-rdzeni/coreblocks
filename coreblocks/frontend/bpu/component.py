@@ -63,7 +63,12 @@ class BPUComponentLayouts:
 
 
 class BPUComponent(Elaboratable):
-    """Shared layouts and training interface for BPU components."""
+    """Shared layouts and training interface for BPU components.
+
+    Components are simple fixed-latency pipelines: a response is available one cycle per stage
+    after its request. A flush drops every response due in a later cycle, and the BPU reads out
+    exactly the responses of requests that were not flushed.
+    """
 
     update: Provided[Method]
     """Train on a resolved CFI using this component's prediction metadata."""
@@ -85,6 +90,7 @@ class FastPredictor(BPUComponent):
     request_s0: Provided[Method]
     response_s1: Provided[Method]
     flush: Provided[Method]
+    """Drop every request in flight, including one made in the same cycle. Must stay off the critical path."""
 
     def __init__(self, gen_params: GenParams, meta_width: int):
         super().__init__(gen_params, meta_width)
