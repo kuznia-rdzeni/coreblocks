@@ -251,7 +251,7 @@ class Core(Component):
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)
-        retirement.checkpoint_tag_free.provide(crat.free_tag)
+        retirement.crat_dealloc_tag.provide(crat.dealloc_tag)
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
 

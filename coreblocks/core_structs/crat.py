@@ -33,7 +33,7 @@ class CheckpointRAT(Elaboratable):
 
     Attributes
     ----------
-    free_tag: Method
+    dealloc_tag: Method
         Free a tag that is no longer referenced in the core.
         Associated checkpoints are freed too.
         This method accepts no arguments, because all tags must be freed in-order, so call means freeing
@@ -81,7 +81,7 @@ class CheckpointRAT(Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(RollbackKey(), self.rollback)
 
-        self.free_tag = Method(i=layouts.crat_free_tag_in)
+        self.dealloc_tag = Method(i=layouts.crat_dealloc_tag_in)
         self.get_active_tags = Method(o=layouts.get_active_tags_out)
         self.dm.add_dependency(ActiveTagsKey(), self.get_active_tags)
 
@@ -406,19 +406,17 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_1 = Signal.like(active_tags, init=0)
         checkpointed_tags_reset_mask_1 = Signal.like(checkpointed_tags)
 
-        @def_method(m, self.free_tag)
+        @def_method(m, self.dealloc_tag)
         def _(count):
-            # If we free a tag, it means that we have just retired some next one (tag+count+1).
+            # If we deallocate a tag, it means that we have just retired some next one (tag+count+1).
             # Tag is no longer referenced in core, so it can be freed.
-
-            freed_tag = tags_tail
 
             def cyclic_mask_bits(width: int, pos: int | Value, count: int | Value):
                 d = Signal(2 * width)
-                m.d.comb += d.eq(((1 << count) - 1) << pos)
+                m.d.comb += d.eq(~(-1 << count) << pos)
                 return d[:width] | d[width : 2 * width]
 
-            deallocated_tags = cyclic_mask_bits(self.gen_params.tag_bits, freed_tag, count)
+            deallocated_tags = cyclic_mask_bits(self.gen_params.tag_bits, tags_tail, count)
             next_tags_tail = Signal.like(tags_tail)
             m.d.comb += active_tags_reset_mask_1.eq(deallocated_tags)
             m.d.av_comb += next_tags_tail.eq(
@@ -454,7 +452,7 @@ class CheckpointRAT(Elaboratable):
                 checkpoints_next_tail_comb,
             )
 
-            m.d.comb += checkpointed_tags_reset_mask_1.eq(1 << freed_tag)
+            m.d.comb += checkpointed_tags_reset_mask_1.eq(1 << tags_tail)
 
             log.debug(m, True, "deallocated tags [0x{:x},0x{:x})", tags_tail, next_tags_tail)
 
