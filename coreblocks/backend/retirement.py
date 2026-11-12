@@ -17,11 +17,9 @@ from transactron.evlog import EventSource
 from transactron.utils import (
     DependencyContext,
     HardwareLogger,
-    clear_lowest_set_bit,
     count_trailing_zeros,
     OneHotMux,
     mask_before_first_set_bit,
-    mask_from_first_set_bit,
     popcount,
 )
 from transactron.lib.metrics import *
@@ -76,9 +74,8 @@ class Retirement(Elaboratable):
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
         )
         self.trap_entry = Method(i=[("cause", gen_params.isa.xlen)], o=[("target_priv", PrivilegeLevel)])
-        interrupt_controller_layouts = gen_params.get(InternalInterruptControllerLayouts)
-        self.async_interrupt_cause = Method(o=interrupt_controller_layouts.interrupt_cause)
-        self.checkpoint_tag_free = Method()
+        self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
+        self.crat_dealloc_tag = Method(i=gen_params.get(RATLayouts).crat_dealloc_tag_in)
 
         self.pure_active_count = Signal(range(gen_params.retirement_superscalarity + 1))
         self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_active_count)
@@ -174,60 +171,52 @@ class Retirement(Elaboratable):
         ftq_commit_ptr = FTQPtr(gen_params=self.gen_params)
 
         last_retired_tag = Signal(self.gen_params.tag_bits)
-        next_last_retired_tag = Signal.like(last_retired_tag)
-
         retire_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         no_trap_count = Signal.like(retire_count)
         active_no_trap_count = Signal.like(retire_count)
         done_count = Signal.like(retire_count)
         tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
         retiring_mask = Signal.like(tag_incr_mask)
-        tag_active_mask = Signal.like(tag_incr_mask)
         done_mask = Signal.like(tag_incr_mask)
-        done_ignore_mask = Signal.like(tag_incr_mask)
-        first_tag_incr_mask = Signal.like(tag_incr_mask)
-        limiting_instruction_mask = Signal.like(tag_incr_mask)
-        free_tag = Signal()
+        dealloc_tags_count = Signal.like(retire_count)
+        instr_active_mask = Signal.like(tag_incr_mask)
 
         with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
             ecr_entry = self.exception_cause_get(m)
 
-        # CRAT can currently deallocate at most one tag per cycle, this logic reduces the retire rate
-        # TODO: improve
         m.d.comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
         m.d.comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
         m.d.comb += done_count.eq(count_trailing_zeros(~done_mask))
-        m.d.comb += done_ignore_mask.eq(mask_from_first_set_bit(~done_mask))
-        m.d.comb += limiting_instruction_mask.eq(clear_lowest_set_bit(tag_incr_mask) | done_ignore_mask)
 
-        m.d.comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
-        m.d.comb += retiring_mask.eq(mask_before_first_set_bit(limiting_instruction_mask))
-        m.d.comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
+        m.d.comb += retire_count.eq(done_count)
+        m.d.comb += retiring_mask.eq(~(-1 << done_count))
+        m.d.comb += dealloc_tags_count.eq(popcount(tag_incr_mask & retiring_mask))
 
-        m.d.comb += first_tag_incr_mask.eq(tag_incr_mask | done_ignore_mask)
-        first_tag_incr_pos = count_trailing_zeros(first_tag_incr_mask)
-        m.d.comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
-        tag_active_mask_suffix = Mux(
-            active_tags[last_retired_tag], mask_before_first_set_bit(first_tag_incr_mask), 0
-        )  # last retired tag until limiting incr (if exsists)
-        tag_active_mask_prefix = (
-            -active_tags[next_last_retired_tag] << first_tag_incr_pos
-        )  # the same tag from limiting bit increase up
-        m.d.comb += tag_active_mask.eq((tag_active_mask_suffix | tag_active_mask_prefix) & retiring_mask)
+        active_tags_in_range = Signal(self.gen_params.retirement_superscalarity + 1)
+        m.d.comb += active_tags_in_range.eq(Value.cast(active_tags).replicate(2) >> last_retired_tag)
+
+        tag_incr_at_bit = [Signal(range(i + 2)) for i in range(self.gen_params.retirement_superscalarity)]
+        for i in range(self.gen_params.retirement_superscalarity):
+            m.d.comb += tag_incr_at_bit[i].eq(
+                (tag_incr_at_bit[i - 1] if i > 0 else 0) + rob_entries.entries[i].rob_data.tag_increment
+            )
+            m.d.comb += instr_active_mask[i].eq(
+                active_tags_in_range.bit_select(tag_incr_at_bit[i], 1) & retiring_mask[i]
+            )
 
         exception_bits = Signal(self.gen_params.retirement_superscalarity)
-        m.d.comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask)
+        m.d.comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries) & instr_active_mask)
         m.d.comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
-        m.d.comb += active_no_trap_count.eq(popcount(mask_before_first_set_bit(exception_bits) & tag_active_mask))
+        m.d.comb += active_no_trap_count.eq(popcount(mask_before_first_set_bit(exception_bits) & instr_active_mask))
         m.d.comb += exception.eq((exception_bits & retiring_mask).any())
 
         # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
         exception_rob_id = OneHotMux.create(
             m,
             [
-                (rob_entry.exception & tag_active_mask[i], rob_entry.rob_id)
+                (rob_entry.exception & instr_active_mask[i], rob_entry.rob_id)
                 for i, rob_entry in enumerate(rob_entries.entries)
             ],
             priority=True,
@@ -239,9 +228,9 @@ class Retirement(Elaboratable):
                 with Transaction(name="Retirement_NORMAL").body(m, ready=retire_valid):
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If(free_tag):
-                        self.checkpoint_tag_free(m)
-                        m.d.sync += last_retired_tag.eq(last_retired_tag + 1)
+                    with m.If(dealloc_tags_count.any()):
+                        self.crat_dealloc_tag(m, count=dealloc_tags_count)
+                    m.d.sync += last_retired_tag.eq(last_retired_tag + dealloc_tags_count)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
 
@@ -305,7 +294,7 @@ class Retirement(Elaboratable):
                     self.instret_csr.write(
                         m,
                         data=self.instret_csr.read(m).data
-                        + Mux(exception, active_no_trap_count + commit_trapping, popcount(tag_active_mask)),
+                        + Mux(exception, active_no_trap_count + commit_trapping, popcount(instr_active_mask)),
                     )
 
                     last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
@@ -314,7 +303,7 @@ class Retirement(Elaboratable):
                         entry = rob_entries.entries[i]
 
                         with m.If(i - commit_trapping < no_trap_count):
-                            with m.If(tag_active_mask[i]):
+                            with m.If(instr_active_mask[i]):
                                 retire_instr(i, entry)
 
                                 if rvvi is not None:
@@ -356,9 +345,9 @@ class Retirement(Elaboratable):
                     # Flush entire core
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If(free_tag):
-                        self.checkpoint_tag_free(m)
-                        m.d.sync += last_retired_tag.eq(last_retired_tag + 1)
+                    with m.If(dealloc_tags_count.any()):
+                        self.crat_dealloc_tag(m, count=dealloc_tags_count)
+                    m.d.sync += last_retired_tag.eq(last_retired_tag + dealloc_tags_count)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
 

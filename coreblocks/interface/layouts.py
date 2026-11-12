@@ -436,8 +436,10 @@ class RATLayouts:
         self.crat_rename_in = self.frat_rename_in
         self.crat_rename_out = self.frat_rename_out
 
-        self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
+        self.crat_tag_in = make_layout(fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
         self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
+
+        self.crat_dealloc_tag_in = make_layout(("count", range(gen_params.retirement_superscalarity + 1)))
 
         self.crat_flush_restore_in = make_layout(self.entries)
 

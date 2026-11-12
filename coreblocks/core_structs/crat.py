@@ -3,7 +3,7 @@ from amaranth.lib.data import ArrayLayout, View
 from amaranth.utils import ceil_log2
 
 from transactron.core import *
-from transactron.utils import logging
+from transactron.utils import logging, mod_add
 from transactron.lib.connectors import Pipe
 from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
@@ -33,7 +33,7 @@ class CheckpointRAT(Elaboratable):
 
     Attributes
     ----------
-    free_tag: Method
+    dealloc_tag: Method
         Free a tag that is no longer referenced in the core.
         Associated checkpoints are freed too.
         This method accepts no arguments, because all tags must be freed in-order, so call means freeing
@@ -81,7 +81,7 @@ class CheckpointRAT(Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(RollbackKey(), self.rollback)
 
-        self.free_tag = Method()
+        self.dealloc_tag = Method(i=layouts.crat_dealloc_tag_in)
         self.get_active_tags = Method(o=layouts.get_active_tags_out)
         self.dm.add_dependency(ActiveTagsKey(), self.get_active_tags)
 
@@ -101,13 +101,13 @@ class CheckpointRAT(Elaboratable):
         checkpoints_tail = Signal.like(checkpoints_head)
         checkpoints_full = Signal()
 
-        active_tags = Signal(2**self.gen_params.tag_bits, init=1)
-        checkpointed_tags = Signal(2**self.gen_params.tag_bits, init=0)
+        active_tags = Signal(self.gen_params.tag_count, init=1)
+        checkpointed_tags = Signal(self.gen_params.tag_count, init=0)
 
         storage = MemoryBank(shape=self.frat.shape(), depth=self.gen_params.checkpoint_count)
         tag_map = MemoryBank(
             shape=range(self.gen_params.checkpoint_count),
-            depth=2**self.gen_params.tag_bits,
+            depth=self.gen_params.tag_count,
         )
 
         rollback_wait_for_fetch = Signal()
@@ -358,7 +358,7 @@ class CheckpointRAT(Elaboratable):
             with m.If(tag_plus_1 == tags_tail):
                 log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
             with m.Else():
-                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag_plus_1, alloc_tags_bound)
+                invalidate_mask = cyclic_mask(self.gen_params.tag_count, tag_plus_1, alloc_tags_bound)
                 m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
                 log.debug(
                     m,
@@ -406,32 +406,55 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_1 = Signal.like(active_tags, init=0)
         checkpointed_tags_reset_mask_1 = Signal.like(checkpointed_tags)
 
-        @def_method(m, self.free_tag)
-        def _():
-            # If we free a tag, it means that we have retired a next one (tag+1).
+        @def_method(m, self.dealloc_tag)
+        def _(count):
+            # If we deallocate a tag, it means that we have just retired some next one (tag+count+1).
             # Tag is no longer referenced in core, so it can be freed.
 
-            freed_tag = tags_tail
+            def cyclic_mask_bits(width: int, pos: int | Value, count: int | Value):
+                d = Signal(2 * width)
+                m.d.comb += d.eq(~(-1 << count) << pos)
+                return d[:width] | d[width : 2 * width]
 
-            m.d.comb += active_tags_reset_mask_1.eq(1 << freed_tag)
-            m.d.sync += tags_tail.eq(freed_tag + 1)
+            deallocated_tags = cyclic_mask_bits(self.gen_params.tag_count, tags_tail, count)
+            next_tags_tail = Signal.like(tags_tail)
+            m.d.comb += active_tags_reset_mask_1.eq(deallocated_tags)
+            m.d.av_comb += next_tags_tail.eq(
+                mod_add(tags_tail, self.gen_params.tag_count, count, self.gen_params.retirement_superscalarity)
+            )
+            m.d.sync += tags_tail.eq(next_tags_tail)
 
             # prevent double-free on a just rolled back tag (it can be retired a cycle later)
             current_checkpointed_tags = checkpointed_tags & ~checkpointed_tags_reset_mask_0
 
+            checkpoints_tail_incr = Signal(range(self.gen_params.retirement_superscalarity + 1))
+            deallocated_checkpoints = current_checkpointed_tags & deallocated_tags
+            m.d.av_comb += checkpoints_tail_incr.eq(popcount(deallocated_checkpoints))
+
             # deallocate physical checkpoints (but not tags) associated with freed tag
-            with m.If(((current_checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
-                m.d.comb += checkpoints_next_tail_comb.eq(mod_incr(checkpoints_tail, self.gen_params.checkpoint_count))
-                m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
-                with m.If(~checkpoints_full_overwrite):
-                    m.d.sync += checkpoints_full.eq(0)
+            m.d.comb += checkpoints_next_tail_comb.eq(
+                mod_add(
+                    checkpoints_tail,
+                    self.gen_params.checkpoint_count,
+                    checkpoints_tail_incr,
+                    self.gen_params.retirement_superscalarity,
+                )
+            )
+            m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
+            with m.If(~checkpoints_full_overwrite):
+                m.d.sync += checkpoints_full.eq(0)
 
-                log.debug(m, True, "freed checkpoint 0x{:x}", checkpoints_tail)
+            log.debug(
+                m,
+                checkpoints_tail_incr,
+                "deallocated checkpoints [0x{:x},0x{:x})",
+                checkpoints_tail,
+                checkpoints_next_tail_comb,
+            )
 
-            m.d.comb += checkpointed_tags_reset_mask_1.eq(1 << freed_tag)
+            m.d.comb += checkpointed_tags_reset_mask_1.eq(1 << tags_tail)
 
-            log.debug(m, True, "freed tag 0x{:x}", freed_tag)
-            log.assertion(m, (tags_tail + 1) != tags_head, "tag free underflow")
+            log.debug(m, True, "deallocated tags [0x{:x},0x{:x})", tags_tail, next_tags_tail)
 
         # -----
         # Misc
@@ -439,7 +462,7 @@ class CheckpointRAT(Elaboratable):
 
         @def_method(m, self.get_active_tags, nonexclusive=True)
         def _():
-            out = Signal(ArrayLayout(1, 2**self.gen_params.tag_bits))
+            out = Signal(ArrayLayout(1, self.gen_params.tag_count))
 
             core_state = self.dm.get_dependency(CoreStateKey())(m)
             m.d.av_comb += out.eq(Mux(core_state.flushing, 0, active_tags))
@@ -471,7 +494,7 @@ class CheckpointRAT(Elaboratable):
                     Mux(
                         tags_tail < tags_head,
                         tags_head - tags_tail,
-                        2**self.gen_params.tag_bits - tags_tail + tags_head,
+                        self.gen_params.tag_count - tags_tail + tags_head,
                     )
                 )
                 perf_tags.add(m, num_tags)

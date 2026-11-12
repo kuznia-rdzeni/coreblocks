@@ -90,7 +90,7 @@ class SchedulerTestCircuit(Elaboratable):
             Adapter(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         )
         m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans.create(crat.get_active_tags))
-        m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans.create(crat.free_tag))
+        m.submodules.dealloc_tag = self.dealloc_tag = TestbenchIO(AdapterTrans.create(crat.dealloc_tag))
         dm = DependencyContext.get()
         dm.add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
