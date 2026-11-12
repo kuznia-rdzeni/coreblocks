@@ -158,7 +158,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                     retire_imm_ids += 1
 
                 if entry["tag_increment"]:
-                    await dut.free_tag.call(sim)
+                    await dut.dealloc_tag.call(sim, count=1)
 
         @def_method_mock(lambda: dut.core_state)
         def core_state_mock():

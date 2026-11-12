@@ -101,13 +101,13 @@ class CheckpointRAT(Elaboratable):
         checkpoints_tail = Signal.like(checkpoints_head)
         checkpoints_full = Signal()
 
-        active_tags = Signal(2**self.gen_params.tag_bits, init=1)
-        checkpointed_tags = Signal(2**self.gen_params.tag_bits, init=0)
+        active_tags = Signal(self.gen_params.tag_count, init=1)
+        checkpointed_tags = Signal(self.gen_params.tag_count, init=0)
 
         storage = MemoryBank(shape=self.frat.shape(), depth=self.gen_params.checkpoint_count)
         tag_map = MemoryBank(
             shape=range(self.gen_params.checkpoint_count),
-            depth=2**self.gen_params.tag_bits,
+            depth=self.gen_params.tag_count,
         )
 
         rollback_wait_for_fetch = Signal()
@@ -358,7 +358,7 @@ class CheckpointRAT(Elaboratable):
             with m.If(tag_plus_1 == tags_tail):
                 log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
             with m.Else():
-                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag_plus_1, alloc_tags_bound)
+                invalidate_mask = cyclic_mask(self.gen_params.tag_count, tag_plus_1, alloc_tags_bound)
                 m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
                 log.debug(
                     m,
@@ -416,7 +416,7 @@ class CheckpointRAT(Elaboratable):
                 m.d.comb += d.eq(~(-1 << count) << pos)
                 return d[:width] | d[width : 2 * width]
 
-            deallocated_tags = cyclic_mask_bits(self.gen_params.tag_bits, tags_tail, count)
+            deallocated_tags = cyclic_mask_bits(self.gen_params.tag_count, tags_tail, count)
             next_tags_tail = Signal.like(tags_tail)
             m.d.comb += active_tags_reset_mask_1.eq(deallocated_tags)
             m.d.av_comb += next_tags_tail.eq(
@@ -462,7 +462,7 @@ class CheckpointRAT(Elaboratable):
 
         @def_method(m, self.get_active_tags, nonexclusive=True)
         def _():
-            out = Signal(ArrayLayout(1, 2**self.gen_params.tag_bits))
+            out = Signal(ArrayLayout(1, self.gen_params.tag_count))
 
             core_state = self.dm.get_dependency(CoreStateKey())(m)
             m.d.av_comb += out.eq(Mux(core_state.flushing, 0, active_tags))
@@ -494,7 +494,7 @@ class CheckpointRAT(Elaboratable):
                     Mux(
                         tags_tail < tags_head,
                         tags_head - tags_tail,
-                        2**self.gen_params.tag_bits - tags_tail + tags_head,
+                        self.gen_params.tag_count - tags_tail + tags_head,
                     )
                 )
                 perf_tags.add(m, num_tags)
