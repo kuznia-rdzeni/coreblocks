@@ -195,9 +195,9 @@ class TestTLBCache(TestCaseWithSimulator):
         self.dut = SimpleTestCircuit(dut)
         self.backing = MockTLBBackingDevice(self.gen_params, self.dut.backing_resolver)
 
-        port = dut.get_port()
-        self.request = TestbenchIO(AdapterTrans.create(port.request))
-        self.accept = TestbenchIO(AdapterTrans.create(port.accept))
+        port = self.dut.port_devices[0]
+        self.request = port.request
+        self.accept = port.accept
 
         sfence_vma, _ = DependencyContext.get().get_dependency(SFenceVMAKey())
         self.sfence_vma = TestbenchIO(AdapterTrans.create(sfence_vma))
@@ -206,8 +206,6 @@ class TestTLBCache(TestCaseWithSimulator):
             dut=self.dut,
             sfence_vma=self.sfence_vma,
             csrs=self.csr_instances,
-            request=self.request,
-            accept=self.accept,
         )
 
     def matches_lookup(self, response, vpn, asid):
