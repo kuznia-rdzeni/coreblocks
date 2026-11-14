@@ -23,8 +23,6 @@ from transactron.lib import Adapter, AdapterTrans
 from transactron.testing import *
 from transactron.core import *
 
-from test.peripherals.bus_mock import BusMockParameters, MockMasterAdapter
-
 
 class TestFrontend(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
@@ -39,12 +37,9 @@ class TestFrontend(TestCaseWithSimulator):
         self.tags_active = TestbenchIO(Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out))
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
-        self.bus = MockMasterAdapter(
-            BusMockParameters(data_width=self.gen_params.isa.xlen, addr_width=self.gen_params.isa.xlen)
-        )
         self.eir = SimpleTestCircuit(ExceptionInformationRegister(self.gen_params))
 
-        self.frontend = SimpleTestCircuit(CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus))
+        self.frontend = SimpleTestCircuit(CoreFrontend(gen_params=self.gen_params))
 
         self.resolve = TestbenchIO(AdapterTrans.create(self.dm.get_dependency(UnsafeInstructionResolvedKey())))
 
@@ -56,7 +51,6 @@ class TestFrontend(TestCaseWithSimulator):
 
         self.m = ModuleConnector(
             self.frontend,
-            self.bus,
             self.eir,
             self.csr_instances,
             self.tags_active,
@@ -157,7 +151,7 @@ class TestFrontend(TestCaseWithSimulator):
 
     async def bus_process(self, sim: TestbenchContext):
         while True:
-            req = await self.bus.request_read_mock.call(sim)
+            req = await self.frontend.instr_bus.request_read.call(sim)
 
             addr = req.addr << exact_log2(self.gen_params.icache_params.word_width_bytes)
 
@@ -169,10 +163,10 @@ class TestFrontend(TestCaseWithSimulator):
                 return 0x00000013 | (addr << 7)  # regular instr
 
             data = 0
-            for i in range(0, self.bus.params.data_width // 8, 4):
+            for i in range(0, self.gen_params.wb_params.data_width // 8, 4):
                 data |= gen_instr(addr + i) << (8 * i)
 
-            await self.bus.get_read_response_mock.call(sim, data=data, err=0)
+            await self.frontend.instr_bus.get_read_response.call(sim, data=data, err=0)
 
     @def_method_mock(lambda self: self.eir.rob_get_indices)
     def process_rob_idx_mock(self):

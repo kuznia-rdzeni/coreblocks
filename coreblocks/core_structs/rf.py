@@ -61,7 +61,7 @@ class RegisterFile(Elaboratable):
 
         @def_methods(m, self.read_req)
         def _(k: int, reg_id: Value):
-            self.entries.read_req[k](m, addr=reg_id)
+            self.entries.read[k].request(m, addr=reg_id)
 
         @def_methods(m, self.read_resp)
         def _(k: int, reg_id: Value):
@@ -74,7 +74,7 @@ class RegisterFile(Elaboratable):
             reg_val = OneHotMux.create(
                 m,
                 [(reg_written[i], written_value[i]) for i in range(len(self.write))],
-                self.entries.read_resp[k](m).data,
+                self.entries.read[k].response(m).data,
             )
             return {
                 "reg_val": reg_val,

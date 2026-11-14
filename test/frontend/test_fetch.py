@@ -5,9 +5,6 @@ from dataclasses import dataclass
 from parameterized import parameterized_class
 import random
 
-from amaranth import Elaboratable, Module
-
-from transactron.core import Method
 from transactron.lib import Adapter, BasicFifo
 from transactron.testing.method_mock import MethodMock
 from transactron.utils import ModuleConnector, DependencyContext
@@ -21,33 +18,12 @@ from transactron.testing import (
 )
 
 from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker
-from coreblocks.cache.iface import CacheInterface
 from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
+from coreblocks.interface.layouts import FetchLayouts
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
-
-
-class MockedICache(Elaboratable, CacheInterface):
-    def __init__(self, gen_params: GenParams):
-        layouts = gen_params.get(ICacheLayouts)
-
-        self.issue_req_io = TestbenchIO(Adapter(i=layouts.issue_req))
-        self.accept_res_io = TestbenchIO(Adapter(o=layouts.accept_res))
-
-        self.issue_req = self.issue_req_io.adapter.iface
-        self.accept_res = self.accept_res_io.adapter.iface
-        self.flush = Method()
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.issue_req_io = self.issue_req_io
-        m.submodules.accept_res_io = self.accept_res_io
-
-        return m
 
 
 @pytest.mark.parametrize("fetch_block_log", [2, 3, 4])
@@ -70,17 +46,16 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, depth=2)
         self.fifo = SimpleTestCircuit(fifo, exclude={"write"})
         self.fetch_resume_mock = TestbenchIO(Adapter())
 
-        fetch_unit = FetchUnit(self.gen_params, self.icache)
+        fetch_unit = FetchUnit(self.gen_params)
         fetch_unit.cont.provide(fifo.write)
 
         self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(self.csr_instances, self.icache, self.fifo, self.fetch)
+        self.m = ModuleConnector(self.csr_instances, self.fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -242,14 +217,14 @@ class TestFetchUnit(TestCaseWithSimulator):
             self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
 
     @def_method_mock(
-        lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2
+        lambda self: self.fetch.icache.issue_req, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
     def issue_req_mock(self, paddr):
         @MethodMock.effect
         def eff():
             self.input_q.append(paddr)
 
-    @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
+    @def_method_mock(lambda self: self.fetch.icache.accept_res, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
         @MethodMock.effect
         def eff():

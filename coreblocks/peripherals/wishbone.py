@@ -63,8 +63,8 @@ class WishboneMasterMethodLayout:
     request_layout: Layout
         Layout for request method of WishboneMaster.
 
-    result_layout: Layout
-        Layout for result method of WishboneMaster.
+    response_layout: Layout
+        Layout for response method of WishboneMaster.
     """
 
     def __init__(self, wb_params: WishboneParameters):
@@ -75,7 +75,7 @@ class WishboneMasterMethodLayout:
             ("sel", wb_params.data_width // wb_params.granularity),
         )
 
-        self.result_layout = make_layout(("data", wb_params.data_width), ("err", 1))
+        self.response_layout = make_layout(("data", wb_params.data_width), ("err", 1))
 
 
 class WishboneMaster(Component):
@@ -96,10 +96,10 @@ class WishboneMaster(Component):
         Transactional method to start a new Wishbone request.
         Ready when no request is being executed and previous result is read.
         Takes `request_layout` as argument.
-    result: Method
+    response: Method
         Transactional method to read previous request result.
         Becomes ready after Wishbone request is completed.
-        Returns state of request (error or success) and data (in case of read request) as `result_layout`.
+        Returns state of request (error or success) and data (in case of read request) as `response_layout`.
     """
 
     wb_master: WishboneInterface
@@ -112,7 +112,7 @@ class WishboneMaster(Component):
         self.method_layouts = WishboneMasterMethodLayout(wb_params)
 
         self.request = Method(i=self.method_layouts.request_layout)
-        self.result = Method(o=self.method_layouts.result_layout)
+        self.response = Method(o=self.method_layouts.response_layout)
 
         # latched input signals
         self.txn_req = Signal(self.method_layouts.request_layout)
@@ -125,7 +125,7 @@ class WishboneMaster(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result = result = Forwarder(self.method_layouts.result_layout)
+        m.submodules.result = result = Forwarder(self.method_layouts.response_layout)
 
         request_ready = Signal()
 
@@ -172,7 +172,7 @@ class WishboneMaster(Component):
                     m.d.sync += self.wb_master.stb.eq(0)
                     m.next = "WBCycStart"
 
-        @def_method(m, self.result)
+        @def_method(m, self.response)
         def _():
             ret = result.read(m)
 
@@ -226,10 +226,10 @@ class PipelinedWishboneMaster(Component):
         Transactional method to start a new Wishbone request.
         Ready if new request can be immediately sent.
         Takes `request_layout` as argument.
-    result: Method
+    response: Method
         Transactional method to read results from completed requests sequentially.
         Ready if buffered results are available.
-        Returns state of request (error or success) and data (in case of read request) as `result_layout`.
+        Returns state of request (error or success) and data (in case of read request) as `response_out_layout`.
     requests_finished: Signal, out
         True, if there are no requests waiting for response
     """
@@ -243,7 +243,7 @@ class PipelinedWishboneMaster(Component):
 
         self.generate_method_layouts(wb_params)
         self.request = Method(i=self.request_in_layout)
-        self.result = Method(o=self.result_out_layout)
+        self.response = Method(o=self.response_out_layout)
 
         self.requests_finished = Signal()
 
@@ -256,12 +256,12 @@ class PipelinedWishboneMaster(Component):
             ("sel", wb_params.data_width // wb_params.granularity),
         ]
 
-        self.result_out_layout = [("data", wb_params.data_width), ("err", 1)]
+        self.response_out_layout = [("data", wb_params.data_width), ("err", 1)]
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result_fifo = self.result_fifo = BasicFifo(self.result_out_layout, self.max_req)
+        m.submodules.result_fifo = self.result_fifo = BasicFifo(self.response_out_layout, self.max_req)
         m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans.create(self.result_fifo.write)
 
         pending_req_cnt = Signal(range(self.max_req + 1))
@@ -284,7 +284,7 @@ class PipelinedWishboneMaster(Component):
 
             m.d.comb += req_finish.eq(1)
 
-        self.result.provide(self.result_fifo.read)
+        self.response.provide(self.result_fifo.read)
 
         @def_method(m, self.request, ready=request_ready)
         def _(arg) -> None:

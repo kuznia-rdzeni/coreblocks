@@ -19,7 +19,7 @@ from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 from transactron.evlog import EventSource
 
-from coreblocks.cache.iface import CacheInterface
+from coreblocks.cache.iface import CacheInterface, PureCacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
@@ -74,18 +74,19 @@ class FetchUnit(Elaboratable):
     ras_predict: Required[Method]
     """Speculatively push/pop the return address stack for a fetched block."""
 
-    def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
+    icache: Required[CacheInterface]
+    """Instruction cache."""
+
+    def __init__(self, gen_params: GenParams) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        icache : CacheInterface
-            Instruction Cache
         """
         self.gen_params = gen_params
-        self.icache = icache
+        self.icache = PureCacheInterface(self.gen_params)
 
         self.layouts = self.gen_params.get(FetchLayouts)
 

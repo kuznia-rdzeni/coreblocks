@@ -115,18 +115,18 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert resp is None  # verify cycle restart
 
         async def result_process(sim: TestbenchContext):
-            resp = await twbm.result.call(sim)
+            resp = await twbm.response.call(sim)
             assert resp["data"] == 8
             assert not resp["err"]
 
-            resp = await twbm.result.call(sim)
+            resp = await twbm.response.call(sim)
             assert resp["data"] == 3
             assert not resp["err"]
 
-            resp = await twbm.result.call(sim)
+            resp = await twbm.response.call(sim)
             assert not resp["err"]
 
-            resp = await twbm.result.call(sim)
+            resp = await twbm.response.call(sim)
             assert resp["data"] == 1
             assert resp["err"]
 
@@ -266,7 +266,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
             for _ in range(requests):
                 await self.random_wait_geom(sim, 0.8)
 
-                result = await pwbm.result.call(sim)
+                result = await pwbm.response.call(sim)
                 cres = res_queue.pop()
                 assert result["data"] == cres
                 assert not result["err"]
@@ -342,7 +342,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
         async def result_process(sim: TestbenchContext):
             for _ in range(self.iters):
                 await self.random_wait_geom(sim, 0.2)
-                res = await self.tc.result.call(sim)
+                res = await self.tc.response.call(sim)
                 req = req_queue.pop()
 
                 if not req["we"]:

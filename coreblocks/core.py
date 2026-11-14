@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, In, Out
-from transactron import Transaction
+from transactron import Transaction, provide
 from transactron.lib.allocators import PriorityEncoderAllocator
 
 from transactron.utils.dependencies import DependencyContext
@@ -29,10 +29,12 @@ from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, WishboneMasterAdapter
+from transactron.lib import RequestResponseInterface
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
+from coreblocks.priv.vmem.iface import TLBBackingDevice
 from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
 from transactron.evlog import EvLogEnabledKey
 from coreblocks.telemetry.rvvi import RVVIAggregator, RVVIHartCollector
@@ -70,11 +72,13 @@ class Core(Component):
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
-        self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
+        self.bus_master_instr_adapter = WishboneMasterAdapter(self.gen_params.wb_params)
         self.bus_master_data_adapter = WishboneMasterAdapter(
-            self.wb_master_data,
+            self.gen_params.wb_params,
             port_count=2 if self.gen_params.vmem_params.supported_non_bare_schemes else 1,
         )
+        provide[RequestResponseInterface](self.bus_master_instr_adapter.bus, self.wb_master_instr)
+        provide[RequestResponseInterface](self.bus_master_data_adapter.bus, self.wb_master_data)
 
         self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter.ports[0])
 
@@ -83,33 +87,35 @@ class Core(Component):
         self.l1i_tlb = None
         self.l1d_tlb = None
         if self.gen_params.vmem_params.supported_non_bare_schemes:
-            self.ptw = PageTableWalker(self.gen_params, bus=self.bus_master_data_adapter.ports[1])
+            self.ptw = PageTableWalker(self.gen_params)
+            provide[BusMasterInterface](self.ptw.bus, self.bus_master_data_adapter.ports[1])
             self.l2_tlb = SetAssociativeTLB(
                 self.gen_params,
                 entries=self.gen_params.tlb_config.l2tlb_entries,
                 ways=self.gen_params.tlb_config.l2tlb_ways,
-                backing_resolver=self.ptw,
                 perf_name_prefix="mmu.tlb.l2",
                 ports=2,
             )
             self.l1i_tlb = FullyAssociativeTLB(
                 self.gen_params,
                 entries=self.gen_params.tlb_config.itlb_entries,
-                backing_resolver=self.l2_tlb.get_port(),
                 perf_name_prefix="mmu.tlb.l1i",
                 ports=1,
             )
             self.l1d_tlb = FullyAssociativeTLB(
                 self.gen_params,
                 entries=self.gen_params.tlb_config.dtlb_entries,
-                backing_resolver=self.l2_tlb.get_port(),
                 perf_name_prefix="mmu.tlb.l1d",
                 ports=1,
             )
+            provide[TLBBackingDevice](self.l2_tlb.backing_resolver, self.ptw)
+            provide[TLBBackingDevice](self.l1i_tlb.backing_resolver, self.l2_tlb.get_port())
+            provide[TLBBackingDevice](self.l1d_tlb.backing_resolver, self.l2_tlb.get_port())
             self.dm.add_dependency(InstructionAddressTranslatorBackingDeviceKey(), self.l1i_tlb.get_port)
             self.dm.add_dependency(DataAddressTranslatorBackingDeviceKey(), self.l1d_tlb.get_port)
 
-        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter.ports[0])
+        self.frontend = CoreFrontend(gen_params=self.gen_params)
+        provide[BusMasterInterface](self.frontend.instr_bus, self.bus_master_instr_adapter.ports[0])
 
         self.rf_allocator = PriorityEncoderAllocator(
             gen_params.phys_regs,
