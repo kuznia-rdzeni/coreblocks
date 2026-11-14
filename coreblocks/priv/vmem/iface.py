@@ -5,7 +5,7 @@ from transactron import Method, Provided
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
 
-__all__ = ["TLBBackingDevice", "TLBBackingMethods"]
+__all__ = ["TLBBackingDevice", "PureTLBBackingDevice"]
 
 
 class TLBBackingDevice(Protocol):
@@ -20,8 +20,8 @@ class TLBBackingDevice(Protocol):
     Expected layout is `AddressTranslationLayouts.tlb_accept`."""
 
 
-class TLBBackingMethods(TLBBackingDevice):
-    """Fresh, undefined `TLBBackingDevice` methods."""
+class PureTLBBackingDevice(TLBBackingDevice):
+    """`TLBBackingDevice` with no behavior of its own."""
 
     def __init__(self, gen_params: GenParams):
         layout = gen_params.get(AddressTranslationLayouts)

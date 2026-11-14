@@ -3,7 +3,7 @@ from typing import Protocol
 from amaranth import *
 
 from coreblocks.peripherals.wishbone import WishboneMasterMethodLayout, WishboneParameters
-from coreblocks.peripherals.axi_lite import AXILiteMasterInterface, AXILiteMasterMethods, AXILiteParameters
+from coreblocks.peripherals.axi_lite import AXILiteMasterInterface, PureAXILiteMasterInterface, AXILiteParameters
 
 from transactron import Method, Provided, Required, def_method, def_methods, TModule
 from transactron.lib import RequestResponseInterface, Serializer
@@ -12,7 +12,7 @@ from transactron.utils.transactron_helpers import make_layout
 __all__ = [
     "BusParametersInterface",
     "BusMasterInterface",
-    "BusMasterMethods",
+    "PureBusMasterInterface",
     "WishboneMasterAdapter",
     "AXILiteMasterAdapter",
 ]
@@ -108,8 +108,8 @@ class CommonBusMasterMethodLayout:
         self.write_response_layout = make_layout(("err", 1))
 
 
-class BusMasterMethods(BusMasterInterface):
-    """Fresh, undefined `BusMasterInterface` methods."""
+class PureBusMasterInterface(BusMasterInterface):
+    """`BusMasterInterface` with no behavior of its own."""
 
     def __init__(self, params: BusParametersInterface):
         self.params = params
@@ -166,7 +166,7 @@ class WishboneMasterAdapter(Elaboratable):
         )
         self.bus = self.serializer.server
 
-        self.ports = [BusMasterMethods(self.params) for _ in range(port_count)]
+        self.ports = [PureBusMasterInterface(self.params) for _ in range(port_count)]
 
     def elaborate(self, platform):
         m = TModule()
@@ -197,7 +197,7 @@ class WishboneMasterAdapter(Elaboratable):
         return m
 
 
-class AXILiteMasterAdapter(BusMasterMethods, Elaboratable):
+class AXILiteMasterAdapter(PureBusMasterInterface, Elaboratable):
     """
     An adapter for AXI Lite master.
 
@@ -242,7 +242,7 @@ class AXILiteMasterAdapter(BusMasterMethods, Elaboratable):
 
     def __init__(self, axil_params: AXILiteParameters):
         super().__init__(axil_params)
-        self.bus = AXILiteMasterMethods(axil_params)
+        self.bus = PureAXILiteMasterInterface(axil_params)
 
     def elaborate(self, platform):
         m = TModule()

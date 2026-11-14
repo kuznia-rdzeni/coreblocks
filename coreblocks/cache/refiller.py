@@ -1,8 +1,8 @@
 from amaranth import *
-from coreblocks.cache.iface import CacheRefillerMethods
+from coreblocks.cache.iface import PureCacheRefillerInterface
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ICacheLayouts
-from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from transactron.core import Required, Transaction, TModule, def_method
 from transactron.lib import Forwarder
 
@@ -12,7 +12,7 @@ from amaranth.utils import exact_log2
 __all__ = ["SimpleCommonBusCacheRefiller"]
 
 
-class SimpleCommonBusCacheRefiller(CacheRefillerMethods, Elaboratable):
+class SimpleCommonBusCacheRefiller(PureCacheRefillerInterface, Elaboratable):
     bus_master: Required[BusMasterInterface]
     """Instruction bus master."""
 
@@ -20,7 +20,7 @@ class SimpleCommonBusCacheRefiller(CacheRefillerMethods, Elaboratable):
         super().__init__(gen_params)
         self.layouts = gen_params.get(ICacheLayouts)
         self.params = gen_params.icache_params
-        self.bus_master = BusMasterMethods(gen_params.wb_params)
+        self.bus_master = PureBusMasterInterface(gen_params.wb_params)
 
     def elaborate(self, platform):
         m = TModule()

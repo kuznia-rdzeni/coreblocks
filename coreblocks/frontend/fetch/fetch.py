@@ -19,7 +19,7 @@ from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 from transactron.evlog import EventSource
 
-from coreblocks.cache.iface import CacheInterface, CacheMethods
+from coreblocks.cache.iface import CacheInterface, PureCacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
@@ -86,7 +86,7 @@ class FetchUnit(Elaboratable):
             fetch unit.
         """
         self.gen_params = gen_params
-        self.icache = CacheMethods(self.gen_params)
+        self.icache = PureCacheInterface(self.gen_params)
 
         self.layouts = self.gen_params.get(FetchLayouts)
 

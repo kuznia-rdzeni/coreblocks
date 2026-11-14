@@ -20,7 +20,7 @@ from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import CoreStateKey, FlushICacheKey, RollbackKey, UnsafeInstructionResolvedKey
-from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 
 log = logging.HardwareLogger("frontend")
 
@@ -101,7 +101,7 @@ class CoreFrontend(Elaboratable):
 
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
-        self.instr_bus = BusMasterMethods(gen_params.wb_params)
+        self.instr_bus = PureBusMasterInterface(gen_params.wb_params)
         self.connections = DependencyContext.get()
 
         layouts = self.gen_params.get(FetchLayouts)

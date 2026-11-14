@@ -7,7 +7,7 @@ from transactron.lib import BasicFifo
 
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
-from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from coreblocks.interface.layouts import CommonLayoutFields, LSULayouts
 
 
@@ -38,7 +38,7 @@ class LSURequester(Elaboratable):
             the resiliency of `LSURequester` to latency of memory in case when memory is fully pipelined.
         """
         self.gen_params = gen_params
-        self.bus = BusMasterMethods(gen_params.wb_params)
+        self.bus = PureBusMasterInterface(gen_params.wb_params)
         self.depth = depth
 
         lsu_layouts = gen_params.get(LSULayouts)

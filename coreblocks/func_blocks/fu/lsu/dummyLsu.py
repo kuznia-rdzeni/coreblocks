@@ -19,7 +19,7 @@ from coreblocks.interface.keys import (
 )
 from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts
 from coreblocks.params import *
-from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
 
 __all__ = ["LSUDummy", "LSUComponent"]
@@ -54,7 +54,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.issue = Method(i=self.fu_layouts.issue)
         self.push_result = Method(i=self.fu_layouts.push_result)
 
-        self.bus = BusMasterMethods(gen_params.wb_params)
+        self.bus = PureBusMasterInterface(gen_params.wb_params)
 
         self.log = logging.HardwareLogger("backend.lsu.dummylsu")
 

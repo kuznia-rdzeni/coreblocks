@@ -5,7 +5,7 @@ from transactron import Method, Provided
 from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.params import GenParams
 
-__all__ = ["CacheInterface", "CacheMethods", "CacheRefillerInterface", "CacheRefillerMethods"]
+__all__ = ["CacheInterface", "PureCacheInterface", "CacheRefillerInterface", "PureCacheRefillerInterface"]
 
 
 class CacheInterface(Protocol):
@@ -21,8 +21,8 @@ class CacheInterface(Protocol):
     """A method that is used to flush the whole cache."""
 
 
-class CacheMethods(CacheInterface):
-    """Fresh, undefined `CacheInterface` methods."""
+class PureCacheInterface(CacheInterface):
+    """`CacheInterface` with no behavior of its own."""
 
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
@@ -41,8 +41,8 @@ class CacheRefillerInterface(Protocol):
     """A method that is used to accept one fetch block from the requested cache line."""
 
 
-class CacheRefillerMethods(CacheRefillerInterface):
-    """Fresh, undefined `CacheRefillerInterface` methods."""
+class PureCacheRefillerInterface(CacheRefillerInterface):
+    """`CacheRefillerInterface` with no behavior of its own."""
 
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)

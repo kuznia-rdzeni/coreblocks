@@ -11,7 +11,7 @@ __all__ = [
     "AXILiteSignature",
     "AXILiteInterface",
     "AXILiteMasterInterface",
-    "AXILiteMasterMethods",
+    "PureAXILiteMasterInterface",
     "AXILiteMaster",
 ]
 
@@ -216,8 +216,8 @@ class AXILiteMasterInterface(Protocol):
     """Reads a response from the write response channel. Returns `wr_response_layout`."""
 
 
-class AXILiteMasterMethods(AXILiteMasterInterface):
-    """Fresh, undefined `AXILiteMasterInterface` methods."""
+class PureAXILiteMasterInterface(AXILiteMasterInterface):
+    """`AXILiteMasterInterface` with no behavior of its own."""
 
     def __init__(self, axil_params: AXILiteParameters):
         layouts = AXILiteMasterMethodLayouts(axil_params)

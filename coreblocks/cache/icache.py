@@ -12,9 +12,9 @@ from coreblocks.params import GenParams, ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import OneHotMux, assign, logging
 from transactron.lib import *
-from coreblocks.peripherals.bus_adapter import BusMasterInterface, BusMasterMethods
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 
-from coreblocks.cache.iface import CacheMethods, CacheRefillerInterface, CacheRefillerMethods
+from coreblocks.cache.iface import PureCacheInterface, CacheRefillerInterface, PureCacheRefillerInterface
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
@@ -25,14 +25,14 @@ __all__ = [
 log = logging.HardwareLogger("frontend.icache")
 
 
-class ICacheBypass(CacheMethods, Elaboratable):
+class ICacheBypass(PureCacheInterface, Elaboratable):
     bus_master: Required[BusMasterInterface]
     """Instruction bus master."""
 
     def __init__(self, gen_params: GenParams) -> None:
         super().__init__(gen_params)
         self.params = gen_params.icache_params
-        self.bus_master = BusMasterMethods(gen_params.wb_params)
+        self.bus_master = PureBusMasterInterface(gen_params.wb_params)
 
         if self.params.words_in_fetch_block != 1:
             raise ValueError("ICacheBypass only supports fetch block size equal to the word size.")
@@ -66,7 +66,7 @@ class ICacheBypass(CacheMethods, Elaboratable):
         return m
 
 
-class ICache(CacheMethods, Elaboratable):
+class ICache(PureCacheInterface, Elaboratable):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
@@ -94,7 +94,7 @@ class ICache(CacheMethods, Elaboratable):
         self.layouts = gen_params.get(ICacheLayouts)
         self.params = gen_params.icache_params
 
-        self.refiller = CacheRefillerMethods(gen_params)
+        self.refiller = PureCacheRefillerInterface(gen_params)
 
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
 

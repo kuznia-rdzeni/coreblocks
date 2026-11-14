@@ -19,7 +19,7 @@ from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.interface.keys import SFenceVMAKey, CSRInstancesKey
 from coreblocks.params import GenParams
 
-from coreblocks.priv.vmem.iface import TLBBackingDevice, TLBBackingMethods
+from coreblocks.priv.vmem.iface import TLBBackingDevice, PureTLBBackingDevice
 
 __all__ = [
     "FullyAssociativeTLB",
@@ -175,11 +175,11 @@ class FullyAssociativeTLB(Elaboratable):
         self.gen_params = gen_params
         self.entries = entries
         self.ports = ports
-        self.backing_resolver = TLBBackingMethods(gen_params)
+        self.backing_resolver = PureTLBBackingDevice(gen_params)
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.perf_name_prefix = perf_name_prefix
 
-        self.port_devices = [TLBBackingMethods(gen_params) for _ in range(ports)]
+        self.port_devices = [PureTLBBackingDevice(gen_params) for _ in range(ports)]
 
         self.sfence_vma = Method(i=self.layout.sfence_vma)
         self.dm = DependencyContext.get()
@@ -381,11 +381,11 @@ class SetAssociativeTLB(Elaboratable):
         self.ways = ways
         self.sets = entries // ways
         self.ports = ports
-        self.backing_resolver = TLBBackingMethods(gen_params)
+        self.backing_resolver = PureTLBBackingDevice(gen_params)
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.perf_name_prefix = perf_name_prefix
 
-        self.port_devices = [TLBBackingMethods(gen_params) for _ in range(ports)]
+        self.port_devices = [PureTLBBackingDevice(gen_params) for _ in range(ports)]
         self.sfence_vma = Method(i=self.layout.sfence_vma)
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
