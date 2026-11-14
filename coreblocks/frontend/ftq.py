@@ -287,7 +287,9 @@ class FetchTargetQueue(Elaboratable):
 
         @def_method(m, self.ras_predict)
         def _(ftq_ptr, ras_action, addr):
-            log.assertion(m, ~ras_checkpoint.read_resp[0].ready, "RAS prediction before checkpoint recovery completed")
+            log.assertion(
+                m, ~ras_checkpoint.read[0].response.ready, "RAS prediction before checkpoint recovery completed"
+            )
             new_state = ras.update(m, push=RasAction.has_push(ras_action), pop=RasAction.has_pop(ras_action), addr=addr)
             ras_checkpoint.write(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr, data=new_state)
 
@@ -405,21 +407,21 @@ class FetchTargetQueue(Elaboratable):
             pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
             prediction_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
 
-            ras_checkpoint.read_req(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
+            ras_checkpoint.read[0].request(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
 
             log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
 
         with Transaction(name="FTQ_RAS_Recover").body(m):
-            redirect_checkpoint = ras_checkpoint.read_resp(m).data
+            redirect_checkpoint = ras_checkpoint.read[0].response(m).data
             ras.recover(m, sp=redirect_checkpoint.sp, count=redirect_checkpoint.count, top=redirect_checkpoint.top)
 
         @def_method(m, self.jump_target_req)
         def _(ftq_ptr):
-            jb_unit_prediction_mem.read_req(m, addr=ftq_ptr.ptr)
+            jb_unit_prediction_mem.read[0].request(m, addr=ftq_ptr.ptr)
 
         @def_method(m, self.jump_target_resp)
         def _():
-            return jb_unit_prediction_mem.read_resp(m).data
+            return jb_unit_prediction_mem.read[0].response(m).data
 
         @def_method(m, self.resolve)
         def _(ftq_ptr, misprediction, taken, cfi_idx, cfi_type, cfi_target):
