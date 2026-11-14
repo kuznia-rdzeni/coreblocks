@@ -97,7 +97,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
             insns = [
                 draw(
                     amaranth_structs(
-                        layouts.reg_alloc_in_data,
+                        layouts.scheduler_in_data,
                         exec_fn=amaranth_structs(fields.exec_fn_layout, op_type=st.sampled_from(optype_set)),
                     )
                 )
