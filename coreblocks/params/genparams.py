@@ -110,6 +110,9 @@ class GenParams(DependentCache):
         self.ftq_size_log = cfg.ftq_size_log
         self.ftq_size = 2**cfg.ftq_size_log
 
+        self.bpu_config = cfg.bpu_config
+        self.bpu_config.validate()
+
         self.frontend_superscalarity = cfg.frontend_superscalarity
         self.announcement_superscalarity = cfg.announcement_superscalarity
         self.retirement_superscalarity = cfg.retirement_superscalarity
@@ -132,6 +135,8 @@ class GenParams(DependentCache):
         self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
         self.fetch_width_log = exact_log2(self.fetch_width)
 
+        self.bpd_meta_width = self.bpu_config.bpd_meta_width(self.fetch_width)
+
         self.instr_buffer_size = cfg.instr_buffer_size
         self.extra_verification = cfg.extra_verification
 
@@ -141,6 +146,7 @@ class GenParams(DependentCache):
 
         self.user_mode = cfg.user_mode
         self.supervisor_mode = cfg.supervisor_mode
+        self.sstc = cfg.sstc and self.supervisor_mode
         self.hpm_counters_count = cfg.hpm_counters_count
 
         self.tlb_config = cfg.tlb_config

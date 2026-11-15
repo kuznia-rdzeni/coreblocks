@@ -11,7 +11,9 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
 from coreblocks.func_blocks.fu.fpu.fpu_error_module import FPUErrorModule
 from coreblocks.func_blocks.fu.fpu.fpu_rounding_module import FPURounding
 from transactron.utils.amaranth_ext import count_leading_zeros
-from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import FastRecursiveMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import (
+    FastRecursiveMul,
+)
 
 
 class FPUMulMethodLayout:
@@ -106,7 +108,9 @@ class FPUMulModule(Elaboratable):
             op_2_subn = ~op_2.sig[-1]
 
             # exponent before potential operand normalization
-            pre_op_norm_exp = Signal(signed(self.fpu_params.exp_width + 1))
+            pre_op_norm_exp_min = 2 * min_real_exp.value
+            pre_op_norm_exp_max = 2 * max_real_exp.value + 2
+            pre_op_norm_exp = Signal(range(pre_op_norm_exp_min, pre_op_norm_exp_max + 1))
             sum_of_exp = op_1.exp + op_2.exp - 2 * bias
             # Because exp = 0 and exp = 1 represent the same exponent emin,
             # to properly calcuate pre_op_norm_exp we have to adjust those exponents
@@ -143,7 +147,9 @@ class FPUMulModule(Elaboratable):
                 m.d.av_comb += fixed_sig_product_norm.eq(sig_product >> 1)
                 m.d.av_comb += shifted_out_bit.eq(sig_product[0])
 
-            post_multiplication_exp = Signal(signed(self.fpu_params.exp_width + 1))
+            post_multiplication_exp_min = pre_op_norm_exp_min - (2 * self.fpu_params.sig_width)
+            post_multiplication_exp_max = pre_op_norm_exp_max + 1
+            post_multiplication_exp = Signal(range(post_multiplication_exp_min, post_multiplication_exp_max + 1))
             m.d.av_comb += post_multiplication_exp.eq(
                 pre_op_norm_exp - (op_1_norm_shift + op_2_norm_shift) + sig_product[-1]
             )

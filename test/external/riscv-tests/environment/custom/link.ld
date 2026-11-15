@@ -7,20 +7,11 @@ MEMORY
     data (wxa!ri) : ORIGIN = 0x90000000, LENGTH = 128K
 }
 
-PHDRS
-{
-  text PT_LOAD;
-  data_init PT_LOAD;
-  data PT_NULL;
-}
-
 SECTIONS
 {
-  .text.init : { *(.text.init) } >text AT>text :text
-  . = ALIGN(0x1000);
-  .text : { *(.text) } >text AT>text :text
-  . = ALIGN(0x1000);
-  .data : { *(.data) } >data AT>data :data_init
-  .bss : { *(.bss) } >data AT>data :data
+  .text.init : { *(.text.init) } >text
+  .text : { *(.text .text.*) . = ALIGN(0x40); } >text
+  .data : { *(.data .data.*) } >data
+  .bss : { *(.bss .bss.*) . = ALIGN(0x40); } >data
   _end = .;
 }

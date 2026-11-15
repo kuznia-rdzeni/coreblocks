@@ -1,5 +1,5 @@
-from test.regression.cocotb import CocotbSimulation, generate_tests
-from test.regression.benchmark import run_benchmark, get_all_benchmark_names
+from test.sim.cocotb import CocotbSimulation, generate_tests
+from test.benchmark.benchmark import run_benchmark, get_all_benchmark_names
 
 
 async def _do_benchmark(dut, benchmark_name):

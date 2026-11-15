@@ -18,8 +18,9 @@ from coreblocks.interface.layouts import (
     FTQPtr,
     FetchTargetQueueLayouts,
 )
-from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey
+from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey, CSRInstancesKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
+from coreblocks.frontend.bpu.ras import RAS
 from coreblocks.telemetry import FetchRequest, FTQAlloc, FTQCommit, FTQRollback
 
 
@@ -99,18 +100,26 @@ class FetchTargetQueue(Elaboratable):
 
     ifu_writeback: Provided[Method]
     """
-    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
-    redirect fetch to a new PC.
+    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and either
+    redirect fetch to a new PC or invalidate the fetch PC, which stalls fetching until the
+    backend resumes it.
     """
     check_stale: Provided[Methods]
     """
     Tell whether a fetch request (identified by its FTQ pointer and generation) is stale, i.e.
     was invalidated by a redirect after it was issued.
     """
-    bpu_response: Provided[Method]
-    """Accept a branch prediction result and supply the predicted next PC to the FAU."""
+    bpu_fetch_target: Provided[Method]
+    """Pass an FTQ entry's next fetch target to the FAU."""
+    bpu_prediction_details: Provided[Method]
+    """Store an FTQ entry's prediction, predictor metadata, and lookup PC."""
     read_prediction: Provided[Method]
     """Return the branch prediction stored for a given FTQ entry (read by the fetch unit)."""
+
+    ras_peek: Provided[Method]
+    """Read the address on top of the return address stack."""
+    ras_predict: Provided[Method]
+    """Apply a fetch block's speculative effect on the return address stack and checkpoint it."""
 
     jump_target_req: Provided[Method]
     """Request the predicted jump target for a given FTQ entry (stub)."""
@@ -139,11 +148,15 @@ class FetchTargetQueue(Elaboratable):
 
         bpu_layouts = self.gen_params.get(BranchPredictionLayouts)
         self.bpu_request = Method(i=bpu_layouts.request)
-        self.bpu_response = Method(i=bpu_layouts.write_prediction)
+        self.bpu_fetch_target = Method(i=bpu_layouts.fetch_target)
+        self.bpu_prediction_details = Method(i=bpu_layouts.prediction_details)
         self.bpu_flush = Method()
         self.check_stale = Methods(2, i=ifu_layouts.check_stale_req, o=ifu_layouts.check_stale_resp)
         self.bpu_update = Method(i=bpu_layouts.update)
         self.read_prediction = Method(i=ifu_layouts.read_prediction_req, o=ifu_layouts.bpu_prediction)
+
+        self.ras_peek = Method(o=ifu_layouts.ras_top)
+        self.ras_predict = Method(i=ifu_layouts.ras_predict)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
         self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
@@ -158,11 +171,20 @@ class FetchTargetQueue(Elaboratable):
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
         self.dep_manager.add_dependency(FTQCommitKey(), self.commit)
 
+        self.perf_mispredictions = TaggedCounter(
+            "frontend.ftq.mispredictions", "Number of committed branch mispredictions", tags=CfiType
+        )
+
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules += [self.perf_mispredictions]
+
         fields = self.gen_params.get(CommonLayoutFields)
         fetch_layouts = self.gen_params.get(FetchLayouts)
+        bpu_layouts = self.gen_params.get(BranchPredictionLayouts)
+
+        m_csr = self.dep_manager.get_dependency(CSRInstancesKey()).m_mode
 
         m.submodules.fetch_address_unit = fetch_address_unit = FetchAddressUnit(self.gen_params)
 
@@ -176,13 +198,25 @@ class FetchTargetQueue(Elaboratable):
             gen_params=self.gen_params, layout=fetch_layouts.bpu_prediction, rollback_ports=1
         )
 
-        # Data used for training BPU. The wide fields (pc, target) stay in the memory,
-        # per-entry status stays in registers
-        train_layout = make_layout(fields.pc, fields.cfi_target, fields.cfi_type, ("taken", 1))
+        # Store BPU training targets in memory and per-entry status in registers.
+        train_layout = make_layout(fields.cfi_target, fields.cfi_type, ("taken", 1))
         m.submodules.train_mem = train_mem = FTQReadQueue(gen_params=self.gen_params, layout=train_layout)
-        train_status_layout = make_layout(("valid", 1), fields.cfi_idx, ("mispredict", 1))
+        # Keep metadata with its lookup PC so training selects the same predictor entries.
+        # A CFI spanning a fetch block boundary belongs to the next FTQ entry, but its
+        # address lies in the previous block and would select a different predictor set.
+        m.submodules.bpd_meta_mem = bpd_meta_mem = FTQReadQueue(
+            gen_params=self.gen_params, layout=make_layout(fields.pc, bpu_layouts.meta)
+        )
+        train_status_layout = make_layout(
+            ("valid", 1), fields.cfi_idx, ("mispredict", 1), ("branch_mask", self.gen_params.fetch_width)
+        )
         train_status = Array(
             Signal(train_status_layout, name=f"train_status_{i}") for i in range(self.gen_params.ftq_size)
+        )
+
+        m.submodules.ras = ras = RAS(self.gen_params, self.gen_params.bpu_config.ras)
+        m.submodules.ras_checkpoint = ras_checkpoint = MemoryBank(
+            shape=ras.state_layout, depth=self.gen_params.ftq_size
         )
 
         # Three pointers in the queue.
@@ -207,7 +241,10 @@ class FetchTargetQueue(Elaboratable):
 
             self.bpu_request(m, pc=ret.pc, ftq_ptr=alloc_ptr)
             pc_mem.write(m, ftq_ptr=alloc_ptr, data=ret.pc)
-            m.d.sync += train_status[alloc_ptr.ptr].valid.eq(0)
+            m.d.sync += [
+                train_status[alloc_ptr.ptr].valid.eq(0),
+                train_status[alloc_ptr.ptr].branch_mask.eq(0),
+            ]
 
             evlog.emit(m, FTQAlloc.hw(ftq_ptr=alloc_ptr, pc=ret.pc))
 
@@ -235,10 +272,24 @@ class FetchTargetQueue(Elaboratable):
 
         ftq_alloc_transaction.schedule_before(send_fetch_req_transaction)
 
-        @def_method(m, self.bpu_response)
-        def _(pc, ftq_ptr, prediction):
+        @def_method(m, self.bpu_fetch_target)
+        def _(pc, ftq_ptr):
             fetch_address_unit.write(m, pc=pc)
+
+        @def_method(m, self.bpu_prediction_details)
+        def _(ftq_ptr, pc, prediction, meta):
             prediction_mem.write(m, ftq_ptr=ftq_ptr, data=prediction)
+            bpd_meta_mem.write(m, ftq_ptr=ftq_ptr, data={"pc": pc, "meta": meta})
+
+        @def_method(m, self.ras_peek, nonexclusive=True)
+        def _():
+            return ras.peek(m)
+
+        @def_method(m, self.ras_predict)
+        def _(ftq_ptr, ras_action, addr):
+            log.assertion(m, ~ras_checkpoint.read_resp[0].ready, "RAS prediction before checkpoint recovery completed")
+            new_state = ras.update(m, push=RasAction.has_push(ras_action), pop=RasAction.has_pop(ras_action), addr=addr)
+            ras_checkpoint.write(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr, data=new_state)
 
         @def_method(m, self.read_prediction)
         def _(ftq_ptr):
@@ -280,7 +331,7 @@ class FetchTargetQueue(Elaboratable):
                 m,
                 addr=ftq_ptr.ptr,
                 data={
-                    "valid": CfiType.valid(cfi_type) & ~stall,
+                    "valid": (cfi_type != CfiType.INVALID) & ~stall,
                     "cfi_idx": cfi_idx,
                     "cfi_target": cfi_target,
                 },
@@ -293,24 +344,35 @@ class FetchTargetQueue(Elaboratable):
 
                 evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
 
-                with m.If(redirect):
-                    fetch_address_unit.ifu_redirect(m, pc=cfi_target)
+                fetch_address_unit.ifu_redirect(m, pc=cfi_target, pc_valid=redirect)
 
         # Commits arrive in order, so training simply walks the queue behind the commit
         # pointer. An entry is trained once commit moves past it, i.e. once all of its
         # instructions have retired, so partially retired blocks never train
         with Transaction(name="FTQ_Train").body(m, ready=train_mem.read_ptr < commit_ptr):
             record = train_mem.read(m).data
+            prediction = bpd_meta_mem.read(m).data
             status = train_status[train_mem.read_ptr.ptr]
             with m.If(status.valid):
+                executed_mask = Signal(self.gen_params.fetch_width)
+                m.d.av_comb += executed_mask.eq(status.branch_mask & ((2 << status.cfi_idx) - 1))
+                # At most one CFI per block mispredicts and `resolve` keeps the oldest one,
+                # so each committed misprediction is counted once.
+                with m.If(status.mispredict):
+                    self.perf_mispredictions.incr(m, record.cfi_type)
+                    m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
+
                 self.bpu_update(
                     m,
-                    pc=record.pc,
+                    pc=prediction.pc,
+                    branch_mask=executed_mask,
+                    cfi_valid=status.valid,
                     cfi_target=record.cfi_target,
                     cfi_idx=status.cfi_idx,
                     cfi_type=record.cfi_type,
                     taken=record.taken,
                     mispredict=status.mispredict,
+                    meta=prediction.meta,
                 )
 
         @def_method(m, self.commit)
@@ -335,6 +397,7 @@ class FetchTargetQueue(Elaboratable):
 
             log.debug(m, True, "Backend redirected to pc=0x{:x}", pc)
 
+            self.bpu_flush(m)
             fetch_address_unit.backend_redirect(m, pc=pc)
 
             evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="backend_redirect"))
@@ -342,7 +405,13 @@ class FetchTargetQueue(Elaboratable):
             pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
             prediction_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
 
+            ras_checkpoint.read_req(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
+
             log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
+
+        with Transaction(name="FTQ_RAS_Recover").body(m):
+            redirect_checkpoint = ras_checkpoint.read_resp(m).data
+            ras.recover(m, sp=redirect_checkpoint.sp, count=redirect_checkpoint.count, top=redirect_checkpoint.top)
 
         @def_method(m, self.jump_target_req)
         def _(ftq_ptr):
@@ -353,8 +422,10 @@ class FetchTargetQueue(Elaboratable):
             return jb_unit_prediction_mem.read_resp(m).data
 
         @def_method(m, self.resolve)
-        def _(ftq_ptr, from_pc, misprediction, taken, cfi_idx, cfi_type, cfi_target):
+        def _(ftq_ptr, misprediction, taken, cfi_idx, cfi_type, cfi_target):
             status = train_status[FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr]
+            with m.If(cfi_type == CfiType.BRANCH):
+                m.d.sync += status.branch_mask.eq(status.branch_mask | (1 << cfi_idx))
             # CFIs of one block may resolve out of order, and after a misprediction even
             # wrong-path CFIs of the same block can still resolve. Keep the oldest
             # mispredicting CFI if there is one; otherwise keep the furthest CFI, which is the one that ended the block
@@ -377,7 +448,6 @@ class FetchTargetQueue(Elaboratable):
                     m,
                     ftq_ptr=ftq_ptr,
                     data={
-                        "pc": from_pc,
                         "cfi_target": cfi_target,
                         "cfi_type": cfi_type,
                         "taken": taken,

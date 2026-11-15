@@ -110,13 +110,13 @@ class CheckpointRAT(Elaboratable):
             depth=2**self.gen_params.tag_bits,
         )
 
-        rollback_just_started = Signal()
+        rollback_wait_for_fetch = Signal()
         rollback_target_tag = Signal(self.gen_params.tag_bits)
 
         frat_lock = Signal()
         frat_unlock_tag = Signal(self.gen_params.tag_bits + 1)
 
-        last_rollback_finished = Signal(init=1)
+        rollback_frat_restore_finished = Signal(init=1)
 
         # ---------------------------------------
         # Internal tag and checkpoint allocation
@@ -171,6 +171,8 @@ class CheckpointRAT(Elaboratable):
         create_checkpoint_pipe = Pipe([("checkpoint", range(self.gen_params.checkpoint_count))])
         tag_valid = Signal()
         group_tag = Signal(self.gen_params.tag_bits)
+
+        next_tag_increment = Signal()
 
         @def_method(m, self.commit_checkpoint)
         def _(tag: Value, commit_checkpoint: Value):
@@ -241,9 +243,14 @@ class CheckpointRAT(Elaboratable):
 
         # Block until last FRAT overwrite from Rollback is finished.
         # Retirement restores entries on hard-flushes that were not covered by checkpoints, don't overwrite.
-        @def_method(m, self.flush_restore, ready=last_rollback_finished)
+        @def_method(m, self.flush_restore, ready=rollback_frat_restore_finished)
         def _(entries: View):
             m.d.sync += self.frat.eq(entries)
+
+            # Cancel pending rollback state and issue a new tag after core flush
+            m.d.sync += rollback_wait_for_fetch.eq(0)
+            m.d.sync += next_tag_increment.eq(1)
+            m.d.sync += frat_lock.eq(0)
 
         for k in range(len(active_renames)):
             with m.If(active_renames[k].valid):
@@ -254,7 +261,6 @@ class CheckpointRAT(Elaboratable):
         # -------------------------------------------
 
         last_issued_tag = Signal(self.gen_params.tag_bits)
-        next_tag_increment = Signal()
 
         frat_tag_in_next_cycle = Signal(self.gen_params.tag_bits)
 
@@ -276,8 +282,9 @@ class CheckpointRAT(Elaboratable):
             # checkpoint will be attached to it on next branch).
             # * on first instruction after rollback (so mispeculated instructions from last tag and
             # without checkpoint made could be invalidated).
+            # * after a core flush (so new instructions are active; rollback state could be lost in flush)
 
-            with m.If(~rollback_just_started):
+            with m.If(~rollback_wait_for_fetch):
                 # Normal instruction flow tagging operation - if commit_checkpoint is needed, allocate pending tags
                 # and schedule new tag for next instruction
                 m.d.av_comb += tag_increment_allocate.eq(next_tag_increment)
@@ -304,7 +311,7 @@ class CheckpointRAT(Elaboratable):
                     # There may be still invalid entries (from old speculation path/flushed), between `tag`
                     # and `rename` stages. Issue new tag, and set `rename` to unblock writes on it.
                     m.d.sync += frat_unlock_tag.eq(out_tag)
-                    m.d.sync += rollback_just_started.eq(0)
+                    m.d.sync += rollback_wait_for_fetch.eq(0)
                     m.d.sync += next_tag_increment.eq(commit_checkpoint)
                     m.d.av_comb += out_commit_checkpoint.eq(commit_checkpoint)
                 with m.Else():
@@ -366,8 +373,8 @@ class CheckpointRAT(Elaboratable):
             log.assertion(m, ~self.dm.get_dependency(CoreStateKey())(m).flushing, "rollback during core hard flush")
 
             m.d.sync += rollback_target_tag.eq(tag)
-            m.d.sync += last_rollback_finished.eq(0)
-            m.d.sync += rollback_just_started.eq(1)
+            m.d.sync += rollback_frat_restore_finished.eq(0)
+            m.d.sync += rollback_wait_for_fetch.eq(1)
 
             m.d.sync += frat_lock.eq(1)
             m.d.sync += frat_unlock_tag.eq(1 << self.gen_params.tag_bits)  # lock to non-existent tag
@@ -389,7 +396,7 @@ class CheckpointRAT(Elaboratable):
         with Transaction().body(m):
             rollback_frat = storage.read_resp(m)
             m.d.sync += assign(self.frat, rollback_frat.data)  # (frat is locked)
-            m.d.sync += last_rollback_finished.eq((rollback_target_tag == rollback_tag_s2) & ~self.rollback.run)
+            m.d.sync += rollback_frat_restore_finished.eq((rollback_target_tag == rollback_tag_s2) & ~self.rollback.run)
             log.debug(m, True, "frat restored to rollback tag 0x{:x}", rollback_tag_s2)
 
         # --------------

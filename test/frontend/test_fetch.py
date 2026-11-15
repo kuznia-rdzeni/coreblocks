@@ -258,10 +258,6 @@ class TestFetchUnit(TestCaseWithSimulator):
         if self.output_q:
             return self.output_q[0]
 
-    @def_method_mock(lambda self: self.fetch.stall_unsafe)
-    def stall_guard_unsafe(self):
-        pass
-
     @def_method_mock(lambda self: self.fetch.fetch_writeback)
     def fetch_writeback_mock(self, ftq_ptr, redirect, stall, cfi_idx, cfi_type, cfi_target):
         # Mirror the FTQ: redirect to `cfi_target` when there is a known target,
@@ -296,6 +292,16 @@ class TestFetchUnit(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.fetch.read_prediction)
     def read_prediction_mock(self, ftq_ptr):
         return self.pred_of_ptr.get((ftq_ptr["ptr"], ftq_ptr["parity"])) or self.empty_prediction()
+
+    @def_method_mock(lambda self: self.fetch.ras_peek)
+    def ras_peek_mock(self):
+        return {"valid": 0, "addr": 0}
+
+    @def_method_mock(lambda self: self.fetch.ras_predict)
+    def ras_predict_mock(self, ftq_ptr, ras_action, addr):
+        @MethodMock.effect
+        def _():
+            pass
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
@@ -754,7 +760,12 @@ class TestPredictionChecker(TestCaseWithSimulator):
         for _ in range(self.gen_params.fetch_width - len(predecoded)):
             predecoded.append((CfiType.INVALID, 0))
         predecoded_raw = [
-            {"cfi_type": predecoded[i][0], "cfi_offset": predecoded[i][1], "unsafe": 0}
+            {
+                "cfi_type": predecoded[i][0],
+                "ras_action": RasAction.NONE,
+                "cfi_offset": predecoded[i][1],
+                "unsafe": 0,
+            }
             for i in range(self.gen_params.fetch_width)
         ]
 

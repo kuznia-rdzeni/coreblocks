@@ -24,12 +24,14 @@ implemented_extensions:
   - { name: Zbb, version: "= 1.0.0" }
   - { name: Zbs, version: "= 1.0.0" }
   - { name: Zbc, version: "= 1.0.0" }
+  - { name: Zbkc, version: "= 1.0.0" }
   - { name: Zbkx, version: "= 1.0.0" }
   - { name: U, version: "= 1.0.0" }
   - { name: S, version: "= 1.13.0" }
   - { name: Sm, version: "= 1.13.0" }
   - { name: Zihpm, version: "= 2.0.0" }
   - { name: Sscounterenw, version: "= 1.0.0" }
+  - { name: Sstc, version: "= 1.0.0" }
   - { name: Sstvala, version: "= 1.0.0" }
   - { name: Sstvecd, version: "= 1.0.0" }
   - { name: Sstvecv, version: "= 1.0.0" }
@@ -40,8 +42,10 @@ implemented_extensions:
   - { name: Svvptc, version: "= 1.0.0" }
   - { name: Ssccptr, version: "= 1.0.0" }
   - { name: Zkt, version: "= 1.0.0" }  # data independent execution latency
+  - { name: Ssstrict, version: "= 1.0.0" }
 
 params:
+  NON_STANDARD_EXTENSION_IMPLEMENTED: false
   # A params
   MUTABLE_MISA_A: false
   MISALIGNED_AMO: false
@@ -63,12 +67,16 @@ params:
   TIME_CSR_IMPLEMENTED: true
 
   # U params
+  WFI_U_MODE: false
   MUTABLE_MISA_U: false
   U_MODE_ENDIANNESS: little
   UXLEN: [32]
   TRAP_ON_ECALL_FROM_U: true
 
   # S params
+  SEI_INTR_IMPL: true
+  SSI_INTR_IMPL: true
+  STI_INTR_IMPL: true
   MUTABLE_MISA_S: false
   ASID_WIDTH: 9
   S_MODE_ENDIANNESS: little
@@ -131,6 +139,10 @@ params:
   MSTATUS_FS_LEGAL_VALUES: [0]
 
   # Sm params
+  MEI_INTR_IMPL: true
+  MSI_INTR_IMPL: true
+  MTI_INTR_IMPL: true
+  WFI_FINITE: false
   MXLEN: 32
   PRECISE_SYNCHRONOUS_EXCEPTIONS: true
   TRAP_ON_ECALL_FROM_M: true
@@ -207,6 +219,8 @@ params:
       false,
       false,
     ]
+  HPM_COUNTER3_WIDTH: 64
+  HPM_COUNTER4_WIDTH: 64
   # Legal mhpmeventN selector values: 0 = NO_EVENT, 1 = BRANCH_MISPREDICTION (coreblocks.arch.isa_consts.HPMEvent)
   HPM_EVENTS: [0, 1]
   MCOUNTINHIBIT_IMPLEMENTED: false

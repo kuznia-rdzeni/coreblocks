@@ -233,7 +233,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 resolve_branch(
                     m,
                     ftq_ptr=instr.ftq_ptr,
-                    from_pc=instr.pc,
                     misprediction=misprediction,
                     taken=instr.taken,
                     cfi_idx=instr.cfi_idx,

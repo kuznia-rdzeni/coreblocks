@@ -1,5 +1,6 @@
 import random
 import math
+import pytest
 from collections import deque
 
 from parameterized import parameterized_class
@@ -26,6 +27,7 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
     dsp_width: int
     dsp_number: int
 
+    @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(configurations.test)
         self.m = SimpleTestCircuit(PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number))

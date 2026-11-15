@@ -38,6 +38,7 @@ class Encoding:
     instr_type_override: Optional[InstrType] = None
     rd_zero: bool = False
     rs1_zero: bool = False
+    rs2_zero: bool = False
 
 
 #
@@ -224,7 +225,7 @@ instructions_by_optype = {
         Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMIN),
     ],
     OpType.ATOMIC_LR_SC: [
-        Encoding(Opcode.AMO, Funct3.W, Funct7.LR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.LR, rs2_zero=True),
         Encoding(Opcode.AMO, Funct3.W, Funct7.SC),
     ],
 }

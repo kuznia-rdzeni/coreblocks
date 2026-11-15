@@ -14,13 +14,22 @@ from coreblocks.interface.layouts import (
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
 from transactron.evlog import EventSource
-from transactron.utils import DependencyContext, HardwareLogger, count_trailing_zeros, OneHotMux, popcount
+from transactron.utils import (
+    DependencyContext,
+    HardwareLogger,
+    clear_lowest_set_bit,
+    count_trailing_zeros,
+    OneHotMux,
+    mask_before_first_set_bit,
+    mask_from_first_set_bit,
+    popcount,
+)
 from transactron.lib.metrics import *
 
 from coreblocks.telemetry import RobFlush, RobRetire
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.arch import ExceptionCause, HPMEvent, PrivilegeLevel
+from coreblocks.arch import ExceptionCause, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import (
     ActiveTagsKey,
@@ -87,9 +96,6 @@ class Retirement(Elaboratable):
             "Number of retired instructions",
             ways=gen_params.retirement_superscalarity,
         )
-        self.perf_mispredictions = HwCounter(
-            "backend.retirement.mispredictions", "Number of committed branch mispredictions"
-        )
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",
             "Cycles spent flushing the core after a trap",
@@ -108,7 +114,7 @@ class Retirement(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_instr_ret, self.perf_mispredictions, self.perf_trap_latency]
+        m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
         csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
         m_csr = csr_instances.m_mode
@@ -182,7 +188,6 @@ class Retirement(Elaboratable):
         first_tag_incr_mask = Signal.like(tag_incr_mask)
         limiting_instruction_mask = Signal.like(tag_incr_mask)
         free_tag = Signal()
-        last_retired_active = Signal()
 
         with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
@@ -194,18 +199,18 @@ class Retirement(Elaboratable):
         m.d.comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
         m.d.comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
         m.d.comb += done_count.eq(count_trailing_zeros(~done_mask))
-        m.d.comb += done_ignore_mask.eq(~done_mask | -(~done_mask))
-        m.d.comb += limiting_instruction_mask.eq((tag_incr_mask & (tag_incr_mask - 1)) | done_ignore_mask)
+        m.d.comb += done_ignore_mask.eq(mask_from_first_set_bit(~done_mask))
+        m.d.comb += limiting_instruction_mask.eq(clear_lowest_set_bit(tag_incr_mask) | done_ignore_mask)
 
         m.d.comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
-        m.d.comb += retiring_mask.eq(~(limiting_instruction_mask | -limiting_instruction_mask))
+        m.d.comb += retiring_mask.eq(mask_before_first_set_bit(limiting_instruction_mask))
         m.d.comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
 
         m.d.comb += first_tag_incr_mask.eq(tag_incr_mask | done_ignore_mask)
         first_tag_incr_pos = count_trailing_zeros(first_tag_incr_mask)
         m.d.comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
         tag_active_mask_suffix = Mux(
-            active_tags[last_retired_tag], ~(first_tag_incr_mask | -first_tag_incr_mask), 0
+            active_tags[last_retired_tag], mask_before_first_set_bit(first_tag_incr_mask), 0
         )  # last retired tag until limiting incr (if exsists)
         tag_active_mask_prefix = (
             -active_tags[next_last_retired_tag] << first_tag_incr_pos
@@ -215,7 +220,7 @@ class Retirement(Elaboratable):
         exception_bits = Signal(self.gen_params.retirement_superscalarity)
         m.d.comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask)
         m.d.comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
-        m.d.comb += active_no_trap_count.eq(popcount(~(exception_bits | -exception_bits) & tag_active_mask))
+        m.d.comb += active_no_trap_count.eq(popcount(mask_before_first_set_bit(exception_bits) & tag_active_mask))
         m.d.comb += exception.eq((exception_bits & retiring_mask).any())
 
         # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
@@ -243,10 +248,14 @@ class Retirement(Elaboratable):
                     commit_trapping = Signal()
 
                     cause_register = self.exception_cause_get(m).data
-                    arch_trap = Signal(init=1)
 
                     with m.If(exception):
                         self.perf_trap_latency.start(m)
+
+                        if rvvi is not None:
+                            # The instruction after this cycle ends will be the first instruction
+                            # of the trap handler -> inform RVVI about it.
+                            rvvi.register_next_is_trap_handler(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
@@ -306,7 +315,7 @@ class Retirement(Elaboratable):
 
                         with m.If(i - commit_trapping < no_trap_count):
                             with m.If(tag_active_mask[i]):
-                                retire_instr(i, rob_entries.entries[i])
+                                retire_instr(i, entry)
 
                                 if rvvi is not None:
                                     rvvi.finalize_retire[i](
@@ -314,32 +323,28 @@ class Retirement(Elaboratable):
                                         rob_id=entry.rob_id,
                                         rl_dst=entry.rob_data.rl_dst,
                                         rp_dst=entry.rob_data.rp_dst,
-                                        trap=entry.exception & arch_trap,
-                                        interrupt=entry.exception
-                                        & (cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT),
+                                        trap=0,
                                     )
 
-                                m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
+                                m.d.av_comb += last_commit_ftq_ptr.eq(entry.rob_data.ftq_ptr)
                                 m.d.av_comb += last_commit_ftq_ptr_v.eq(1)
-                                m.d.sync += last_retired_active.eq(1)
                             with m.Else():
                                 # flush inactive instruction - CRAT entry was already rolled back
-                                flush_instr(i, rob_entries.entries[i])
-                                m.d.sync += last_retired_active.eq(0)
+                                flush_instr(i, entry)
 
                         with m.Elif(i < retire_count):
                             # hard flush instruction for trap handling
-                            flush_instr(i, rob_entries.entries[i])
+                            flush_instr(i, entry)
 
-                    # TODO: this is some approximation of misprediction events - looking for active -> inactive
-                    # changes in retired instructions.
-                    # More metadata needs to be stored for an accurate result, improve.
-                    active_mask_with_prev = Signal(tag_active_mask.shape().width + 1)
-                    m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask))
-                    change_mask = active_mask_with_prev & ~tag_active_mask
-                    with m.If((change_mask & retiring_mask).any()):  # without last bit
-                        self.perf_mispredictions.incr(m)
-                        m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
+                            if rvvi is not None:
+                                with m.If(~commit_trapping & (i == no_trap_count)):
+                                    rvvi.finalize_retire[i](
+                                        m,
+                                        rob_id=entry.rob_id,
+                                        rl_dst=0,
+                                        rp_dst=0,
+                                        trap=1,
+                                    )
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(last_commit_ftq_ptr_v):
@@ -400,7 +405,6 @@ class Retirement(Elaboratable):
                     m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
 
                     self.fetch_redirect(m, ftq_ptr=ftq_commit_ptr, pc=handler_pc)
-                    m.d.sync += last_retired_active.eq(1)
 
                     # Release pending trap state - allow accepting new reports and unstall fetch
                     self.exception_cause_clear(m)
@@ -412,9 +416,11 @@ class Retirement(Elaboratable):
             return {"flushing": fsm.ongoing("TRAP_FLUSH")}
 
         # Run side fx on first non-pure instr, if exception not encountered
-        impure_mask = Signal(range(self.gen_params.retirement_superscalarity))
+        impure_mask = Signal(self.gen_params.retirement_superscalarity)
+        pure_prefix = Signal(self.gen_params.retirement_superscalarity)
         pure_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         m.d.comb += impure_mask.eq(Cat(~entry.pure for entry in rob_entries.entries))
+        m.d.comb += pure_prefix.eq(mask_before_first_set_bit(impure_mask))
         m.d.comb += pure_count.eq(count_trailing_zeros(impure_mask))
         side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
@@ -432,7 +438,7 @@ class Retirement(Elaboratable):
             current_tag_expr += entry.rob_data.tag_increment
             current_tag = Signal(self.gen_params.tag_bits)
             m.d.comb += current_tag.eq(current_tag_expr)
-            m.d.comb += pure_inactive_offset[i].eq(~active_tags[current_tag] & (~(impure_mask | -impure_mask))[i])
+            m.d.comb += pure_inactive_offset[i].eq(~active_tags[current_tag] & pure_prefix[i])
 
         m.d.comb += self.pure_active_count.eq(pure_count - popcount(pure_inactive_offset))
 

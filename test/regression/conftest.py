@@ -11,28 +11,21 @@ profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
 ARCH_EXPECTED_FAIL = {
-    # [?] misaligned exceptions should be either before address translation at the very end
-    "ExceptionsS",
-    "sv32_exceptions_mprv_(S|U)_Mmode",
-    # [?] trap loop
-    "sv32_exceptions_(S|U)mode",
-    # [?] sail requires size of reservation set <= 12
+    # [upstream riscv/riscv-arch-test#2206] upstream makes the alignment and
+    # permission checks before the local SC failure tests (if SC matches LR),
+    # so the misaligned exception is not raised on coreblocks if the SC doesn't match,
+    # while upstream expects it.
     ".*exceptions.*zalrsc.*",
     "pmpzalrsc_cfg_wr",
-    # misaligned amo should cause write flavoured exception
+    # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [?] ?????
-    "InterruptsU",
-    # coreblocks assertion
-    r"Zifencei-.*",
+    # [#937] writes to CSRs don't stop automatic writes from happening
+    # "cg: Sm_mcsr_cg; cp: cp_minstret_wraparound; bin: minstret_wrap"
+    r"Sm_mcsr_cntr",
 }
 
-ARCH_EXPECTED_TIMEOUT = {
-    "InterruptsS",
-    "InterruptsSSm",
-    "U",
-}
+ARCH_EXPECTED_TIMEOUT = set()
 
 
 def is_arch_expected_failing(test_name: str, failset: set[str] | None = None) -> bool:

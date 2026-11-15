@@ -1,4 +1,5 @@
 import random
+import pytest
 from collections import deque
 
 from parameterized import parameterized_class
@@ -40,6 +41,7 @@ from transactron.testing.functions import data_const_to_dict
 class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
     mul_unit: type[MulBaseUnsigned]
 
+    @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(configurations.test)
         self.m = SimpleTestCircuit(self.mul_unit(self.gen_params))

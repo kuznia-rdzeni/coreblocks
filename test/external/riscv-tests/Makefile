@@ -21,7 +21,7 @@ RISCV_GCC_OPTS ?= -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostart
 
 define compile_template
 
-test-$(1)-%: $${ISA_TESTS_DIR}/$(1)/%.S
+test-$(1)-%: $${ISA_TESTS_DIR}/$(1)/%.S $${ENV_DIR}/link.ld
 	$${RISCV_GCC} $${RISCV_GCC_OPTS} $(2) -I$${ISA_TESTS_DIR}/macros/scalar -I$${ENV_DIR} -T$${ENV_DIR}/link.ld $$< -o $$@
 
 endef

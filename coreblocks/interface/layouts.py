@@ -164,6 +164,9 @@ class CommonLayoutFields:
         self.cfi_type: LayoutListField = ("cfi_type", CfiType)
         """Type of a CFI instruction"""
 
+        self.ras_action: LayoutListField = ("ras_action", RasAction)
+        """Effect a CFI instruction has on the return address stack."""
+
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
         """A mask denoting which instruction in a fetch blocks is a branch."""
 
@@ -228,6 +231,7 @@ class AddressTranslationLayouts:
         self.tlb_accept = make_layout(
             ("result", self.TLBResult),
             self.ppn,
+            self.asid,
             ("permissions", self.permissions),
             self.size_class,
         )
@@ -660,11 +664,39 @@ class BranchPredictionLayouts:
         fields = gen_params.get(CommonLayoutFields)
         fetch_layouts = gen_params.get(FetchLayouts)
 
+        self.meta: LayoutListField = ("meta", gen_params.bpd_meta_width)
+        """Per-block predictor metadata returned to the BPU for training."""
+
         self.request = make_layout(fields.pc, fields.ftq_ptr)
-        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr, ("prediction", fetch_layouts.bpu_prediction))
-        self.update = make_layout(
-            fields.pc, fields.cfi_target, fields.cfi_idx, fields.cfi_type, ("taken", 1), ("mispredict", 1)
+
+        self.fetch_target = make_layout(fields.pc, fields.ftq_ptr)
+        """Next fetch PC, tagged with the FTQ entry it was predicted for."""
+
+        self.prediction_details = make_layout(
+            fields.ftq_ptr,
+            fields.pc,
+            ("prediction", fetch_layouts.bpu_prediction),
+            self.meta,
         )
+        """An FTQ entry's prediction, metadata, and lookup PC.
+
+        Training must use this PC to select the predictor entries described by the metadata.
+        """
+        self.update = make_layout(
+            fields.pc,
+            ("branch_mask", gen_params.fetch_width),
+            ("cfi_valid", 1),
+            fields.cfi_target,
+            fields.cfi_idx,
+            fields.cfi_type,
+            ("taken", 1),
+            ("mispredict", 1),
+            self.meta,
+        )
+        """Train one fetch block using its prediction's `pc` and `meta`.
+
+        `cfi_idx` is the CFI's index within the fetch block.
+        """
 
 
 class FetchTargetQueueLayouts:
@@ -673,7 +705,6 @@ class FetchTargetQueueLayouts:
 
         self.branch_resolve = make_layout(
             fields.ftq_ptr,
-            ("from_pc", gen_params.isa.xlen),
             ("misprediction", 1),
             ("taken", 1),
             fields.cfi_idx,
@@ -728,11 +759,15 @@ class FetchLayouts:
         to resume (fault or unsafe instruction). Both drop the FTQ entries after ftq_ptr."""
         self.redirect = make_layout(fields.pc)
 
+        self.ifu_redirect = make_layout(fields.pc, ("pc_valid", 1))
+
         # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
         # (or have already been) committed before the instruction the core is being redirected to.
         self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
 
-        self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
+        self.predecoded_instr = make_layout(
+            fields.cfi_type, fields.ras_action, ("cfi_offset", signed(21)), ("unsafe", 1)
+        )
 
         self.bpu_prediction = make_layout(
             fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
@@ -745,6 +780,13 @@ class FetchLayouts:
         """A stale fetch block must be dropped without side effects."""
 
         self.read_prediction_req = make_layout(fields.ftq_ptr)
+
+        self.ras_top = make_layout(("valid", 1), ("addr", gen_params.isa.xlen))
+        """The address on top of the return address stack, if the stack holds one."""
+
+        self.ras_predict = make_layout(fields.ftq_ptr, fields.ras_action, ("addr", gen_params.isa.xlen))
+        """Speculative update of the return address stack for the CFI a fetch block exits
+        through."""
 
         self.pred_checker_i = make_layout(
             fields.fb_addr,
@@ -1037,5 +1079,4 @@ class RVVILayouts:
             fields.rl_dst,
             fields.rp_dst,
             ("trap", 1),
-            ("interrupt", 1),
         )

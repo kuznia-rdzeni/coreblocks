@@ -99,20 +99,39 @@ class TestDecoder(TestCaseWithSimulator):
             0x0320000F,
             Opcode.MISC_MEM,
             Funct3.FENCE,
-            rd=0,
-            rs1=0,
             succ=FenceTarget.MEM_R,
             pred=(FenceTarget.MEM_R | FenceTarget.MEM_W),
             fm=FenceFm.NONE,
             op=OpType.FENCE,
         ),
+        InstrTest(
+            0x0480010F,
+            Opcode.MISC_MEM,
+            Funct3.FENCE,
+            succ=FenceTarget.DEV_I,
+            pred=FenceTarget.DEV_O,
+            fm=FenceFm.NONE,
+            op=OpType.FENCE,
+        ),  # non-zero rd
+        InstrTest(
+            0x0841000F,
+            Opcode.MISC_MEM,
+            Funct3.FENCE,
+            succ=FenceTarget.DEV_O,
+            pred=FenceTarget.DEV_I,
+            fm=FenceFm.NONE,
+            op=OpType.FENCE,
+        ),  # non-zero rs1
         # ECALL
         InstrTest(0x00000073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.ECALL, op=OpType.ECALL),
         # EBREAK
         InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, op=OpType.EBREAK),
     ]
     DECODER_TESTS_ZIFENCEI = [
-        InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
+        InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI),
+        InstrTest(0x00001B0F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI),  # non-zero rd
+        InstrTest(0x000A100F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI),  # non-zero rs1
+        InstrTest(0x1E50100F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI),  # non-zero funct12
     ]
     DECODER_TESTS_ZICSR = [
         InstrTest(0x001A9A73, Opcode.SYSTEM, Funct3.CSRRW, rd=20, rs1=21, csr=0x01, op=OpType.CSR_REG),

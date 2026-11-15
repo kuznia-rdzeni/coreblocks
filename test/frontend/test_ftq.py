@@ -1,5 +1,6 @@
 import pytest
 from collections import deque
+from dataclasses import dataclass
 
 from transactron.testing import (
     TestCaseWithSimulator,
@@ -10,10 +11,22 @@ from transactron.testing import (
 )
 from transactron.testing.method_mock import MethodMock
 
-from coreblocks.arch import CfiType
+from transactron.utils import DependencyContext, ModuleConnector
+
+from coreblocks.arch import CfiType, RasAction
 from coreblocks.frontend.ftq import FetchTargetQueue
-from coreblocks.params import GenParams
+from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.params import BranchPredictionConfig, GenParams, MicroBTBConfig
 from coreblocks.params import configurations
+from coreblocks.priv.csr.csr_instances import CSRInstances
+
+
+@dataclass(frozen=True)
+class DummyMicroBTBConfig(MicroBTBConfig):
+    META_WIDTH = 8
+
+    def meta_width(self, fetch_width: int) -> int:
+        return self.META_WIDTH
 
 
 class TestFetchTargetQueue(TestCaseWithSimulator):
@@ -26,7 +39,11 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         self.bpu_updates: deque = deque()
         self.bpu_flush_count: int = 0
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
 
     @def_method_mock(lambda self: self.ftq.stall_guard)
     def stall_guard_mock(self):
@@ -39,7 +56,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             self.bpu_flush_count += 1
 
     @def_method_mock(lambda self: self.ftq.bpu_update)
-    def bpu_update_mock(self, pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+    def bpu_update_mock(self, pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
         @MethodMock.effect
         def eff():
             self.bpu_updates.append(
@@ -78,7 +95,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         while True:
             if self.bpu_requests:
                 pc = self.bpu_requests.popleft()
-                await self.ftq.bpu_response.call(sim, pc=pc + 4, ftq_ptr={"ptr": 0, "parity": 0})
+                await self.ftq.bpu_fetch_target.call(sim, pc=pc + 4, ftq_ptr={"ptr": 0, "parity": 0})
             else:
                 await sim.tick()
 
@@ -90,7 +107,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             assert self.ifu_requests[0]["pc"] == self.start_pc
             assert self.ifu_requests[0]["ftq_ptr"] == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -105,7 +122,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 assert self.ifu_requests[i]["pc"] == self.start_pc + 4 * i
                 assert self.ifu_requests[i]["ftq_ptr"] == i
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -119,7 +136,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             )
             assert self.bpu_flush_count > flush_count_before
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -142,7 +159,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 await sim.tick()
             assert redirect_pc in [req["pc"] for req in self.ifu_requests]
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_testbench(proc)
 
     def test_backend_redirect_restarts_fetch_from_new_pc(self):
@@ -155,7 +172,40 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 await sim.tick()
             assert redirect_pc in [req["pc"] for req in self.ifu_requests]
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
+    @pytest.mark.parametrize("checkpoint_idx", [0, 3])
+    def test_backend_redirect_restores_ras_checkpoint(self, checkpoint_idx):
+        async def proc(sim: TestbenchContext):
+            checkpoint_ptr = {"ptr": checkpoint_idx, "parity": 0}
+            await self.ftq.ras_predict.call(sim, ftq_ptr=checkpoint_ptr, ras_action=RasAction.PUSH, addr=0x1000)
+            await self.ftq.ras_predict.call(sim, ftq_ptr=checkpoint_ptr, ras_action=RasAction.PUSH, addr=0x2000)
+            await self.ftq.ras_predict.call(
+                sim, ftq_ptr={"ptr": checkpoint_idx + 1, "parity": 0}, ras_action=RasAction.POP_AND_PUSH, addr=0xDEAD
+            )
+            assert (await self.ftq.ras_peek.call(sim))["addr"] == 0xDEAD
+
+            await self.ftq.backend_redirect.call(sim, ftq_ptr=checkpoint_ptr, pc=0x400)
+            await sim.tick()
+            top = await self.ftq.ras_peek.call(sim)
+            assert top["valid"] == 1
+            assert top["addr"] == 0x2000
+            await self.ftq.ras_predict.call(sim, ftq_ptr=checkpoint_ptr, ras_action=RasAction.POP, addr=0)
+            top = await self.ftq.ras_peek.call(sim)
+            assert top["valid"] == 1
+            assert top["addr"] == 0x1000
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
+    def test_backend_redirect_triggers_bpu_flush(self):
+        async def proc(sim: TestbenchContext):
+            flush_count_before = self.bpu_flush_count
+            await self.ftq.backend_redirect.call(sim, ftq_ptr={"ptr": 0, "parity": 0}, pc=0x400)
+            assert self.bpu_flush_count == flush_count_before + 1
+
+        with self.run_simulation(self.dut) as sim:
             sim.add_testbench(proc)
 
     def test_fetch_gen_starts_at_one_and_is_unique_per_entry(self):
@@ -171,7 +221,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 assert self.ifu_requests[i]["ftq_ptr"] == i
                 assert self.ifu_requests[i]["fetch_gen"] == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -182,7 +232,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             assert len(self.ifu_requests) >= 3
             assert await self.check_stale(sim, self.ifu_requests[0]) == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -196,7 +246,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             req["fetch_gen"] = 0
             assert await self.check_stale(sim, req) == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -207,7 +257,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             future = {"ftq_ptr": self.gen_params.ftq_size - 1, "parity": 0, "fetch_gen": 1}
             assert await self.check_stale(sim, future) == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -254,7 +304,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             assert await self.check_stale(sim, reissued[0]) == 0
             assert await self.check_stale(sim, squashed) == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -268,7 +318,11 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
         self.ifu_requests: deque = deque()
         self.bpu_requests: deque = deque()
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
 
     @def_method_mock(lambda self: self.ftq.stall_guard)
     def stall_guard_mock(self):
@@ -279,7 +333,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_update)
-    def bpu_update_mock(self, pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+    def bpu_update_mock(self, pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_request)
@@ -298,7 +352,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
         while True:
             if self.bpu_requests:
                 pc = self.bpu_requests.popleft()
-                await self.ftq.bpu_response.call(sim, pc=pc + 4, ftq_ptr={"ptr": 0, "parity": 0})
+                await self.ftq.bpu_fetch_target.call(sim, pc=pc + 4, ftq_ptr={"ptr": 0, "parity": 0})
             else:
                 await sim.tick()
 
@@ -325,7 +379,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
                 await sim.tick()
             assert len(self.ifu_requests) == ftq_size + 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -335,11 +389,22 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
     def setup(self, fixture_initialize_testing_env):
         self.start_pc = 0x100
         # 4-instruction fetch blocks so CFI indices distinguish resolves within a block
-        self.gen_params = GenParams(configurations.test.replace(start_pc=self.start_pc, fetch_block_bytes_log=4))
+        self.gen_params = GenParams(
+            configurations.test.replace(
+                start_pc=self.start_pc,
+                fetch_block_bytes_log=4,
+                bpu_config=BranchPredictionConfig(fast_predictor=DummyMicroBTBConfig()),
+            )
+        )
+        self.meta = 0xA5
         self.bpu_requests: deque = deque()
         self.bpu_updates: deque = deque()
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
 
     @def_method_mock(lambda self: self.ftq.stall_guard)
     def stall_guard_mock(self):
@@ -360,17 +425,19 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_update)
-    def bpu_update_mock(self, pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+    def bpu_update_mock(self, pc, branch_mask, cfi_valid, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
         @MethodMock.effect
         def eff():
             self.bpu_updates.append(
                 {
                     "pc": pc,
+                    "branch_mask": branch_mask,
                     "cfi_target": cfi_target,
                     "cfi_idx": cfi_idx,
                     "cfi_type": cfi_type,
                     "taken": taken,
                     "mispredict": mispredict,
+                    "meta": meta,
                 }
             )
 
@@ -378,15 +445,31 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
         while True:
             if self.bpu_requests:
                 pc = self.bpu_requests.popleft()
-                await self.ftq.bpu_response.call(sim, pc=pc + 16, ftq_ptr={"ptr": 0, "parity": 0})
+                await self.ftq.bpu_fetch_target.call(sim, pc=pc + 16, ftq_ptr={"ptr": 0, "parity": 0})
             else:
                 await sim.tick()
 
-    async def resolve(self, sim: TestbenchContext, cfi_idx: int, misprediction: int, taken: int, cfi_target: int):
+    async def deliver_prediction(self, sim: TestbenchContext, meta: int, pc: int | None = None, ptr: int = 0):
+        await self.ftq.bpu_prediction_details.call(
+            sim,
+            ftq_ptr={"ptr": ptr, "parity": 0},
+            pc=self.start_pc if pc is None else pc,
+            prediction={},
+            meta=meta,
+        )
+
+    async def resolve(
+        self,
+        sim: TestbenchContext,
+        cfi_idx: int,
+        misprediction: int,
+        taken: int,
+        cfi_target: int,
+        ptr: int = 0,
+    ):
         await self.ftq.resolve.call(
             sim,
-            ftq_ptr={"ptr": 0, "parity": 0},
-            from_pc=self.start_pc,
+            ftq_ptr={"ptr": ptr, "parity": 0},
             misprediction=misprediction,
             taken=taken,
             cfi_idx=cfi_idx,
@@ -403,18 +486,49 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
 
     def test_train_sends_resolved_record_after_commit(self):
         async def proc(sim: TestbenchContext):
+            await self.deliver_prediction(sim, self.meta)
             await self.resolve(sim, cfi_idx=2, misprediction=0, taken=1, cfi_target=0x180)
             assert len(self.bpu_updates) == 0
 
             update = await self.commit_and_get_update(sim)
             assert update["pc"] == self.start_pc
+            assert update["branch_mask"] == 1 << 2
             assert update["cfi_target"] == 0x180
             assert update["cfi_idx"] == 2
             assert update["cfi_type"] == CfiType.BRANCH
             assert update["taken"] == 1
             assert update["mispredict"] == 0
+            assert update["meta"] == self.meta
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_train_uses_the_pc_the_prediction_was_made_for(self):
+        block_0 = self.start_pc
+        block_1 = self.start_pc + self.gen_params.fetch_block_bytes
+        meta_0, meta_1 = 0x11, 0x22
+
+        async def proc(sim: TestbenchContext):
+            await self.deliver_prediction(sim, meta_0, pc=block_0, ptr=0)
+            await self.deliver_prediction(sim, meta_1, pc=block_1, ptr=1)
+
+            await self.resolve(sim, ptr=0, cfi_idx=3, misprediction=1, taken=1, cfi_target=block_1)
+            await self.resolve(sim, ptr=1, cfi_idx=0, misprediction=1, taken=1, cfi_target=0x300)
+
+            await self.ftq.commit.call(sim, ftq_ptr={"ptr": 2, "parity": 0})
+            for _ in range(5):
+                await sim.tick()
+
+            assert len(self.bpu_updates) == 2
+            assert self.bpu_updates[0]["pc"] == block_0
+            assert self.bpu_updates[0]["meta"] == meta_0
+            assert self.bpu_updates[0]["cfi_idx"] == 3
+            assert self.bpu_updates[1]["pc"] == block_1
+            assert self.bpu_updates[1]["meta"] == meta_1
+            assert self.bpu_updates[1]["cfi_idx"] == 0
+
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -425,7 +539,7 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
                 await sim.tick()
             assert len(self.bpu_updates) == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -437,11 +551,12 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
 
             update = await self.commit_and_get_update(sim)
             assert update["cfi_idx"] == 3
+            assert update["branch_mask"] == (1 << 0) | (1 << 1) | (1 << 3)
             assert update["cfi_target"] == 0x1A0
             assert update["taken"] == 1
             assert update["mispredict"] == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -454,10 +569,11 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
 
             update = await self.commit_and_get_update(sim)
             assert update["cfi_idx"] == 1
+            assert update["branch_mask"] == 1 << 1
             assert update["cfi_target"] == 0x300
             assert update["taken"] == 1
             assert update["mispredict"] == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)

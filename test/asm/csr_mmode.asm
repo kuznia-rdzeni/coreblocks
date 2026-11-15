@@ -6,6 +6,13 @@
     beq x6, x7, next
     nop
 next:
+    # I is present in misa, Y (reserved) is not
+    csrr x1, misa
+    li x2, (1 << 8) | (1 << 24)
+    and x1, x1, x2
+    li x2, (1 << 8)
+    bne x1, x2, fail
+
     # test read-only CSRs
     csrw mvendorid, 1
     csrw marchid, 1
@@ -23,6 +30,9 @@ next:
 pass:
     csrw 0x8fe, 0x10
     j pass
+fail:
+    csrw 0x8fe, 0x12
+    j .
 
 exception_handler:
    addi x15, x15, -1 # count exceptions

@@ -67,7 +67,7 @@ class ShadowCSR(CSRRegisterBase):
 
         self.shadowed = shadowed
 
-        full_mask = (1 << self.width) - 1
+        full_mask = C(~0, self.width)
         self.read_mask: ValueLike | Method = full_mask if read_mask is None else read_mask
         self.write_mask: ValueLike | Method = full_mask if write_mask is None else write_mask
         self.access_filter = access_filter if access_filter is not None else (lambda _, __: C(1))
@@ -90,17 +90,23 @@ class ShadowCSR(CSRRegisterBase):
         else:
             m.d.comb += read_mask.eq(self.read_mask)
 
-        m.d.comb += self.value.eq(self.shadowed.value & read_mask)
+        m.d.comb += self.value.eq((self.shadowed.value >> self.offset) & read_mask)
+
+        full_writemask = Signal.like(self.shadowed.value)
+        m.d.comb += full_writemask.eq(write_mask << self.offset)
 
         @def_method(m, self._fu_write)
         def _(data: Value, op_type: Value):
             shadow_data = Signal.like(self.shadowed.value)
+            newdata_masked = Signal.like(self.shadowed.value)
+            olddata_masked = Signal.like(self.shadowed.value)
+            m.d.av_comb += newdata_masked.eq((data << self.offset) & full_writemask)
+            m.d.av_comb += olddata_masked.eq(self.shadowed.read(m).data & ~full_writemask)
+
             with m.If(op_type == CSRRegisterLayouts.WriteOpType.CSR_WRITE):
-                m.d.av_comb += shadow_data.eq(
-                    ((data & write_mask) << self.offset) | (self.shadowed.read(m).data & ~(write_mask << self.offset))
-                )
+                m.d.av_comb += shadow_data.eq(newdata_masked | olddata_masked)
             with m.Else():
-                m.d.av_comb += shadow_data.eq((data & write_mask) << self.offset)
+                m.d.av_comb += shadow_data.eq(newdata_masked)
             return self.shadowed._fu_write(m, data=shadow_data, op_type=op_type)
 
         @def_method(m, self._fu_read)
@@ -111,7 +117,7 @@ class ShadowCSR(CSRRegisterBase):
         def _(data: Value):
             self.shadowed.write(
                 m,
-                data=((data & write_mask) << self.offset) | (self.shadowed.read(m).data & ~(write_mask << self.offset)),
+                data=(((data << self.offset) & full_writemask) | (self.shadowed.read(m).data & ~full_writemask)),
             )
 
         @def_method(m, self.read, nonexclusive=True)
