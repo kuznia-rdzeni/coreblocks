@@ -79,7 +79,7 @@ class ZbkxUnit(FuncUnitBase[ZbkxFn]):
 class ZbkxComponent(FunctionalComponentParams):
     _: KW_ONLY
     decoder_manager: ZbkxFn = ZbkxFn()
-    result_fifo: bool = True
+    result_fifo: bool = False
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return ZbkxUnit(gen_params, self.decoder_manager)
