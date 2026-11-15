@@ -107,11 +107,6 @@ class OTFCModule(Elaboratable):
         def _(shift):
             return {"result": a_register << shift}
 
-        @def_method(m, self.otfc_reset)
-        def _(arg):
-            m.d.sync += a_register.eq(0)
-            m.d.sync += b_register.eq((2 ** (self.otfc_params.digit_width)) - 1)
-
         @def_method(m, self.otfc_add_digit)
         def _(sign, q):
             if self.otfc_params.digit_width == DigitWidth.WIDTH_TWO:
@@ -137,5 +132,10 @@ class OTFCModule(Elaboratable):
                 m.d.sync += b_register.eq((b_register << self.otfc_params.digit_width) | b)
             with m.Else():
                 m.d.sync += b_register.eq((a_register << self.otfc_params.digit_width) | b)
+
+        @def_method(m, self.otfc_reset)
+        def _(arg):
+            m.d.sync += a_register.eq(0)
+            m.d.sync += b_register.eq((2 ** (self.otfc_params.digit_width)) - 1)
 
         return m

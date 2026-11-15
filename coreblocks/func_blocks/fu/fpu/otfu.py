@@ -96,21 +96,9 @@ class OTFUModule(Elaboratable):
         one_pattern = Signal(self.otfu_params.result_width + additional_int_bits)
         zero_pattern = Signal(self.otfu_params.result_width + additional_int_bits)
 
-        @def_method(m, self.otfu_result)
+        @def_method(m, self.otfu_result, nonexclusive=True)
         def _():
             return {"f_one": f_one, "f_m_one": f_m_one}
-
-        @def_method(m, self.otfu_reset)
-        def _(arg):
-            f_shift = self.otfu_params.result_width + additional_int_bits - 4
-            k_shift = self.otfu_params.result_width + additional_int_bits - 2
-            patterns_shift = self.otfu_params.result_width + additional_int_bits - 3 - 2
-
-            m.d.sync += f_one.eq(15 << f_shift)
-            m.d.sync += f_m_one.eq(15 << f_shift)
-            m.d.sync += k.eq(3 << k_shift)
-            m.d.sync += one_pattern.eq(3 << patterns_shift)
-            m.d.sync += zero_pattern.eq(7 << patterns_shift)
 
         @def_method(m, self.otfu_add_digit)
         def _(sign, q):
@@ -128,5 +116,17 @@ class OTFUModule(Elaboratable):
             m.d.sync += k.eq((k >> 1) | k_update_bit)
             m.d.sync += one_pattern.eq(one_pattern >> 1)
             m.d.sync += zero_pattern.eq(zero_pattern >> 1)
+
+        @def_method(m, self.otfu_reset)
+        def _(arg):
+            f_shift = self.otfu_params.result_width + additional_int_bits - 4
+            k_shift = self.otfu_params.result_width + additional_int_bits - 2
+            patterns_shift = self.otfu_params.result_width + additional_int_bits - 3 - 2
+
+            m.d.sync += f_one.eq(15 << f_shift)
+            m.d.sync += f_m_one.eq(15 << f_shift)
+            m.d.sync += k.eq(3 << k_shift)
+            m.d.sync += one_pattern.eq(3 << patterns_shift)
+            m.d.sync += zero_pattern.eq(7 << patterns_shift)
 
         return m
