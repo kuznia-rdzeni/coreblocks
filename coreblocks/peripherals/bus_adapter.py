@@ -170,30 +170,32 @@ class WishboneMasterAdapter(Elaboratable):
 
         bus_serializer = Serializer(
             port_count=2 * self.port_count,
-            serialized_req_method=self.bus.request,
-            serialized_resp_method=self.bus.result,
+            req_layout=self.bus.request.layout_in,
+            resp_layout=self.bus.result.layout_out,
         )
         m.submodules.bus_serializer = bus_serializer
+        bus_serializer.server.request.provide(self.bus.request)
+        bus_serializer.server.response.provide(self.bus.result)
 
         @def_methods(m, self.request_read)
         def _(i, arg):
             we = C(0, unsigned(1))
             data = C(0, unsigned(self.params.data_width))
-            bus_serializer.serialize_in[0 + 2 * i](m, addr=arg.addr, data=data, we=we, sel=arg.sel)
+            bus_serializer.ports[0 + 2 * i].request(m, addr=arg.addr, data=data, we=we, sel=arg.sel)
 
         @def_methods(m, self.request_write)
         def _(i, arg):
             we = C(1, unsigned(1))
-            bus_serializer.serialize_in[1 + 2 * i](m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
+            bus_serializer.ports[1 + 2 * i].request(m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
 
         @def_methods(m, self.get_read_response)
         def _(i):
-            res = bus_serializer.serialize_out[0 + 2 * i](m)
+            res = bus_serializer.ports[0 + 2 * i].response(m)
             return {"data": res.data, "err": res.err}
 
         @def_methods(m, self.get_write_response)
         def _(i):
-            res = bus_serializer.serialize_out[1 + 2 * i](m)
+            res = bus_serializer.ports[1 + 2 * i].response(m)
             return {"err": res.err}
 
         return m
