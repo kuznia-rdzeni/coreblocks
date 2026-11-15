@@ -441,7 +441,7 @@ class CheckpointRAT(Elaboratable):
                 )
             )
             m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
-            with m.If(~checkpoints_full_overwrite):
+            with m.If(deallocated_checkpoints.any() & ~checkpoints_full_overwrite):
                 m.d.sync += checkpoints_full.eq(0)
 
             log.debug(
