@@ -67,7 +67,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     async def bus_mock(self, sim: TestbenchContext):
         while True:
-            req = await self.tc.bus_master.request_read.call(sim)
+            req = await self.tc.bus_master.read.request.call(sim)
 
             # Bus model is addressing words, so we need to shift it a bit to get the real address.
             addr = req.addr << exact_log2(self.cp.word_width_bytes)
@@ -79,7 +79,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             data = random.randrange(2**self.gen_params.isa.xlen)
             self.mem[addr] = data
 
-            await self.tc.bus_master.get_read_response.call(sim, data=data, err=err)
+            await self.tc.bus_master.read.response.call(sim, data=data, err=err)
 
     async def refiller_process(self, sim: TestbenchContext):
         while self.requests:
@@ -162,7 +162,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     async def bus_mock(self, sim: TestbenchContext):
         while True:
-            req = await self.tc.bus_master.request_read.call(sim)
+            req = await self.tc.bus_master.read.request.call(sim)
 
             # Bus model is addressing words, so we need to shift it a bit to get the real address.
             addr = req.addr << exact_log2(self.cp.word_width_bytes)
@@ -175,7 +175,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
-            await self.tc.bus_master.get_read_response.call(sim, data=data, err=err)
+            await self.tc.bus_master.read.response.call(sim, data=data, err=err)
 
     async def user_process(self, sim: TestbenchContext):
         while self.requests:

@@ -184,11 +184,11 @@ class PageTableWalker(PureTLBBackingDevice, Elaboratable):
                         m.next = "DONE"
                     with m.Else():
                         log.debug(m, 1, "Issuing bus request for PTE at address {:x}", pte_addr)
-                        self.bus.request_read(m, addr=pte_addr[offset_bits:], sel=~0)
+                        self.bus.read.request(m, addr=pte_addr[offset_bits:], sel=~0)
                         m.next = "EVAL"
             with m.State("EVAL"):
                 with Transaction().body(m):
-                    fetched = self.bus.get_read_response(m)
+                    fetched = self.bus.read.response(m)
                     pte = Signal(pte_layout)
                     m.d.av_comb += pte.eq(fetched.data)
 

@@ -104,13 +104,13 @@ class TestPMAIndirect(TestCaseWithSimulator):
             await self.test_module.issue.call(sim, instr)
             if region.mmio is True:
                 for i in range(10):  # 10 cycles is more than enough
-                    ret = await self.test_module.bus.request_read.call_try(sim)
+                    ret = await self.test_module.bus.read.request.call_try(sim)
                     assert ret is None
             self.side_fx_guard_enabled = True
-            await self.test_module.bus.request_read.call(sim)
+            await self.test_module.bus.read.request.call(sim)
             _, v = (
                 await CallTrigger(sim)
-                .call(self.test_module.bus.get_read_response, data=addr << (addr % 4) * 8, err=0)
+                .call(self.test_module.bus.read.response, data=addr << (addr % 4) * 8, err=0)
                 .call(self.test_module.push_result)
                 .until_done()
             )

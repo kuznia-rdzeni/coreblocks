@@ -207,7 +207,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
-            req = await self.test_module.bus.request_read.call(sim)
+            req = await self.test_module.bus.read.request.call(sim)
             assert req.addr == generated_data["addr"]
             assert req.sel == mask
             await self.random_wait(sim, self.max_wait)
@@ -223,7 +223,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 data = int_to_signed(signed_to_int(data, size), 32)
             if not generated_data["err"]:
                 self.returned_data.appendleft(data)
-            await self.test_module.bus.get_read_response.call(sim, data=resp_data, err=generated_data["err"])
+            await self.test_module.bus.read.response.call(sim, data=resp_data, err=generated_data["err"])
 
     async def inserter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
@@ -308,14 +308,14 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         await self.test_module.issue.call(sim, instr)
 
         mask = data["mask"]
-        req = await self.test_module.bus.request_read.call(sim)
+        req = await self.test_module.bus.read.request.call(sim)
         assert req.addr == data["addr"]
         assert req.sel == mask
         data = data["rnd_bytes"][:4]
         data = int(data.hex(), 16)
         r, v = (
             await CallTrigger(sim)
-            .call(self.test_module.bus.get_read_response, data=data, err=0)
+            .call(self.test_module.bus.read.response, data=data, err=0)
             .call(self.test_module.push_result)
         )
         assert r is not None and v is not None
@@ -406,13 +406,13 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
-            req = await self.test_module.bus.request_write.call(sim)
+            req = await self.test_module.bus.write.request.call(sim)
             assert req.addr == generated_data["addr"]
             assert req.data == data
             assert req.sel == generated_data["mask"]
             await self.random_wait(sim, self.max_wait)
 
-            await self.test_module.bus.get_write_response.call(sim, err=0)
+            await self.test_module.bus.write.response.call(sim, err=0)
 
     async def inserter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
@@ -492,14 +492,14 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         pending_req = False
 
-        @def_method_mock(lambda: self.test_module.bus.request_read, enable=lambda: not pending_req)
+        @def_method_mock(lambda: self.test_module.bus.read.request, enable=lambda: not pending_req)
         def request_read(addr, sel):
             @MethodMock.effect
             def eff():
                 nonlocal pending_req
                 pending_req = True
 
-        @def_method_mock(lambda: self.test_module.bus.get_read_response, enable=lambda: pending_req)
+        @def_method_mock(lambda: self.test_module.bus.read.response, enable=lambda: pending_req)
         def read_response():
             @MethodMock.effect
             def eff():

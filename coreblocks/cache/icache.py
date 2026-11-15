@@ -45,7 +45,7 @@ class ICacheBypass(PureCacheInterface, Elaboratable):
         @def_method(m, self.issue_req)
         def _(paddr: Value) -> None:
             m.d.sync += req_addr.eq(paddr)
-            self.bus_master.request_read(
+            self.bus_master.read.request(
                 m,
                 addr=paddr >> exact_log2(self.params.word_width_bytes),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
@@ -53,7 +53,7 @@ class ICacheBypass(PureCacheInterface, Elaboratable):
 
         @def_method(m, self.accept_res)
         def _():
-            res = self.bus_master.get_read_response(m)
+            res = self.bus_master.read.response(m)
             return {
                 "fetch_block": res.data,
                 "error": res.err,

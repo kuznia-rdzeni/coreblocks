@@ -5,8 +5,8 @@ from amaranth import *
 from coreblocks.peripherals.wishbone import WishboneMasterMethodLayout, WishboneParameters
 from coreblocks.peripherals.axi_lite import AXILiteMasterInterface, PureAXILiteMasterInterface, AXILiteParameters
 
-from transactron import Method, Provided, Required, def_method, def_methods, TModule
-from transactron.lib import RequestResponseInterface, Serializer
+from transactron import Provided, Required, def_method, def_methods, TModule
+from transactron.lib import PureRequestResponseInterface, RequestResponseInterface, Serializer
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
@@ -48,21 +48,15 @@ class BusMasterInterface(Protocol):
     params: BusParametersInterface
     """Parameters of the bus."""
 
-    request_read: Provided[Method]
-    """A method that is used to send a read request to a bus.
-    Input layout is `CommonBusMasterMethodLayout.request_read_layout`."""
+    read: Provided[RequestResponseInterface]
+    """Read requests. The `request` method sends a read request to the bus, its input layout is
+    `CommonBusMasterMethodLayout.request_read_layout`. The `response` method receives a response for
+    a previously sent read request, its output layout is `CommonBusMasterMethodLayout.read_response_layout`."""
 
-    request_write: Provided[Method]
-    """A method that is used to send a write request to a bus.
-    Input layout is `CommonBusMasterMethodLayout.request_write_layout`."""
-
-    get_read_response: Provided[Method]
-    """A method that is used to receive a response from a bus for a previously sent read request.
-    Output layout is `CommonBusMasterMethodLayout.read_response_layout`."""
-
-    get_write_response: Provided[Method]
-    """A method that is used to receive a response from a bus for a previously sent write request.
-    Output layout is `CommonBusMasterMethodLayout.write_response_layout`."""
+    write: Provided[RequestResponseInterface]
+    """Write requests. The `request` method sends a write request to the bus, its input layout is
+    `CommonBusMasterMethodLayout.request_write_layout`. The `response` method receives a response for
+    a previously sent write request, its output layout is `CommonBusMasterMethodLayout.write_response_layout`."""
 
 
 class CommonBusMasterMethodLayout:
@@ -77,16 +71,16 @@ class CommonBusMasterMethodLayout:
     Attributes
     ----------
     request_read_layout: Layout
-        A layout for the `request_read` method of a common bus master.
+        A layout for the `read.request` method of a common bus master.
 
     request_write_layout: Layout
-        A layout for the `request_write` method of a common bus master.
+        A layout for the `write.request` method of a common bus master.
 
     read_response_layout: Layout
-        A layout for the `get_read_response` method of a common bus master.
+        A layout for the `read.response` method of a common bus master.
 
     write_response_layout: Layout
-        A layout for the `get_write_response` method of a common bus master.
+        A layout for the `write.response` method of a common bus master.
     """
 
     def __init__(self, bus_params: BusParametersInterface):
@@ -115,10 +109,12 @@ class PureBusMasterInterface(BusMasterInterface):
         self.params = params
         self.method_layouts = CommonBusMasterMethodLayout(params)
 
-        self.request_read = Method(i=self.method_layouts.request_read_layout)
-        self.request_write = Method(i=self.method_layouts.request_write_layout)
-        self.get_read_response = Method(o=self.method_layouts.read_response_layout)
-        self.get_write_response = Method(o=self.method_layouts.write_response_layout)
+        self.read = PureRequestResponseInterface(
+            self.method_layouts.request_read_layout, self.method_layouts.read_response_layout
+        )
+        self.write = PureRequestResponseInterface(
+            self.method_layouts.request_write_layout, self.method_layouts.write_response_layout
+        )
 
 
 class WishboneMasterAdapter(Elaboratable):
@@ -173,23 +169,23 @@ class WishboneMasterAdapter(Elaboratable):
 
         m.submodules.bus_serializer = bus_serializer = self.serializer
 
-        @def_methods(m, [port.request_read for port in self.ports])
+        @def_methods(m, [port.read.request for port in self.ports])
         def _(i, arg):
             we = C(0, unsigned(1))
             data = C(0, unsigned(self.params.data_width))
             bus_serializer.ports[0 + 2 * i].request(m, addr=arg.addr, data=data, we=we, sel=arg.sel)
 
-        @def_methods(m, [port.request_write for port in self.ports])
+        @def_methods(m, [port.write.request for port in self.ports])
         def _(i, arg):
             we = C(1, unsigned(1))
             bus_serializer.ports[1 + 2 * i].request(m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
 
-        @def_methods(m, [port.get_read_response for port in self.ports])
+        @def_methods(m, [port.read.response for port in self.ports])
         def _(i):
             res = bus_serializer.ports[0 + 2 * i].response(m)
             return {"data": res.data, "err": res.err}
 
-        @def_methods(m, [port.get_write_response for port in self.ports])
+        @def_methods(m, [port.write.response for port in self.ports])
         def _(i):
             res = bus_serializer.ports[1 + 2 * i].response(m)
             return {"err": res.err}
@@ -216,25 +212,15 @@ class AXILiteMasterAdapter(PureBusMasterInterface, Elaboratable):
     method_layouts: CommonBusMasterMethodLayout
         Layouts of common bus master methods.
 
-    request_read: Method
-        Transactional method for initiating a read request.
-        It is ready if the `ra_request` method of the underlying AXI Lite master is ready.
-        Input layout is `request_read_layout`.
+    read: RequestResponseInterface
+        Read requests. The `request` method is ready if the `ra_request` method of the underlying
+        AXI Lite master is ready. The `response` method is ready if the `rd_response` method of
+        the underlying AXI Lite master is ready.
 
-    request_write: Method
-        Transactional method for initiating a write request.
-        It is ready if the 'wa_request' and 'wd_request' methods of the underlying AXI Lite master are ready.
-        Input layout is `request_write_layout`.
-
-    get_read_response: Method
-        Transactional method for reading a response of a read action.
-        It is ready if the `rd_response` method of the underlying AXI Lite master is ready.
-        Output layout is `read_response_layout`.
-
-    get_write_response: Method
-        Transactional method for reading a response of a write action.
-        It is ready if the `wr_response` method of the underlying AXI Lite master is ready.
-        Output layout is `write_response_layout`.
+    write: RequestResponseInterface
+        Write requests. The `request` method is ready if the `wa_request` and `wd_request` methods of
+        the underlying AXI Lite master are ready. The `response` method is ready if the `wr_response`
+        method of the underlying AXI Lite master is ready.
     """
 
     bus: Required[AXILiteMasterInterface]
@@ -247,24 +233,24 @@ class AXILiteMasterAdapter(PureBusMasterInterface, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.request_read)
+        @def_method(m, self.read.request)
         def _(arg):
             prot = C(0, unsigned(3))
             self.bus.ra_request(m, addr=arg.addr, prot=prot)
 
-        @def_method(m, self.request_write)
+        @def_method(m, self.write.request)
         def _(arg):
             prot = C(0, unsigned(3))
             self.bus.wa_request(m, addr=arg.addr, prot=prot)
             self.bus.wd_request(m, data=arg.data, strb=arg.sel)
 
-        @def_method(m, self.get_read_response)
+        @def_method(m, self.read.response)
         def _():
             res = self.bus.rd_response(m)
             err = res.resp != 0
             return {"data": res.data, "err": err}
 
-        @def_method(m, self.get_write_response)
+        @def_method(m, self.write.response)
         def _():
             res = self.bus.wr_response(m)
             err = res.resp != 0

@@ -226,7 +226,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
             permissions=self.layouts.permissions.const(permissions).as_bits(),  # type: ignore
         )
 
-    @def_method_mock(lambda self: self.dut.bus.request_read, enable=lambda self: not self.mem_ready)
+    @def_method_mock(lambda self: self.dut.bus.read.request, enable=lambda self: not self.mem_ready)
     def bus_read_req_proc(self, addr, sel):
         @MethodMock.effect
         def _():
@@ -255,7 +255,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
                 )
             self.mem_ready = True
 
-    @def_method_mock(lambda self: self.dut.bus.get_read_response, enable=lambda self: self.mem_ready)
+    @def_method_mock(lambda self: self.dut.bus.read.response, enable=lambda self: self.mem_ready)
     def bus_read_resp_proc(self):
         @MethodMock.effect
         def _():

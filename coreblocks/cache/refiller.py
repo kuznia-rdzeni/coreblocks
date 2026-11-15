@@ -36,7 +36,7 @@ class SimpleCommonBusCacheRefiller(PureCacheRefillerInterface, Elaboratable):
         req_word_counter = Signal(range(self.params.words_in_line))
 
         with Transaction().body(m, ready=sending_requests):
-            self.bus_master.request_read(
+            self.bus_master.read.request(
                 m,
                 addr=Cat(req_word_counter, cache_line_address),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
@@ -52,7 +52,7 @@ class SimpleCommonBusCacheRefiller(PureCacheRefillerInterface, Elaboratable):
         # The transaction reads responses from the bus, builds the fetch block and when
         # receives the last word of the fetch block, dispatches it.
         with Transaction().body(m):
-            bus_response = self.bus_master.get_read_response(m)
+            bus_response = self.bus_master.read.response(m)
 
             block = Signal(self.params.fetch_block_bytes * 8)
             m.d.av_comb += block.eq(Cat(block_buffer, bus_response.data))
