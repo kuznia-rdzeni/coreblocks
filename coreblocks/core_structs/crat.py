@@ -117,6 +117,9 @@ class CheckpointRAT(Elaboratable):
 
         rollback_frat_restore_finished = Signal(init=1)
 
+        tag_count = Signal(range(self.gen_params.tag_count + 1))
+        checkpoint_count = Signal(range(self.gen_params.checkpoint_count + 1))
+
         # ---------------------------------------
         # Internal tag and checkpoint allocation
         # ---------------------------------------
@@ -455,6 +458,9 @@ class CheckpointRAT(Elaboratable):
 
             log.debug(m, True, "deallocated tags [0x{:x},0x{:x})", tags_tail, next_tags_tail)
 
+            log.assertion(m, count < tag_count, "tag pointer underflow")  # at least one tag must be always allocated
+            log.assertion(m, popcount(deallocated_checkpoints) <= checkpoint_count, "checkpoint pointer underflow")
+
         # -----
         # Misc
         # -----
@@ -483,35 +489,25 @@ class CheckpointRAT(Elaboratable):
         m.submodules.perf_checkpoints = perf_checkpoints = HwExpHistogram(
             "struct.crat.checkpoints_allocated",
             description="Number of allocated physical checkpoints",
-            bucket_count=ceil_log2(self.gen_params.checkpoint_count),
-            sample_width=ceil_log2(self.gen_params.checkpoint_count),
+            bucket_count=ceil_log2(self.gen_params.checkpoint_count + 1),
+            sample_width=ceil_log2(self.gen_params.checkpoint_count + 1),
         )
         if perf_tags.metrics_enabled():
             with Transaction().always_body(m):
-                num_tags = Signal(self.gen_params.tag_bits + 1)
-                m.d.comb += num_tags.eq(
-                    Mux(
-                        tags_tail < tags_head,
-                        tags_head - tags_tail,
-                        self.gen_params.tag_count - tags_tail + tags_head,
-                    )
-                )
-                perf_tags.add(m, num_tags)
-        if perf_tags_active.metrics_enabled():
-            with Transaction().always_body(m):
+                perf_tags.add(m, tag_count)
                 perf_tags_active.add(m, popcount(active_tags))
-        if perf_checkpoints.metrics_enabled():
-            with Transaction().always_body(m):
-                num_checkpoints = Signal(range(self.gen_params.checkpoint_count))
-                m.d.comb += num_checkpoints.eq(
-                    Mux(
-                        (checkpoints_tail < checkpoints_head)
-                        | ((checkpoints_tail == checkpoints_head) & ~checkpoints_full),
-                        checkpoints_head - checkpoints_tail,
-                        self.gen_params.checkpoint_count - checkpoints_tail + checkpoints_head,
-                    )
-                )
-                perf_checkpoints.add(m, num_checkpoints)
+                perf_checkpoints.add(m, checkpoint_count)
+
+        m.d.comb += tag_count.eq(
+            Mux(tags_tail < tags_head, tags_head - tags_tail, self.gen_params.tag_count - tags_tail + tags_head)
+        )
+        m.d.comb += checkpoint_count.eq(
+            Mux(
+                (checkpoints_tail < checkpoints_head) | ((checkpoints_tail == checkpoints_head) & ~checkpoints_full),
+                checkpoints_head - checkpoints_tail,
+                self.gen_params.checkpoint_count - checkpoints_tail + checkpoints_head,
+            )
+        )
 
         active_tags_reset_mask = active_tags_reset_mask_0 | active_tags_reset_mask_1
         checkpointed_tags_reset_mask = checkpointed_tags_reset_mask_0 | checkpointed_tags_reset_mask_1
