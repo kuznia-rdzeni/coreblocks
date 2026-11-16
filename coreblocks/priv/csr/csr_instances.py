@@ -93,7 +93,7 @@ class MachineModeCSRRegisters(Elaboratable):
             )
 
         rw_counters = (1 << 0) | (1 << 2) | ((1 << gen_params.hpm_counters_count) - 1) << 3
-        self.mcountinhibit = CSRRegister(CSRAddress.MCOUNTINHIBIT, gen_params, init=0x5, ro_bits=~rw_counters)
+        self.mcountinhibit = CSRRegister(CSRAddress.MCOUNTINHIBIT, gen_params, init=0x0, ro_bits=~rw_counters)
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
         # CY/TM/IR bits are writable, unsupported HPM bits are read-only zero.
