@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from collections import defaultdict, deque
 import random
@@ -10,7 +10,13 @@ from transactron.lib.adapters import Adapter
 from transactron.testing.functions import data_const_to_dict
 from transactron.testing.method_mock import MethodMock, def_method_mocks
 from transactron.utils import DependencyContext, ModuleConnector
-from transactron.testing.input_generation import amaranth_consts, amaranth_structs, draw_wait_geom, shrinkable_lists
+from transactron.testing.input_generation import (
+    amaranth_consts,
+    amaranth_structs,
+    draw_enable,
+    draw_wait_geom,
+    shrinkable_lists,
+)
 from coreblocks.interface.keys import CoreStateKey
 from coreblocks.interface.layouts import (
     CommonLayoutFields,
@@ -37,17 +43,6 @@ from .test_scheduler import MockedBlockComponent
 def sample_optype_sets(draw: st.DrawFn):
     optype_pool = draw(st.lists(st.sampled_from(OpType), min_size=1, max_size=4, unique=True))
     return draw(st.lists(st.sets(st.sampled_from(optype_pool), min_size=1), min_size=1, max_size=4))
-
-
-def rand_enable(data: st.DataObject) -> Callable[[], bool]:
-    rnd = random.Random(data.draw(st.integers(0, 2**32 - 1), label="rng_seed"))
-    p = data.draw(st.sampled_from([1.0, 0.9, 0.7, 0.5]), label="enable_prob")
-    return lambda: rnd.random() < p
-
-
-def rand_enables(data: st.DataObject, count: int) -> Callable[[int], bool]:
-    enables = [rand_enable(data) for _ in range(count)]
-    return lambda i: enables[i]()
 
 
 @dataclass
@@ -184,7 +179,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
                 await sched.get_instr.call(ctx, count=group.count, data=group.insns)
                 await draw_wait_geom(ctx, data, 0.1)
 
-        @def_method_mocks(sched.get_free_reg, enable=rand_enables(data, ways))
+        @def_method_mocks(sched.get_free_reg, enable=draw_enable(data))
         def get_free_reg(i):
             n = free_reg_q[i][0] if free_reg_q[i] else None
 
@@ -195,7 +190,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
 
             return {"ident": instrs[n].rp_dst if n is not None else 0}
 
-        @def_method_mock(sched.crat_tag, enable=rand_enable(data))
+        @def_method_mock(sched.crat_tag, enable=draw_enable(data))
         def crat_tag(rollback_tag, rollback_tag_v, commit_checkpoint):
             g = tag_q[0] if tag_q else None
 
@@ -211,7 +206,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
 
             return groups[g].tag_resp if g is not None else None
 
-        @def_method_mock(sched.crat_commit_checkpoint, enable=rand_enable(data))
+        @def_method_mock(sched.crat_commit_checkpoint, enable=draw_enable(data))
         def crat_commit_checkpoint(tag, commit_checkpoint):
             @MethodMock.effect
             def _():
@@ -220,7 +215,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
                 assert tag == tag_resp["tag"]
                 assert commit_checkpoint == tag_resp["commit_checkpoint"]
 
-        @def_method_mocks(sched.crat_rename, enable=rand_enables(data, ways))
+        @def_method_mocks(sched.crat_rename, enable=draw_enable(data))
         def crat_rename(i, rl_s1, rl_s2, rl_dst, rp_dst):
             n = rename_q[i][0] if rename_q[i] else None
 
@@ -243,7 +238,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
             # TODO: flushing test
             return {"active_tags": [1] * 2**gen_params.tag_bits}
 
-        @def_method_mock(sched.rob_put, enable=rand_enable(data))
+        @def_method_mock(sched.rob_put, enable=draw_enable(data))
         def rob_put(count, entries) -> dict[str, Any]:
             g = rob_q[0] if rob_q else None
 
@@ -295,7 +290,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
 
             return rf_source(n, k)[1] if n is not None else None
 
-        @def_method_mocks(sched.rs_select, enable=rand_enables(data, len(optype_sets)))
+        @def_method_mocks(sched.rs_select, enable=draw_enable(data))
         def rs_select(j):
             entry = next_entry[j]
 
@@ -306,7 +301,7 @@ class TestScheduler2(TestCaseWithSimulator):  # TODO: rename
 
             return {"rs_entry_id": entry}
 
-        @def_method_mocks(sched.rs_insert, enable=rand_enables(data, len(optype_sets)))
+        @def_method_mocks(sched.rs_insert, enable=draw_enable(data))
         def rs_insert(j, rs_data, rs_entry_id):
             @MethodMock.effect
             def _():
