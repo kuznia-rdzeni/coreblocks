@@ -5,7 +5,7 @@ from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from amaranth.utils import ceil_log2
 from amaranth_types import ValueLike
-from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
+from transactron import Method, Methods, Provided, Transaction, def_method, TModule, def_methods
 from transactron.utils import logging
 from transactron.lib.allocators import PreservedOrderAllocator
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
@@ -27,6 +27,9 @@ evlog = EventSource("backend.rs")
 
 
 class RSBase(Elaboratable):
+    get_ready_list: Provided[list[Method]]
+    """Ready lists of entries, one for each group of operation types in `ready_for`."""
+
     def __init__(
         self,
         gen_params: GenParams,
