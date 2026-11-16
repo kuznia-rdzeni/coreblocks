@@ -92,6 +92,8 @@ class MachineModeCSRRegisters(Elaboratable):
                 CSRAddress.MENVCFGH,
             )
 
+        self.mcountinhibit = CSRRegister(CSRAddress.MCOUNTINHIBIT, gen_params, init=0, ro_bits=0xFFFFFFF)
+
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
         # CY/TM/IR bits are writable, unsupported HPM bits are read-only zero.
         counteren_writeable = counteren_writable_mask(gen_params.hpm_counters_count)
