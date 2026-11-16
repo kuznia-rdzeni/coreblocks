@@ -92,7 +92,8 @@ class MachineModeCSRRegisters(Elaboratable):
                 CSRAddress.MENVCFGH,
             )
 
-        self.mcountinhibit = CSRRegister(CSRAddress.MCOUNTINHIBIT, gen_params, init=0, ro_bits=0xFFFFFFF)
+        rw_counters = (1 << 0) | (1 << 2) | ((1 << gen_params.hpm_counters_count) - 1) << 3
+        self.mcountinhibit = CSRRegister(CSRAddress.MCOUNTINHIBIT, gen_params, init=0x5, ro_bits=~rw_counters)
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
         # CY/TM/IR bits are writable, unsupported HPM bits are read-only zero.
@@ -124,6 +125,7 @@ class MachineModeCSRRegisters(Elaboratable):
             CSRAddress.CYCLE,
             CSRAddress.CYCLEH,
             shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.CY),
+            inhibit=self.mcountinhibit.value[0],
         )
 
         self.pmpxcfg = []
@@ -248,6 +250,7 @@ class MachineModeCSRRegisters(Elaboratable):
                 shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"],
                 shadow_access_filter=counteren_access_filter(gen_params, i),
                 read_only_zero=not is_implemented,
+                inhibit=self.mcountinhibit.value[i],
             )
             event = CSRRegister(CSRAddress[f"MHPMEVENT{i}"], gen_params, ro_bits=0 if is_implemented else ~0)
             setattr(self, f"mhpmevent{i}", event)
