@@ -428,11 +428,11 @@ class FetchTargetQueue(Elaboratable):
 
         @def_method(m, self.jump_target_req)
         def _(ftq_ptr):
-            jb_unit_prediction_mem.read_req(m, addr=ftq_ptr.ptr)
+            jb_unit_prediction_mem.read[0].request(m, addr=ftq_ptr.ptr)
 
         @def_method(m, self.jump_target_resp)
         def _():
-            return jb_unit_prediction_mem.read_resp(m).data
+            return jb_unit_prediction_mem.read[0].response(m).data
 
         @def_method(m, self.resolve)
         def _(ftq_ptr, misprediction, taken, cfi_idx, cfi_type, cfi_target):
