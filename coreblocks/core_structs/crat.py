@@ -33,11 +33,10 @@ class CheckpointRAT(Elaboratable):
 
     Attributes
     ----------
-    dealloc_tag: Method
-        Free a tag that is no longer referenced in the core.
+    dealloc_tags: Method
+        Free tags that are no longer referenced in the core.
         Associated checkpoints are freed too.
-        This method accepts no arguments, because all tags must be freed in-order, so call means freeing
-        oldest issued tag.
+        All tags must be freed in-order, so call means freeing a `count` of the oldest issued tags.
     get_active_tags: Method
         Gets bit array of tags that are currently active.
         If bit is set it means that a tag is on a valid
@@ -81,7 +80,7 @@ class CheckpointRAT(Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(RollbackKey(), self.rollback)
 
-        self.dealloc_tag = Method(i=layouts.crat_dealloc_tag_in)
+        self.dealloc_tags = Method(i=layouts.crat_dealloc_tags_in)
         self.get_active_tags = Method(o=layouts.get_active_tags_out)
         self.dm.add_dependency(ActiveTagsKey(), self.get_active_tags)
 
@@ -406,7 +405,7 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_1 = Signal.like(active_tags, init=0)
         checkpointed_tags_reset_mask_1 = Signal.like(checkpointed_tags)
 
-        @def_method(m, self.dealloc_tag)
+        @def_method(m, self.dealloc_tags)
         def _(count):
             # If we deallocate a tag, it means that we have just retired some next one (tag+count+1).
             # Tag is no longer referenced in core, so it can be freed.

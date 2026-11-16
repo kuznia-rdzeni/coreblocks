@@ -20,7 +20,6 @@ from transactron.utils import (
     count_trailing_zeros,
     OneHotMux,
     mask_before_first_set_bit,
-    mask_from_first_set_bit,
     popcount,
 )
 from transactron.lib.metrics import *
@@ -76,10 +75,12 @@ class Retirement(Elaboratable):
         )
         self.trap_entry = Method(i=[("cause", gen_params.isa.xlen)], o=[("target_priv", PrivilegeLevel)])
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
-        self.crat_dealloc_tag = Method(i=gen_params.get(RATLayouts).crat_dealloc_tag_in)
+        self.crat_dealloc_tags = Method(i=gen_params.get(RATLayouts).crat_dealloc_tags_in)
 
-        self.pure_active_count = Signal(range(gen_params.retirement_superscalarity + 1))
-        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_active_count)
+        self.instret_pure_offset = Signal(range(gen_params.retirement_superscalarity + 1))
+        self.instret_csr = CSRRegister(
+            None, gen_params, width=64, fu_read_map=lambda _, v: v + self.instret_pure_offset
+        )
         self.instret_shadow = DoubleShadowCSR(
             gen_params,
             self.instret_csr,
@@ -180,7 +181,6 @@ class Retirement(Elaboratable):
         pending_mask = Signal.like(tag_incr_mask)
         dealloc_tags_count = Signal.like(retire_count)
         instr_active_mask = Signal.like(tag_incr_mask)
-        instr_active_mask_ignore_done = Signal.like(tag_incr_mask)
 
         with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
@@ -191,7 +191,7 @@ class Retirement(Elaboratable):
         m.d.comb += pending_mask.eq(Cat(~entry.done for entry in rob_entries.entries))
 
         m.d.comb += retire_count.eq(count_trailing_zeros(pending_mask))
-        m.d.comb += retiring_mask.eq(~mask_from_first_set_bit(pending_mask))
+        m.d.comb += retiring_mask.eq(mask_before_first_set_bit(pending_mask))
         m.d.comb += dealloc_tags_count.eq(popcount(tag_incr_mask & retiring_mask))
 
         active_tags_in_range = Signal(self.gen_params.retirement_superscalarity + 1)
@@ -202,22 +202,24 @@ class Retirement(Elaboratable):
             m.d.comb += tag_incr_at_bit[i].eq(
                 (tag_incr_at_bit[i - 1] if i > 0 else 0) + rob_entries.entries[i].rob_data.tag_increment
             )
-            m.d.comb += instr_active_mask_ignore_done[i].eq(active_tags_in_range.bit_select(tag_incr_at_bit[i], 1))
-        m.d.comb += instr_active_mask.eq(instr_active_mask_ignore_done & retiring_mask)
+            m.d.comb += instr_active_mask[i].eq(
+                active_tags_in_range.bit_select(tag_incr_at_bit[i], 1) & retiring_mask[i]
+            )
 
-        exception_bits = Signal(self.gen_params.retirement_superscalarity)
-        m.d.comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries) & instr_active_mask)
-        m.d.comb += no_trap_count.eq(count_trailing_zeros((1 << retire_count) | exception_bits | ~retiring_mask))
-        m.d.comb += active_no_trap_count.eq(popcount(mask_before_first_set_bit(exception_bits) & instr_active_mask))
-        m.d.comb += exception.eq((exception_bits & retiring_mask).any())
+        active_exception_bits = Signal(self.gen_params.retirement_superscalarity)
+        m.d.comb += active_exception_bits.eq(
+            Cat(rob_entry.exception for rob_entry in rob_entries.entries) & instr_active_mask
+        )
+        m.d.comb += no_trap_count.eq(count_trailing_zeros(active_exception_bits | ~retiring_mask))
+        m.d.comb += active_no_trap_count.eq(
+            popcount(mask_before_first_set_bit(active_exception_bits) & instr_active_mask)
+        )
+        m.d.comb += exception.eq((active_exception_bits & retiring_mask).any())
 
         # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
         exception_rob_id = OneHotMux.create(
             m,
-            [
-                (rob_entry.exception & instr_active_mask[i], rob_entry.rob_id)
-                for i, rob_entry in enumerate(rob_entries.entries)
-            ],
+            [(active_exception_bits[i], rob_entry.rob_id) for i, rob_entry in enumerate(rob_entries.entries)],
             priority=True,
         )
         m.d.comb += retire_valid.eq(Mux(exception, ecr_entry.valid & (ecr_entry.data.rob_id == exception_rob_id), 1))
@@ -228,7 +230,7 @@ class Retirement(Elaboratable):
                     self.rob_retire(m, count=retire_count)
 
                     with m.If(dealloc_tags_count.any()):
-                        self.crat_dealloc_tag(m, count=dealloc_tags_count)
+                        self.crat_dealloc_tags(m, count=dealloc_tags_count)
                     m.d.sync += last_retired_tag.eq(last_retired_tag + dealloc_tags_count)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
@@ -345,7 +347,7 @@ class Retirement(Elaboratable):
                     self.rob_retire(m, count=retire_count)
 
                     with m.If(dealloc_tags_count.any()):
-                        self.crat_dealloc_tag(m, count=dealloc_tags_count)
+                        self.crat_dealloc_tags(m, count=dealloc_tags_count)
                     m.d.sync += last_retired_tag.eq(last_retired_tag + dealloc_tags_count)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
@@ -412,17 +414,11 @@ class Retirement(Elaboratable):
         m.d.comb += pure_count.eq(count_trailing_zeros(impure_mask))
         side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
-            [
-                Cat(rob_entries.entries[j].exception & instr_active_mask[j] for j in range(i)).any()
-                for i in range(self.gen_params.retirement_superscalarity + 1)
-            ]
+            [active_exception_bits[:i].any() for i in range(self.gen_params.retirement_superscalarity + 1)]
         )
         m.d.comb += side_fx_rob_id.eq(rob_entries.entries[0].rob_id + pure_count)
 
-        pure_inactive_offset = Signal(self.gen_params.retirement_superscalarity)
-        m.d.comb += pure_inactive_offset.eq(~instr_active_mask_ignore_done & pure_prefix)
-
-        m.d.comb += self.pure_active_count.eq(pure_count - popcount(pure_inactive_offset))
+        m.d.comb += self.instret_pure_offset.eq(popcount(pure_prefix & instr_active_mask))
 
         # Disable executing any side effects from instructions in core when it is flushed
         core_flushing = Signal()

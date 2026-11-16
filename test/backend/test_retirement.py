@@ -66,8 +66,8 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(self.retirement.async_interrupt_cause)
         )
 
-        m.submodules.mock_checkpoint_dealloc_tag = self.mock_checkpoint_dealloc_tag = TestbenchIO(
-            Adapter.create(self.retirement.crat_dealloc_tag)
+        m.submodules.mock_checkpoint_dealloc_tags = self.mock_checkpoint_dealloc_tags = TestbenchIO(
+            Adapter.create(self.retirement.crat_dealloc_tags)
         )
         m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
             Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out)
@@ -200,8 +200,8 @@ class TestRetirement(TestCaseWithSimulator):
     def mock_c_rat_restore(self):
         pass
 
-    @def_method_mock(lambda self: self.retc.mock_checkpoint_dealloc_tag)
-    def mock_checkpoint_dealloc_tag(self, count):
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_dealloc_tags)
+    def mock_checkpoint_dealloc_tags(self, count):
         pass
 
     @def_method_mock(lambda self: self.retc.ftq_commit)

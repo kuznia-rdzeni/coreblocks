@@ -176,7 +176,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                         retire_imm_ids += 1
 
                 if tag_deallocs:
-                    await dut.dealloc_tag.call(sim, count=tag_deallocs)
+                    await dut.dealloc_tags.call(sim, count=tag_deallocs)
 
                 retired_instrs += retire_cnt
 
