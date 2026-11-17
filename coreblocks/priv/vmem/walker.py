@@ -174,7 +174,7 @@ class PageTableWalker(PureTLBBackingDevice, Elaboratable):
                     with m.Else():
                         m.next = "ISSUE"
             with m.State("DONE"):
-                with m.If(self.accept.run):
+                with m.If(self.response.run):
                     m.next = "IDLE"
             with m.State("ISSUE"):
                 with Transaction().body(m):
@@ -257,7 +257,7 @@ class PageTableWalker(PureTLBBackingDevice, Elaboratable):
             m.d.sync += ppn.eq(csr.s_mode.satp_ppn)
             m.d.sync += walked_asid.eq(csr.s_mode.satp_asid)
 
-        @def_method(m, self.accept, ready=fsm.ongoing("DONE"))
+        @def_method(m, self.response, ready=fsm.ongoing("DONE"))
         def _():
             result = Signal(AddressTranslationLayouts.TLBResult, init=AddressTranslationLayouts.TLBResult.HIT)
 

@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
-from transactron import Method, Provided, Required, TModule, def_method, Priority, Transaction
+from transactron import Method, Provided, Required, TModule, def_method, Priority, Transaction, provide
 from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux, AssignType
 from transactron.lib import (
     BasicFifo,
@@ -269,7 +269,7 @@ class FullyAssociativeTLB(Elaboratable):
                 with Transaction(name=f"Refill_{port}").body(m):
                     refill_semaphore.release(m)
 
-                    resp = self.backing_resolver.accept(m)
+                    resp = self.backing_resolver.response(m)
 
                     m.d.av_comb += cam.checked_vpn.eq(vpn_req)
                     m.d.av_comb += cam.checked_asid.eq(resp.asid)
@@ -345,7 +345,7 @@ class FullyAssociativeTLB(Elaboratable):
                         result_fwd.write(m, ret)
                         m.d.sync += slow_path.eq(0)
 
-            @def_method(m, self.port_devices[port].accept)
+            @def_method(m, self.port_devices[port].response)
             def _():
                 self.perf_latency.stop[port](m)
                 return result_fwd.read(m)
@@ -461,8 +461,7 @@ class SetAssociativeTLB(Elaboratable):
         accept = port_serializer.server.response
 
         for port in range(self.ports):
-            self.port_devices[port].request.provide(port_serializer.ports[port].request)
-            self.port_devices[port].accept.provide(port_serializer.ports[port].response)
+            provide[TLBBackingDevice](self.port_devices[port], port_serializer.ports[port])
 
         @def_method(m, request, ready=~flushing)
         def _(vpn, is_store):
@@ -527,7 +526,7 @@ class SetAssociativeTLB(Elaboratable):
             with m.State("IDLE"):
                 with Transaction().body(m):
                     req = request_pipe.peek(m)
-                    resp = self.backing_resolver.accept(m)
+                    resp = self.backing_resolver.response(m)
 
                     set_idx = vpn_to_set_idx(req.vpn, resp.size_class)
                     m.d.sync += refill_set_idx.eq(set_idx)

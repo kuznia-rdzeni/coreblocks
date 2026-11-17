@@ -151,7 +151,7 @@ class AddressTranslator(Elaboratable):
             if tlb is not None:
                 with condition(m, nonblocking=True) as branch:
                     with branch(~data.is_bare & ~data.vpn_invalid):
-                        m.d.av_comb += tlb_data.eq(tlb.accept(m))
+                        m.d.av_comb += tlb_data.eq(tlb.response(m))
 
                 with m.If(data.vpn_invalid):
                     m.d.av_comb += tlb_page_fault.eq(1)

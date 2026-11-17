@@ -302,7 +302,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
             # corrupt satp to check if PTW correctly samples it
             self.set_satp(sim, SatpMode.BARE, ~0, translation_info.satp_asid ^ 1)
 
-            ret = await self.dut.accept.call(sim)
+            ret = await self.dut.response.call(sim)
             assert not self.mem_expected
 
             assert ret.result == translation_info.result
@@ -326,7 +326,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
                 is_write = random.random() < 0.5
                 await sim.tick()
                 await self.dut.request.call(sim, vpn=vpn, is_store=is_write)
-                ret = await self.dut.accept.call(sim)
+                ret = await self.dut.response.call(sim)
                 assert ret.result == AddressTranslationLayouts.TLBResult.PAGE_FAULT
 
         with self.run_simulation(self.m) as sim:
