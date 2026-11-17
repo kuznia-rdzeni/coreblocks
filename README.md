@@ -18,8 +18,7 @@ In the future, we would like to achieve the following goals:
  * Performance (up to a point, on FPGAs). We would like Coreblocks not to be too sluggish, without compromising the simplicity goal.
    We don't wish to compete with high performance cores like [BOOM](https://github.com/riscv-boom/riscv-boom) though.
  * Wide RISC-V support.
-   The core can currently run [Zephyr](https://github.com/kuznia-rdzeni/zephyr-on-litex-coreblocks) and [a MMU-less Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
-   Running a fully-featured Linux core in supervisor mode is our next target.
+   The core can currently run [Zephyr](https://github.com/kuznia-rdzeni/zephyr-on-litex-coreblocks) and [a mainline Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
 
 ## State of the project
 
@@ -27,10 +26,11 @@ The core currently supports the full unprivileged RV32I instruction set and a nu
 
  * M - integer multiplication and division, with Zmmul only as an option,
  * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
- * C - compressed instructions,
- * B - bit manipulation, comprising of Zba, Zbb and Zbs, extension Zbc is implemented too.
+ * C - compressed instructions (Zca). Additionally we support Zcb.
+ * B - bit manipulation, comprising of Zba, Zbb and Zbs, extensions Zbc, Zbkx and Zbkc are implemented too.
+ * misc - Zicsr, Zifencei, Zicntr.
 
-Machine and user modes are fully implemented. Support for supervisor mode is currently missing.
+Full privileged architecture support (including virtual memory) is fully implemented, including some additional extensions, like Sstc.
 
 Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
 
