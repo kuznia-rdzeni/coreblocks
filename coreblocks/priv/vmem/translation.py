@@ -41,7 +41,7 @@ class AddressTranslator(Elaboratable):
         self.layouts = self.gen_params.get(AddressTranslationLayouts)
 
         self.request = Method(i=self.layouts.request)
-        self.accept = Method(o=self.layouts.accept)
+        self.response = Method(o=self.layouts.accept)
 
         self.dm = DependencyContext.get()
 
@@ -134,7 +134,7 @@ class AddressTranslator(Elaboratable):
                 is_store=is_store,
             )
 
-        @def_method(m, self.accept)
+        @def_method(m, self.response)
         def _():
             data = resp_fwd.read(m)
             tlb_data = Signal(self.layouts.tlb_accept)

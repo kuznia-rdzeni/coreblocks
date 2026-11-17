@@ -177,9 +177,9 @@ class FetchUnit(Elaboratable):
         )
 
         m.submodules.addr_translator_accept_pipe = addr_translator_accept_pipe = Pipe(
-            self.addr_translator.accept.layout_out
+            self.addr_translator.response.layout_out
         )
-        m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
+        m.submodules += ConnectTrans.create(self.addr_translator.response, addr_translator_accept_pipe.write)
 
         m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr, fields.fetch_gen))
 

@@ -99,7 +99,7 @@ class LSUDummy(FuncUnit, Elaboratable):
                 issued_noop.write(m, arg)
 
         m.submodules += ConnectTrans.create(translator_in.read, self.addr_translator.request)
-        m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
+        m.submodules += ConnectTrans.create(self.addr_translator.response, translated.write)
 
         with Transaction().always_body(m):
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
