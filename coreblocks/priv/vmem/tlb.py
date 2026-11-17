@@ -228,7 +228,7 @@ class FullyAssociativeTLB(Elaboratable):
 
         m.submodules.refill_semaphore = refill_semaphore = Semaphore(1)
 
-        refill_ret = Signal(self.layout.tlb_accept)
+        refill_ret = Signal(self.layout.tlb_response)
 
         def do_query(cam, is_store):
             ask_backing = Signal()
@@ -255,7 +255,7 @@ class FullyAssociativeTLB(Elaboratable):
             m.d.comb += cam.ways_data.eq(entries)
             m.d.comb += cam.replacement_rr_index.eq(replacement_rr_index)
 
-            result_fwd = Forwarder(self.layout.tlb_accept)
+            result_fwd = Forwarder(self.layout.tlb_response)
             m.submodules[f"result_fwd_{port}"] = result_fwd
             m.submodules[f"cam_{port}"] = cam
 
@@ -438,7 +438,7 @@ class SetAssociativeTLB(Elaboratable):
         rd_wr = rd_mem.write_port()
         m.d.comb += cam.replacement_rr_index.eq(rd_rd.data)
 
-        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_response)
 
         flushing = Signal(init=1)
         refill_in_progress = Signal()
@@ -455,7 +455,7 @@ class SetAssociativeTLB(Elaboratable):
         m.submodules.port_serializer = port_serializer = Serializer(
             port_count=self.ports,
             req_layout=self.layout.tlb_request,
-            resp_layout=self.layout.tlb_accept,
+            resp_layout=self.layout.tlb_response,
         )
         request = port_serializer.server.request
         accept = port_serializer.server.response
@@ -520,7 +520,7 @@ class SetAssociativeTLB(Elaboratable):
                 )
 
         refill_set_idx = Signal(set_index_bits)
-        refill_response = Signal(self.layout.tlb_accept)
+        refill_response = Signal(self.layout.tlb_response)
 
         with m.FSM():
             with m.State("IDLE"):

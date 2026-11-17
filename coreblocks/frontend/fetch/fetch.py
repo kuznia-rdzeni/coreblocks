@@ -258,7 +258,7 @@ class FetchUnit(Elaboratable):
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
             # Conditionally read from icache or mark fault
-            cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
+            cache_resp = Signal(self.gen_params.get(ICacheLayouts).response)
             access_fault = Signal(FetchLayouts.FaultFlag)
 
             with condition(m, nonblocking=True) as branch:

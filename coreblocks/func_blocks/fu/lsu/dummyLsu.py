@@ -77,7 +77,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         m.submodules.requests = requests = BasicFifo(self.fu_layouts.issue, 2)
         m.submodules.translator_in = translator_in = Pipe(self.translator_layouts.request)
-        m.submodules.translated = translated = BasicFifo(self.translator_layouts.accept, 2)
+        m.submodules.translated = translated = BasicFifo(self.translator_layouts.response, 2)
         m.submodules.results_noop = results_noop = BasicFifo(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = BasicFifo(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = BasicFifo(self.fu_layouts.issue, 2)

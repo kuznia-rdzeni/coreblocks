@@ -38,7 +38,7 @@ class PureCacheInterface(PureRequestResponseInterface, CacheInterface):
         """
         src_loc = get_src_loc(src_loc)
         layouts = gen_params.get(ICacheLayouts)
-        super().__init__(layouts.issue_req, layouts.accept_res, src_loc=src_loc)
+        super().__init__(layouts.request, layouts.response, src_loc=src_loc)
         self.flush = Method(src_loc=src_loc)
 
 

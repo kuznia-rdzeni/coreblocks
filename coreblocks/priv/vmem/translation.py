@@ -41,7 +41,7 @@ class AddressTranslator(Elaboratable):
         self.layouts = self.gen_params.get(AddressTranslationLayouts)
 
         self.request = Method(i=self.layouts.request)
-        self.response = Method(o=self.layouts.accept)
+        self.response = Method(o=self.layouts.response)
 
         self.dm = DependencyContext.get()
 
@@ -137,7 +137,7 @@ class AddressTranslator(Elaboratable):
         @def_method(m, self.response)
         def _():
             data = resp_fwd.read(m)
-            tlb_data = Signal(self.layouts.tlb_accept)
+            tlb_data = Signal(self.layouts.tlb_response)
 
             vpn = Signal(self.gen_params.isa.xlen - PAGE_SIZE_LOG)
             poffset = Signal(PAGE_SIZE_LOG)

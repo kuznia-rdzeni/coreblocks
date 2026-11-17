@@ -136,7 +136,7 @@ class ICache(PureCacheInterface, Elaboratable):
         ]
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
-        m.submodules.req_zipper = req_zipper = ArgumentsToResultsZipper(self.addr_layout, self.layouts.accept_res)
+        m.submodules.req_zipper = req_zipper = ArgumentsToResultsZipper(self.addr_layout, self.layouts.response)
 
         # State machine logic
         needs_refill = Signal()

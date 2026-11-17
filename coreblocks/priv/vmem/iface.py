@@ -19,7 +19,7 @@ class TLBBackingDevice(RequestResponseInterface, Protocol):
 
     response: Provided[Method]
     """Method for accepting a translation response.
-    Expected layout is `AddressTranslationLayouts.tlb_accept`."""
+    Expected layout is `AddressTranslationLayouts.tlb_response`."""
 
 
 class PureTLBBackingDevice(PureRequestResponseInterface, TLBBackingDevice):
@@ -36,4 +36,4 @@ class PureTLBBackingDevice(PureRequestResponseInterface, TLBBackingDevice):
             Alternatively, the source location to use instead of the default.
         """
         layout = gen_params.get(AddressTranslationLayouts)
-        super().__init__(layout.tlb_request, layout.tlb_accept, src_loc=get_src_loc(src_loc))
+        super().__init__(layout.tlb_request, layout.tlb_response, src_loc=get_src_loc(src_loc))
