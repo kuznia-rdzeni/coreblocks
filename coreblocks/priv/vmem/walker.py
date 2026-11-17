@@ -6,13 +6,13 @@ from coreblocks.arch.isa_consts import PAGE_SIZE, SatpMode, PAGE_SIZE_LOG
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.interface.keys import CSRInstancesKey
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 from transactron import *
 from transactron.utils import DependencyContext, HardwareLogger
 
-from coreblocks.priv.vmem.iface import TLBBackingDevice
+from coreblocks.priv.vmem.iface import PureTLBBackingDevice
 
 
 __all__ = ["PageTableWalker"]
@@ -100,7 +100,7 @@ class PTEView(View):
         return is_bad
 
 
-class PageTableWalker(TLBBackingDevice, Elaboratable):
+class PageTableWalker(PureTLBBackingDevice, Elaboratable):
     """Hardware page table walker for RISC-V virtual memory translation.
 
     This module implements a page table walker that translates virtual page numbers (VPN)
@@ -117,13 +117,15 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
     Implements Svade semantics (exception on missing A/D bits).
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+    bus: Required[BusMasterInterface]
+    """Data bus master."""
+
+    def __init__(self, gen_params: GenParams) -> None:
+        super().__init__(gen_params)
         self.gen_params = gen_params
         self.layout = gen_params.get(AddressTranslationLayouts)
-        self.request = Method(i=self.layout.tlb_request)
-        self.accept = Method(o=self.layout.tlb_accept)
         self.dm = DependencyContext.get()
-        self.bus = bus
+        self.bus = PureBusMasterInterface(gen_params.wb_params)
 
     def elaborate(self, platform):
         m = TModule()

@@ -2,11 +2,18 @@ import random
 from collections import deque
 from amaranth import *
 
-from transactron.lib import Adapter, AdapterTrans
+from transactron.lib import Adapter
 from transactron.utils import int_to_signed, signed_to_int
 from transactron.utils.dependencies import DependencyContext
 from transactron.testing.method_mock import MethodMock
-from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
+from transactron.testing import (
+    CallTrigger,
+    SimpleTestCircuit,
+    TestbenchIO,
+    TestCaseWithSimulator,
+    def_method_mock,
+    TestbenchContext,
+)
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
@@ -14,7 +21,6 @@ from coreblocks.arch import *
 from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
-from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
 def generate_aligned_addr(max_reg_val: int) -> int:
@@ -69,10 +75,6 @@ class DummyLSUTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        bus_mock_params = BusMockParameters(data_width=self.gen.isa.ilen, addr_width=32)
-
-        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
-
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionInformationRegisterLayouts).report)
         )
@@ -97,11 +99,10 @@ class DummyLSUTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
-
-        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans.create(func_unit.issue))
-        m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter.create(func_unit.push_result))
-        m.submodules.bus_master_adapter = self.bus_master_adapter
+        m.submodules.func_unit = self.func_unit = SimpleTestCircuit(LSUDummy(self.gen))
+        self.issue = self.func_unit.issue
+        self.push_result = self.func_unit.push_result
+        self.bus = self.func_unit.bus
         return m
 
 
@@ -206,7 +207,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
-            req = await self.test_module.bus_master_adapter.request_read_mock.call(sim)
+            req = await self.test_module.bus.request_read.call(sim)
             assert req.addr == generated_data["addr"]
             assert req.sel == mask
             await self.random_wait(sim, self.max_wait)
@@ -222,9 +223,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 data = int_to_signed(signed_to_int(data, size), 32)
             if not generated_data["err"]:
                 self.returned_data.appendleft(data)
-            await self.test_module.bus_master_adapter.get_read_response_mock.call(
-                sim, data=resp_data, err=generated_data["err"]
-            )
+            await self.test_module.bus.get_read_response.call(sim, data=resp_data, err=generated_data["err"])
 
     async def inserter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
@@ -309,14 +308,14 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         await self.test_module.issue.call(sim, instr)
 
         mask = data["mask"]
-        req = await self.test_module.bus_master_adapter.request_read_mock.call(sim)
+        req = await self.test_module.bus.request_read.call(sim)
         assert req.addr == data["addr"]
         assert req.sel == mask
         data = data["rnd_bytes"][:4]
         data = int(data.hex(), 16)
         r, v = (
             await CallTrigger(sim)
-            .call(self.test_module.bus_master_adapter.get_read_response_mock, data=data, err=0)
+            .call(self.test_module.bus.get_read_response, data=data, err=0)
             .call(self.test_module.push_result)
         )
         assert r is not None and v is not None
@@ -407,13 +406,13 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
-            req = await self.test_module.bus_master_adapter.request_write_mock.call(sim)
+            req = await self.test_module.bus.request_write.call(sim)
             assert req.addr == generated_data["addr"]
             assert req.data == data
             assert req.sel == generated_data["mask"]
             await self.random_wait(sim, self.max_wait)
 
-            await self.test_module.bus_master_adapter.get_write_response_mock.call(sim, err=0)
+            await self.test_module.bus.get_write_response.call(sim, err=0)
 
     async def inserter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
@@ -493,14 +492,14 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         pending_req = False
 
-        @def_method_mock(lambda: self.test_module.bus_master_adapter.request_read_mock, enable=lambda: not pending_req)
+        @def_method_mock(lambda: self.test_module.bus.request_read, enable=lambda: not pending_req)
         def request_read(addr, sel):
             @MethodMock.effect
             def eff():
                 nonlocal pending_req
                 pending_req = True
 
-        @def_method_mock(lambda: self.test_module.bus_master_adapter.get_read_response_mock, enable=lambda: pending_req)
+        @def_method_mock(lambda: self.test_module.bus.get_read_response, enable=lambda: pending_req)
         def read_response():
             @MethodMock.effect
             def eff():

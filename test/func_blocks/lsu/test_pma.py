@@ -1,7 +1,7 @@
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker, PMARegion
 
 from amaranth import *
-from transactron.lib import Adapter, AdapterTrans
+from transactron.lib import Adapter
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
@@ -11,8 +11,14 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
-from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
-from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
+from transactron.testing import (
+    CallTrigger,
+    SimpleTestCircuit,
+    TestbenchIO,
+    TestCaseWithSimulator,
+    def_method_mock,
+    TestbenchContext,
+)
 
 
 class TestPMADirect(TestCaseWithSimulator):
@@ -49,10 +55,6 @@ class PMAIndirectTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        bus_mock_params = BusMockParameters(data_width=self.gen.isa.ilen, addr_width=32)
-
-        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
-
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionInformationRegisterLayouts).report)
         )
@@ -76,11 +78,10 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
-
-        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans.create(func_unit.issue))
-        m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter.create(func_unit.push_result))
-        m.submodules.bus_master_adapter = self.bus_master_adapter
+        m.submodules.func_unit = self.func_unit = SimpleTestCircuit(LSUDummy(self.gen))
+        self.issue = self.func_unit.issue
+        self.push_result = self.func_unit.push_result
+        self.bus = self.func_unit.bus
         return m
 
 
@@ -103,13 +104,13 @@ class TestPMAIndirect(TestCaseWithSimulator):
             await self.test_module.issue.call(sim, instr)
             if region.mmio is True:
                 for i in range(10):  # 10 cycles is more than enough
-                    ret = await self.test_module.bus_master_adapter.request_read_mock.call_try(sim)
+                    ret = await self.test_module.bus.request_read.call_try(sim)
                     assert ret is None
             self.side_fx_guard_enabled = True
-            await self.test_module.bus_master_adapter.request_read_mock.call(sim)
+            await self.test_module.bus.request_read.call(sim)
             _, v = (
                 await CallTrigger(sim)
-                .call(self.test_module.bus_master_adapter.get_read_response_mock, data=addr << (addr % 4) * 8, err=0)
+                .call(self.test_module.bus.get_read_response, data=addr << (addr % 4) * 8, err=0)
                 .call(self.test_module.push_result)
                 .until_done()
             )

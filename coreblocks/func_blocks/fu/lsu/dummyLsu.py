@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from amaranth import *
-from transactron import Method, TModule, Transaction, def_method
+from transactron import Method, Required, TModule, Transaction, def_method, provide
 from transactron.lib import ConnectTrans, Pipe, BasicFifo, condition
 from transactron.utils import logging, DependencyContext
 
@@ -19,7 +19,7 @@ from coreblocks.interface.keys import (
 )
 from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts
 from coreblocks.params import *
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
 
 __all__ = ["LSUDummy", "LSUComponent"]
@@ -32,14 +32,15 @@ class LSUDummy(FuncUnit, Elaboratable):
     address is in correct range. Addresses have to be aligned.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+    bus: Required[BusMasterInterface]
+    """Data bus master."""
+
+    def __init__(self, gen_params: GenParams) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : BusMasterInterface
-            An instance of the bus master for interfacing with the data bus.
         """
 
         self.gen_params = gen_params
@@ -53,7 +54,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.issue = Method(i=self.fu_layouts.issue)
         self.push_result = Method(i=self.fu_layouts.push_result)
 
-        self.bus = bus
+        self.bus = PureBusMasterInterface(gen_params.wb_params)
 
         self.log = logging.HardwareLogger("backend.lsu.dummylsu")
 
@@ -71,7 +72,8 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.addr_translator = self.addr_translator
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
-        m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
+        m.submodules.requester = requester = LSURequester(self.gen_params)
+        provide[BusMasterInterface](requester.bus, self.bus)
 
         m.submodules.requests = requests = BasicFifo(self.fu_layouts.issue, 2)
         m.submodules.translator_in = translator_in = Pipe(self.translator_layouts.request)
@@ -206,7 +208,8 @@ class LSUComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         connections = DependencyContext.get()
         bus_master = connections.get_dependency(CommonBusDataKey())
-        unit = LSUDummy(gen_params, bus_master)
+        unit = LSUDummy(gen_params)
+        provide[BusMasterInterface](unit.bus, bus_master)
         return unit
 
     def get_decoder_manager(self):  # type: ignore
