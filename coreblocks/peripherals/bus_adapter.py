@@ -209,17 +209,17 @@ class AXILiteMasterAdapter(PureBusMasterInterface, Elaboratable):
 
     method_layouts: CommonBusMasterMethodLayout
         Layouts of common bus master methods.
-
-    read: RequestResponseInterface
-        Read requests. The `request` method is ready if the `ra_request` method of the underlying
-        AXI Lite master is ready. The `response` method is ready if the `rd_response` method of
-        the underlying AXI Lite master is ready.
-
-    write: RequestResponseInterface
-        Write requests. The `request` method is ready if the `wa_request` and `wd_request` methods of
-        the underlying AXI Lite master are ready. The `response` method is ready if the `wr_response`
-        method of the underlying AXI Lite master is ready.
     """
+
+    read: Provided[RequestResponseInterface]
+    """Read requests. The `request` method is ready if the `ra_request` method of the underlying
+    AXI Lite master is ready. The `response` method is ready if the `rd_response` method of
+    the underlying AXI Lite master is ready."""
+
+    write: Provided[RequestResponseInterface]
+    """Write requests. The `request` method is ready if the `wa_request` and `wd_request` methods of
+    the underlying AXI Lite master are ready. The `response` method is ready if the `wr_response`
+    method of the underlying AXI Lite master is ready."""
 
     bus: Required[AXILiteMasterInterface]
     """AXI Lite master which is adapted."""
