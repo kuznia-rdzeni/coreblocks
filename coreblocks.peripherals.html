@@ -187,6 +187,48 @@ Returns response state as ‘wr_response_layout’.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.axi_lite.</span></span><span class="sig-name descname"><span class="pre">AXILiteMasterInterface</span></span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<p>Transactional interface of an AXI-Lite master.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface.ra_request">
+<span class="sig-name descname"><span class="pre">ra_request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.ra_request" title="Link to this definition"></a></dt>
+<dd><p>Initiates a request on the read address channel. Takes <cite>ra_request_layout</cite> as argument.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface.rd_response">
+<span class="sig-name descname"><span class="pre">rd_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.rd_response" title="Link to this definition"></a></dt>
+<dd><p>Reads a response from the read data channel. Returns <cite>rd_response_layout</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wa_request">
+<span class="sig-name descname"><span class="pre">wa_request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wa_request" title="Link to this definition"></a></dt>
+<dd><p>Initiates a request on the write address channel. Takes <cite>wa_request_layout</cite> as argument.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wd_request">
+<span class="sig-name descname"><span class="pre">wd_request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wd_request" title="Link to this definition"></a></dt>
+<dd><p>Initiates a request on the write data channel. Takes <cite>wd_request_layout</cite> as argument.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wr_response">
+<span class="sig-name descname"><span class="pre">wr_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wr_response" title="Link to this definition"></a></dt>
+<dd><p>Reads a response from the write response channel. Returns <cite>wr_response_layout</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.AXILiteParameters">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.axi_lite.</span></span><span class="sig-name descname"><span class="pre">AXILiteParameters</span></span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.AXILiteParameters" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -228,19 +270,31 @@ Returns response state as ‘wr_response_layout’.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.PureAXILiteMasterInterface">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.axi_lite.</span></span><span class="sig-name descname"><span class="pre">PureAXILiteMasterInterface</span></span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.PureAXILiteMasterInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.peripherals.axi_lite.AXILiteMasterInterface" title="coreblocks.peripherals.axi_lite.AXILiteMasterInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">AXILiteMasterInterface</span></code></a></p>
+<p><cite>AXILiteMasterInterface</cite> with no behavior of its own.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.axi_lite.PureAXILiteMasterInterface.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axil_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.axi_lite.AXILiteParameters" title="coreblocks.peripherals.axi_lite.AXILiteParameters"><span class="pre">AXILiteParameters</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.axi_lite.PureAXILiteMasterInterface.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-coreblocks.peripherals.bus_adapter">
 <span id="coreblocks-peripherals-bus-adapter-module"></span><h2>coreblocks.peripherals.bus_adapter module<a class="headerlink" href="#module-coreblocks.peripherals.bus_adapter" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.bus_adapter.</span></span><span class="sig-name descname"><span class="pre">AXILiteMasterAdapter</span></span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">BusMasterInterface</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.peripherals.bus_adapter.PureBusMasterInterface" title="coreblocks.peripherals.bus_adapter.PureBusMasterInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">PureBusMasterInterface</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>An adapter for AXI Lite master.</p>
 <p>The adapter module is for use in places where BusMasterInterface is expected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>bus: AXILiteMaster</strong></dt><dd><p>Specific AXI Lite master module which is to be adapted.</p>
+<dt><strong>axil_params: AXILiteParameters</strong></dt><dd><p>Parameters of the adapted AXI Lite master.</p>
 </dd>
 </dl>
 </dd>
@@ -271,8 +325,14 @@ Output layout is <cite>write_response_layout</cite>.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.axi_lite.AXILiteMaster" title="coreblocks.peripherals.axi_lite.AXILiteMaster"><span class="pre">AXILiteMaster</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axil_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.axi_lite.AXILiteParameters" title="coreblocks.peripherals.axi_lite.AXILiteParameters"><span class="pre">AXILiteParameters</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.bus">
+<span class="sig-name descname"><span class="pre">bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.bus" title="Link to this definition"></a></dt>
+<dd><p>AXI Lite master which is adapted.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -283,22 +343,6 @@ Output layout is <cite>write_response_layout</cite>.</p>
 <p>An interface of a common bus.</p>
 <p>The bus interface is the preferred way to gain access to a specific bus.
 It simplifies interchangeability of buses on the core configuration level.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>params</strong><span class="classifier">BusParametersInterface</span></dt><dd><p>Parameters of the bus.</p>
-</dd>
-<dt><strong>request_read</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to send a read request to a bus.</p>
-</dd>
-<dt><strong>request_write</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to send a write request to a bus.</p>
-</dd>
-<dt><strong>get_read_response</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to receive a response from a bus for a previously sent read request.</p>
-</dd>
-<dt><strong>get_write_response</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to receive a response from a bus for a previously sent write request.</p>
-</dd>
-</dl>
-</dd>
-</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.__init__" title="Link to this definition"></a></dt>
@@ -306,27 +350,87 @@ It simplifies interchangeability of buses on the core configuration level.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response">
-<span class="sig-name descname"><span class="pre">get_read_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">get_read_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response" title="Link to this definition"></a></dt>
+<dd><p>A method that is used to receive a response from a bus for a previously sent read request.
+Output layout is <cite>CommonBusMasterMethodLayout.read_response_layout</cite>.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response">
-<span class="sig-name descname"><span class="pre">get_write_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">get_write_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response" title="Link to this definition"></a></dt>
+<dd><p>A method that is used to receive a response from a bus for a previously sent write request.
+Output layout is <cite>CommonBusMasterMethodLayout.write_response_layout</cite>.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.params">
-<span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">BusParametersInterface</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.params" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface" title="coreblocks.peripherals.bus_adapter.BusParametersInterface"><span class="pre">BusParametersInterface</span></a></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.params" title="Link to this definition"></a></dt>
+<dd><p>Parameters of the bus.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read">
-<span class="sig-name descname"><span class="pre">request_read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">request_read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read" title="Link to this definition"></a></dt>
+<dd><p>A method that is used to send a read request to a bus.
+Input layout is <cite>CommonBusMasterMethodLayout.request_read_layout</cite>.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write">
-<span class="sig-name descname"><span class="pre">request_write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">request_write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write" title="Link to this definition"></a></dt>
+<dd><p>A method that is used to send a write request to a bus.
+Input layout is <cite>CommonBusMasterMethodLayout.request_write_layout</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusParametersInterface">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.bus_adapter.</span></span><span class="sig-name descname"><span class="pre">BusParametersInterface</span></span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<p>An interface for parameters of a common bus.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_width</strong><span class="classifier">int</span></dt><dd><p>An integer that describes the data width of a parametrized bus.</p>
+</dd>
+<dt><strong>addr_width</strong><span class="classifier">int</span></dt><dd><p>An integer that describes the address width of a parametrized bus.</p>
+</dd>
+<dt><strong>granularity</strong><span class="classifier">int</span></dt><dd><p>An integer that describes the granularity of accesses of a parametrized bus.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusParametersInterface.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusParametersInterface.addr_width">
+<span class="sig-name descname"><span class="pre">addr_width</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface.addr_width" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusParametersInterface.data_width">
+<span class="sig-name descname"><span class="pre">data_width</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface.data_width" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusParametersInterface.granularity">
+<span class="sig-name descname"><span class="pre">granularity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface.granularity" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.PureBusMasterInterface">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.bus_adapter.</span></span><span class="sig-name descname"><span class="pre">PureBusMasterInterface</span></span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.PureBusMasterInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">BusMasterInterface</span></code></a></p>
+<p><cite>BusMasterInterface</cite> with no behavior of its own.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.PureBusMasterInterface.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface" title="coreblocks.peripherals.bus_adapter.BusParametersInterface"><span class="pre">BusParametersInterface</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.PureBusMasterInterface.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -339,7 +443,7 @@ It simplifies interchangeability of buses on the core configuration level.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>bus: WishboneMaster</strong></dt><dd><p>Specific Wishbone master module which is to be adapted.</p>
+<dt><strong>wb_params: WishboneParameters</strong></dt><dd><p>Parameters of the adapted Wishbone master.</p>
 </dd>
 <dt><strong>port_count: int</strong></dt><dd><p>Number of ports to be created for the bus adapter. Each port will have its own set
 of methods for read and write requests and responses. The default value is 1.</p>
@@ -352,16 +456,26 @@ of methods for read and write requests and responses. The default value is 1.</p
 </dd>
 <dt><strong>method_layouts: CommonBusMasterMethodLayout</strong></dt><dd><p>Layouts of common bus master methods.</p>
 </dd>
-<dt><strong>ports: list[BusMasterInterface]</strong></dt><dd><p>List of bus master interfaces for each port. Each interface contains methods for read and write requests
-and responses. The number of interfaces is equal to <cite>port_count</cite>.</p>
-</dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><span class="pre">WishboneMaster</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.bus">
+<span class="sig-name descname"><span class="pre">bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.bus" title="Link to this definition"></a></dt>
+<dd><p>Wishbone master which is adapted.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.ports">
+<span class="sig-name descname"><span class="pre">ports</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.ports" title="Link to this definition"></a></dt>
+<dd><p>List of bus master interfaces for each port. Each interface contains methods for read and write requests
+and responses. The number of interfaces is equal to <cite>port_count</cite>.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -390,9 +504,9 @@ and responses. The number of interfaces is equal to <cite>port_count</cite>.</p>
 Ready if new request can be immediately sent.
 Takes <cite>request_layout</cite> as argument.</p>
 </dd>
-<dt><strong>result: Method</strong></dt><dd><p>Transactional method to read results from completed requests sequentially.
+<dt><strong>response: Method</strong></dt><dd><p>Transactional method to read results from completed requests sequentially.
 Ready if buffered results are available.
-Returns state of request (error or success) and data (in case of read request) as <cite>result_layout</cite>.</p>
+Returns state of request (error or success) and data (in case of read request) as <cite>response_out_layout</cite>.</p>
 </dd>
 <dt><strong>requests_finished: Signal, out</strong></dt><dd><p>True, if there are no requests waiting for response</p>
 </dd>
@@ -491,9 +605,9 @@ Bus is requested by asserting CYC signal and is granted to masters in a round ro
 Ready when no request is being executed and previous result is read.
 Takes <cite>request_layout</cite> as argument.</p>
 </dd>
-<dt><strong>result: Method</strong></dt><dd><p>Transactional method to read previous request result.
+<dt><strong>response: Method</strong></dt><dd><p>Transactional method to read previous request result.
 Becomes ready after Wishbone request is completed.
-Returns state of request (error or success) and data (in case of read request) as <cite>result_layout</cite>.</p>
+Returns state of request (error or success) and data (in case of read request) as <cite>response_layout</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -526,7 +640,7 @@ Returns state of request (error or success) and data (in case of read request) a
 <dd class="field-even"><dl class="simple">
 <dt><strong>request_layout: Layout</strong></dt><dd><p>Layout for request method of WishboneMaster.</p>
 </dd>
-<dt><strong>result_layout: Layout</strong></dt><dd><p>Layout for result method of WishboneMaster.</p>
+<dt><strong>response_layout: Layout</strong></dt><dd><p>Layout for response method of WishboneMaster.</p>
 </dd>
 </dl>
 </dd>
@@ -663,7 +777,7 @@ should be implemented in block that controlls <cite>ssel_tga</cite> signal, befo
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:52 2026-11-15.
+      <span class="lastupdated">Last updated on 08:24 2026-11-17.
       </span></p>
   </div>
 

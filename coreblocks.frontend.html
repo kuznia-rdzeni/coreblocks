@@ -220,6 +220,7 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_request"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_request</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_writeback"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_writeback</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.flush"><code class="docutils literal notranslate"><span class="pre">FetchUnit.flush</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.icache"><code class="docutils literal notranslate"><span class="pre">FetchUnit.icache</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.ras_peek"><code class="docutils literal notranslate"><span class="pre">FetchUnit.ras_peek</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.ras_predict"><code class="docutils literal notranslate"><span class="pre">FetchUnit.ras_predict</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.read_prediction"><code class="docutils literal notranslate"><span class="pre">FetchUnit.read_prediction</span></code></a></li>
@@ -294,7 +295,7 @@ low - invalidate it, because the IFU doesn’t know where to fetch next.</p>
 <p>Frontend of the core.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">instr_bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -307,6 +308,12 @@ low - invalidate it, because the IFU doesn’t know where to fetch next.</p>
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.get_exception_information">
 <span class="sig-name descname"><span class="pre">get_exception_information</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.get_exception_information" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.instr_bus">
+<span class="sig-name descname"><span class="pre">instr_bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.instr_bus" title="Link to this definition"></a></dt>
+<dd><p>Instruction bus master.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.redirect">
@@ -568,7 +575,7 @@ exception and redirects the frontend itself).</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:52 2026-11-15.
+      <span class="lastupdated">Last updated on 08:24 2026-11-17.
       </span></p>
   </div>
 

@@ -93,6 +93,18 @@
 <section id="module-coreblocks.priv.vmem.iface">
 <span id="coreblocks-priv-vmem-iface-module"></span><h2>coreblocks.priv.vmem.iface module<a class="headerlink" href="#module-coreblocks.priv.vmem.iface" title="Link to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.PureTLBBackingDevice">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.vmem.iface.</span></span><span class="sig-name descname"><span class="pre">PureTLBBackingDevice</span></span><a class="headerlink" href="#coreblocks.priv.vmem.iface.PureTLBBackingDevice" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TLBBackingDevice</span></code></a></p>
+<p><cite>TLBBackingDevice</cite> with no behavior of its own.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.PureTLBBackingDevice.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.iface.PureTLBBackingDevice.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.TLBBackingDevice">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.vmem.iface.</span></span><span class="sig-name descname"><span class="pre">TLBBackingDevice</span></span><a class="headerlink" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
@@ -129,13 +141,25 @@ Expected layout is <cite>AddressTranslationLayouts.tlb_request</cite>.</p>
 Meant for L1 TLBs.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.FullyAssociativeTLB.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">backing_resolver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><span class="pre">TLBBackingDevice</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">perf_name_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mmu.tlb'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">perf_name_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mmu.tlb'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.FullyAssociativeTLB.backing_resolver">
+<span class="sig-name descname"><span class="pre">backing_resolver</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.backing_resolver" title="Link to this definition"></a></dt>
+<dd><p>Backing device used to resolve TLB misses.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.FullyAssociativeTLB.get_port">
 <span class="sig-name descname"><span class="pre">get_port</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><span class="pre">TLBBackingDevice</span></a></span></span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.get_port" title="Link to this definition"></a></dt>
 <dd><p>Returns a TLBBackingDevice from a specific port.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.FullyAssociativeTLB.port_devices">
+<span class="sig-name descname"><span class="pre">port_devices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.port_devices" title="Link to this definition"></a></dt>
+<dd><p>TLB ports, each usable as a backing device for another TLB.</p>
 </dd></dl>
 
 </dd></dl>
@@ -146,13 +170,25 @@ Meant for L1 TLBs.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.SetAssociativeTLB.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ways</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">backing_resolver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><span class="pre">TLBBackingDevice</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">perf_name_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mmu.tlb'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ways</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">perf_name_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mmu.tlb'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.SetAssociativeTLB.backing_resolver">
+<span class="sig-name descname"><span class="pre">backing_resolver</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB.backing_resolver" title="Link to this definition"></a></dt>
+<dd><p>Backing device used to resolve TLB misses.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.SetAssociativeTLB.get_port">
 <span class="sig-name descname"><span class="pre">get_port</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><span class="pre">TLBBackingDevice</span></a></span></span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB.get_port" title="Link to this definition"></a></dt>
 <dd><p>Returns a TLBBackingDevice from a specific port.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.SetAssociativeTLB.port_devices">
+<span class="sig-name descname"><span class="pre">port_devices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB.port_devices" title="Link to this definition"></a></dt>
+<dd><p>TLB ports, each usable as a backing device for another TLB.</p>
 </dd></dl>
 
 </dd></dl>
@@ -194,7 +230,7 @@ Meant for L1 TLBs.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.walker.PageTableWalker">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.vmem.walker.</span></span><span class="sig-name descname"><span class="pre">PageTableWalker</span></span><a class="headerlink" href="#coreblocks.priv.vmem.walker.PageTableWalker" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TLBBackingDevice</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.priv.vmem.iface.PureTLBBackingDevice" title="coreblocks.priv.vmem.iface.PureTLBBackingDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">PureTLBBackingDevice</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Hardware page table walker for RISC-V virtual memory translation.</p>
 <p>This module implements a page table walker that translates virtual page numbers (VPN)
 to physical page numbers (PPN) by walking through the page table hierarchy according
@@ -208,8 +244,14 @@ to the current SATP configuration.</p>
 <p>Implements Svade semantics (exception on missing A/D bits).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.vmem.walker.PageTableWalker.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.vmem.walker.PageTableWalker.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.vmem.walker.PageTableWalker.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.walker.PageTableWalker.bus">
+<span class="sig-name descname"><span class="pre">bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.walker.PageTableWalker.bus" title="Link to this definition"></a></dt>
+<dd><p>Data bus master.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -231,7 +273,7 @@ to the current SATP configuration.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:52 2026-11-15.
+      <span class="lastupdated">Last updated on 08:24 2026-11-17.
       </span></p>
   </div>
 

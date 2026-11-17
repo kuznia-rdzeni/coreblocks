@@ -128,17 +128,21 @@ It isn’t fully compliant with RiscV spec. Doesn’t support checking if
 address is in correct range. Addresses have to be aligned.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.dummyLsu.LSUDummy.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.dummyLsu.LSUDummy.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.dummyLsu.LSUDummy.__init__" title="Link to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Parameters to be used during processor generation.</p>
 </dd>
-<dt><strong>bus</strong><span class="classifier">BusMasterInterface</span></dt><dd><p>An instance of the bus master for interfacing with the data bus.</p>
-</dd>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.dummyLsu.LSUDummy.bus">
+<span class="sig-name descname"><span class="pre">bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.dummyLsu.LSUDummy.bus" title="Link to this definition"></a></dt>
+<dd><p>Data bus master.</p>
 </dd></dl>
 
 </dd></dl>
@@ -221,13 +225,11 @@ between the LSU and the bus.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_requester.LSURequester.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_requester.LSURequester.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_requester.LSURequester.__init__" title="Link to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Parameters to be used during processor generation.</p>
-</dd>
-<dt><strong>bus</strong><span class="classifier">BusMasterInterface</span></dt><dd><p>An instance of the bus master for interfacing with the data bus.</p>
 </dd>
 <dt><strong>depth</strong><span class="classifier">int</span></dt><dd><p>Number of requests which can be send to memory, before it provides first response. Describe
 the resiliency of <cite>LSURequester</cite> to latency of memory in case when memory is fully pipelined.</p>
@@ -235,6 +237,12 @@ the resiliency of <cite>LSURequester</cite> to latency of memory in case when me
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_requester.LSURequester.bus">
+<span class="sig-name descname"><span class="pre">bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_requester.LSURequester.bus" title="Link to this definition"></a></dt>
+<dd><p>Data bus master.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -354,7 +362,7 @@ includes both start and end address.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:52 2026-11-15.
+      <span class="lastupdated">Last updated on 08:24 2026-11-17.
       </span></p>
   </div>
 

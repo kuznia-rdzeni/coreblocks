@@ -1033,25 +1033,37 @@
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICache"><code class="docutils literal notranslate"><span class="pre">ICache</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICache.__init__"><code class="docutils literal notranslate"><span class="pre">ICache.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICache.deserialize_addr"><code class="docutils literal notranslate"><span class="pre">ICache.deserialize_addr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICache.refiller"><code class="docutils literal notranslate"><span class="pre">ICache.refiller</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICache.serialize_addr"><code class="docutils literal notranslate"><span class="pre">ICache.serialize_addr()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICacheBypass"><code class="docutils literal notranslate"><span class="pre">ICacheBypass</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICacheBypass.__init__"><code class="docutils literal notranslate"><span class="pre">ICacheBypass.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.icache.ICacheBypass.bus_master"><code class="docutils literal notranslate"><span class="pre">ICacheBypass.bus_master</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.cache.html#module-coreblocks.cache.iface">coreblocks.cache.iface module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface"><code class="docutils literal notranslate"><span class="pre">CacheInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.__init__"><code class="docutils literal notranslate"><span class="pre">CacheInterface.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.accept_res"><code class="docutils literal notranslate"><span class="pre">CacheInterface.accept_res</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.flush"><code class="docutils literal notranslate"><span class="pre">CacheInterface.flush</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.issue_req"><code class="docutils literal notranslate"><span class="pre">CacheInterface.issue_req</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface"><code class="docutils literal notranslate"><span class="pre">CacheRefillerInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface.__init__"><code class="docutils literal notranslate"><span class="pre">CacheRefillerInterface.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface.accept_refill"><code class="docutils literal notranslate"><span class="pre">CacheRefillerInterface.accept_refill</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface.start_refill"><code class="docutils literal notranslate"><span class="pre">CacheRefillerInterface.start_refill</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.PureCacheInterface"><code class="docutils literal notranslate"><span class="pre">PureCacheInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.PureCacheInterface.__init__"><code class="docutils literal notranslate"><span class="pre">PureCacheInterface.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.PureCacheRefillerInterface"><code class="docutils literal notranslate"><span class="pre">PureCacheRefillerInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.PureCacheRefillerInterface.__init__"><code class="docutils literal notranslate"><span class="pre">PureCacheRefillerInterface.__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1066,6 +1078,7 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.cache.html#module-coreblocks.cache.refiller">coreblocks.cache.refiller module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller"><code class="docutils literal notranslate"><span class="pre">SimpleCommonBusCacheRefiller</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller.__init__"><code class="docutils literal notranslate"><span class="pre">SimpleCommonBusCacheRefiller.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller.bus_master"><code class="docutils literal notranslate"><span class="pre">SimpleCommonBusCacheRefiller.bus_master</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1151,6 +1164,7 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.__init__"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.consume_instr"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.consume_instr</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.get_exception_information"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.get_exception_information</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.instr_bus"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.instr_bus</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.redirect"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.redirect</span></code></a></li>
 </ul>
 </li>
@@ -1449,6 +1463,15 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.state_machine_request"><code class="docutils literal notranslate"><span class="pre">AXILiteMaster.state_machine_request()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.__init__"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.ra_request"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface.ra_request</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.rd_response"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface.rd_response</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wa_request"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface.wa_request</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wd_request"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface.wd_request</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMasterInterface.wr_response"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterInterface.wr_response</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters"><code class="docutils literal notranslate"><span class="pre">AXILiteParameters</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters.__init__"><code class="docutils literal notranslate"><span class="pre">AXILiteParameters.__init__()</span></code></a></li>
 </ul>
@@ -1457,11 +1480,16 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteSignature.__init__"><code class="docutils literal notranslate"><span class="pre">AXILiteSignature.__init__()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.PureAXILiteMasterInterface"><code class="docutils literal notranslate"><span class="pre">PureAXILiteMasterInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.PureAXILiteMasterInterface.__init__"><code class="docutils literal notranslate"><span class="pre">PureAXILiteMasterInterface.__init__()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.peripherals.html#module-coreblocks.peripherals.bus_adapter">coreblocks.peripherals.bus_adapter module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.__init__"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.bus"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter.bus</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface</span></code></a><ul>
@@ -1473,8 +1501,21 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.request_write</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusParametersInterface"><code class="docutils literal notranslate"><span class="pre">BusParametersInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusParametersInterface.__init__"><code class="docutils literal notranslate"><span class="pre">BusParametersInterface.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusParametersInterface.addr_width"><code class="docutils literal notranslate"><span class="pre">BusParametersInterface.addr_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusParametersInterface.data_width"><code class="docutils literal notranslate"><span class="pre">BusParametersInterface.data_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusParametersInterface.granularity"><code class="docutils literal notranslate"><span class="pre">BusParametersInterface.granularity</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.PureBusMasterInterface"><code class="docutils literal notranslate"><span class="pre">PureBusMasterInterface</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.PureBusMasterInterface.__init__"><code class="docutils literal notranslate"><span class="pre">PureBusMasterInterface.__init__()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter"><code class="docutils literal notranslate"><span class="pre">WishboneMasterAdapter</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__"><code class="docutils literal notranslate"><span class="pre">WishboneMasterAdapter.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.bus"><code class="docutils literal notranslate"><span class="pre">WishboneMasterAdapter.bus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.ports"><code class="docutils literal notranslate"><span class="pre">WishboneMasterAdapter.ports</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1828,7 +1869,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:52 2026-11-15.
+      <span class="lastupdated">Last updated on 08:24 2026-11-17.
       </span></p>
   </div>
 
