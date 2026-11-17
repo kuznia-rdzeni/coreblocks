@@ -1,6 +1,8 @@
 from typing import Protocol
 
 from transactron import Method, Provided
+from transactron.lib import PureRequestResponseInterface, RequestResponseInterface
+from transactron.utils import SrcLoc, get_src_loc
 
 from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.params import GenParams
@@ -8,27 +10,36 @@ from coreblocks.params import GenParams
 __all__ = ["CacheInterface", "PureCacheInterface", "CacheRefillerInterface", "PureCacheRefillerInterface"]
 
 
-class CacheInterface(Protocol):
+class CacheInterface(RequestResponseInterface, Protocol):
     """Cache Interface."""
 
-    issue_req: Provided[Method]
+    request: Provided[Method]
     """A method that is used to issue a cache lookup request."""
 
-    accept_res: Provided[Method]
+    response: Provided[Method]
     """A method that is used to accept the result of a cache lookup request."""
 
     flush: Provided[Method]
     """A method that is used to flush the whole cache."""
 
 
-class PureCacheInterface(CacheInterface):
+class PureCacheInterface(PureRequestResponseInterface, CacheInterface):
     """`CacheInterface` with no behavior of its own."""
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, *, src_loc: int | SrcLoc = 0):
+        """
+        Parameters
+        ----------
+        gen_params: GenParams
+            Core generation parameters.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
+        """
+        src_loc = get_src_loc(src_loc)
         layouts = gen_params.get(ICacheLayouts)
-        self.issue_req = Method(i=layouts.issue_req)
-        self.accept_res = Method(o=layouts.accept_res)
-        self.flush = Method()
+        super().__init__(layouts.issue_req, layouts.accept_res, src_loc=src_loc)
+        self.flush = Method(src_loc=src_loc)
 
 
 class CacheRefillerInterface(Protocol):

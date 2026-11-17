@@ -42,7 +42,7 @@ class ICacheBypass(PureCacheInterface, Elaboratable):
 
         req_addr = Signal(self.params.addr_width)
 
-        @def_method(m, self.issue_req)
+        @def_method(m, self.request)
         def _(paddr: Value) -> None:
             m.d.sync += req_addr.eq(paddr)
             self.bus_master.read.request(
@@ -51,7 +51,7 @@ class ICacheBypass(PureCacheInterface, Elaboratable):
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
-        @def_method(m, self.accept_res)
+        @def_method(m, self.response)
         def _():
             res = self.bus_master.read.response(m)
             return {
@@ -96,7 +96,7 @@ class ICache(PureCacheInterface, Elaboratable):
 
         self.refiller = PureCacheRefillerInterface(gen_params)
 
-        self.flush.add_conflict(self.issue_req, Priority.LEFT)
+        self.flush.add_conflict(self.request, Priority.LEFT)
 
         self.addr_layout = make_layout(
             ("offset", self.params.offset_bits),
@@ -206,14 +206,14 @@ class ICache(PureCacheInterface, Elaboratable):
                 log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
                 self.refiller.start_refill(m, paddr=aligned_addr)
 
-        @def_method(m, self.accept_res)
+        @def_method(m, self.response)
         def _():
             self.req_latency.stop(m)
 
             output = req_zipper.read(m)
             return output.results
 
-        @def_method(m, self.issue_req, ready=accepting_requests)
+        @def_method(m, self.request, ready=accepting_requests)
         def _(paddr: Value) -> None:
             self.perf_loads.incr(m)
             self.req_latency.start(m)

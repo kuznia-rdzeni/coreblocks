@@ -200,7 +200,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += access_fault.eq(translated.access_fault | ~pmp_checker.result.x)
 
             with m.If(~translated.page_fault & ~access_fault):
-                self.icache.issue_req(m, paddr=translated.paddr)
+                self.icache.request(m, paddr=translated.paddr)
 
             fetch_requests.write(
                 m,
@@ -263,7 +263,7 @@ class FetchUnit(Elaboratable):
 
             with condition(m, nonblocking=True) as branch:
                 with branch(~fetch_request.page_fault & ~fetch_request.access_fault):
-                    m.d.av_comb += cache_resp.eq(self.icache.accept_res(m))
+                    m.d.av_comb += cache_resp.eq(self.icache.response(m))
 
             with m.If(fetch_request.page_fault):
                 m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)

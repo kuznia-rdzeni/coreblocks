@@ -217,14 +217,14 @@ class TestFetchUnit(TestCaseWithSimulator):
             self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
 
     @def_method_mock(
-        lambda self: self.fetch.icache.issue_req, enable=lambda self: len(self.input_q) < 2
+        lambda self: self.fetch.icache.request, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
     def issue_req_mock(self, paddr):
         @MethodMock.effect
         def eff():
             self.input_q.append(paddr)
 
-    @def_method_mock(lambda self: self.fetch.icache.accept_res, enable=lambda self: len(self.output_q) > 0)
+    @def_method_mock(lambda self: self.fetch.icache.response, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
         @MethodMock.effect
         def eff():
