@@ -155,19 +155,17 @@ class WishboneMasterAdapter(Elaboratable):
         self.port_count = port_count
 
         wb_layouts = WishboneMasterMethodLayout(wb_params)
-        self.serializer = Serializer(
-            port_count=2 * port_count,
-            req_layout=wb_layouts.request_layout,
-            resp_layout=wb_layouts.response_layout,
-        )
-        self.bus = self.serializer.server
+        self.bus = PureRequestResponseInterface(wb_layouts.request_layout, wb_layouts.response_layout)
 
         self.ports = [PureBusMasterInterface(self.params) for _ in range(port_count)]
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.bus_serializer = bus_serializer = self.serializer
+        m.submodules.bus_serializer = bus_serializer = Serializer.create(
+            port_count=2 * self.port_count,
+            server=self.bus,
+        )
 
         @def_methods(m, [port.read.request for port in self.ports])
         def _(i, arg):
