@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794906398576,
+  "lastUpdate": 1794906400575,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -85534,6 +85534,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 387,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3e5225c9b05731b1123aeab2a1fcc94b027081aa",
+          "message": "Interface use refactor (#1154)",
+          "timestamp": "2026-11-17T09:24:18+01:00",
+          "tree_id": "d2727d2943f5cec1d6338787361345755dd6fc8d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3e5225c9b05731b1123aeab2a1fcc94b027081aa"
+        },
+        "date": 1794906400186,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 45.59,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20565,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9410,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 386,
             "unit": "Slice"
           },
           {
