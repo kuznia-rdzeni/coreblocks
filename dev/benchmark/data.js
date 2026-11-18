@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795015743595,
+  "lastUpdate": 1795015746312,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -60567,6 +60567,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1412,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2420,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9576,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "30830383+bartlomiej-stefanski@users.noreply.github.com",
+            "name": "Bartłomiej Stefański",
+            "username": "bartlomiej-stefanski"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "62a98246b582ad66aa4769687fbf4a911160b1c0",
+          "message": "Fix FPU inf multiplication (#1168)",
+          "timestamp": "2026-11-18T15:08:33+01:00",
+          "tree_id": "4d7a06bed4c2ef4d20b640af2bb2c2bec1b94dcb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/62a98246b582ad66aa4769687fbf4a911160b1c0"
+        },
+        "date": 1795015745716,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.79,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23720,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1406,
             "unit": "LUT"
           },
           {
