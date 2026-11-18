@@ -78,19 +78,13 @@ class FloatToIntModule(Elaboratable):
             # Flag indicating if magnitude is greater or equal one
             bias = 2 ** (self.conv_params.exp_width - 1) - 1
             mag_ge_one = Signal()
-            # Check if exp is equal to 2^0
-            # Check if exp is ge than 2^1
             m.d.av_comb += mag_ge_one.eq(op.exp >= bias)
 
-            # Flag indicating if power of base equal to 1/2
-            minus_one_exp = Signal()
-            m.d.av_comb += minus_one_exp.eq(op.exp == (bias - 1))
-
-            # Shift for case when mag_ge_one, we assume that number is not big enough
+            # We assume that number is not big enough
             # to lead to overflow. Maximal value is int_width - 1
             alignment_shift = 2
             max_shift = self.int_width - 1
-            mgeo_shift = Signal(range(0, max_shift + alignment_shift + 1))
+            shift = Signal(range(0, max_shift + alignment_shift + 1))
             min_unbiased_exp = 1 - bias
             max_unbiased_exp = bias
             unbiased_exp = Signal(range(min_unbiased_exp, max_unbiased_exp + 1))
@@ -99,11 +93,11 @@ class FloatToIntModule(Elaboratable):
             # +2 is needed to align the only integer bit of op.sig with lsb of integer part
             # of out fixed point number
             with m.If(unbiased_exp < -1):
-                m.d.av_comb += mgeo_shift.eq(0)
+                m.d.av_comb += shift.eq(0)
             with m.Elif(unbiased_exp <= max_shift):
-                m.d.av_comb += mgeo_shift.eq(unbiased_exp + alignment_shift)
+                m.d.av_comb += shift.eq(unbiased_exp + alignment_shift)
             with m.Else():
-                m.d.av_comb += mgeo_shift.eq(max_shift + alignment_shift)
+                m.d.av_comb += shift.eq(max_shift + alignment_shift)
 
             # This fixed point number has int_width bits for integer part and
             # sig_width + 1 bits for fractional part
@@ -112,12 +106,11 @@ class FloatToIntModule(Elaboratable):
             # of exp power less than zero that produces round bit
             fractional_part_length = self.conv_params.sig_width + 1
             fixed_point_number = Signal(fractional_part_length + self.int_width)
-            m.d.av_comb += fixed_point_number.eq(op.sig << mgeo_shift)
+            m.d.av_comb += fixed_point_number.eq(op.sig << shift)
 
             fractional_part = Signal(fractional_part_length)
-            m.d.av_comb += fractional_part.eq(fixed_point_number)
             integer_part = Signal(self.int_width)
-            m.d.av_comb += integer_part.eq(fixed_point_number >> fractional_part_length)
+            m.d.av_comb += Cat(fractional_part, integer_part).eq(op.sig << shift)
 
             sticky_bit = Signal()
             round_bit = Signal()
