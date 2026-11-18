@@ -142,7 +142,18 @@ until the next transfer is started.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.cache.icache.ICacheBypass.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.cache.icache.ICacheBypass.__init__" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.cache.icache.ICacheBypass.bus_master">
@@ -158,19 +169,8 @@ until the next transfer is started.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.iface.</span></span><span class="sig-name descname"><span class="pre">CacheInterface</span></span><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RequestResponseInterface</span></code>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
 <p>Cache Interface.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.__init__" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.accept_res">
-<span class="sig-name descname"><span class="pre">accept_res</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.accept_res" title="Link to this definition"></a></dt>
-<dd><p>A method that is used to accept the result of a cache lookup request.</p>
-</dd></dl>
-
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.flush">
 <span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.flush" title="Link to this definition"></a></dt>
@@ -178,9 +178,15 @@ until the next transfer is started.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.issue_req">
-<span class="sig-name descname"><span class="pre">issue_req</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.issue_req" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.request">
+<span class="sig-name descname"><span class="pre">request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.request" title="Link to this definition"></a></dt>
 <dd><p>A method that is used to issue a cache lookup request.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.cache.iface.CacheInterface.response">
+<span class="sig-name descname"><span class="pre">response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.cache.iface.CacheInterface.response" title="Link to this definition"></a></dt>
+<dd><p>A method that is used to accept the result of a cache lookup request.</p>
 </dd></dl>
 
 </dd></dl>
@@ -212,12 +218,23 @@ until the next transfer is started.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.cache.iface.PureCacheInterface">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.iface.</span></span><span class="sig-name descname"><span class="pre">PureCacheInterface</span></span><a class="headerlink" href="#coreblocks.cache.iface.PureCacheInterface" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">CacheInterface</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PureRequestResponseInterface</span></code>, <a class="reference internal" href="#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">CacheInterface</span></code></a></p>
 <p><cite>CacheInterface</cite> with no behavior of its own.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.cache.iface.PureCacheInterface.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.cache.iface.PureCacheInterface.__init__" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.cache.iface.PureCacheInterface.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -304,7 +321,7 @@ the opposite direction, so it is not selected for subsequent evictions.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 08:24 2026-11-17.
+      <span class="lastupdated">Last updated on 10:18 2026-11-18.
       </span></p>
   </div>
 

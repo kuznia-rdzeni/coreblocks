@@ -1046,10 +1046,9 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.cache.html#module-coreblocks.cache.iface">coreblocks.cache.iface module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface"><code class="docutils literal notranslate"><span class="pre">CacheInterface</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.__init__"><code class="docutils literal notranslate"><span class="pre">CacheInterface.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.accept_res"><code class="docutils literal notranslate"><span class="pre">CacheInterface.accept_res</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.flush"><code class="docutils literal notranslate"><span class="pre">CacheInterface.flush</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.issue_req"><code class="docutils literal notranslate"><span class="pre">CacheInterface.issue_req</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.request"><code class="docutils literal notranslate"><span class="pre">CacheInterface.request</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.response"><code class="docutils literal notranslate"><span class="pre">CacheInterface.response</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface"><code class="docutils literal notranslate"><span class="pre">CacheRefillerInterface</span></code></a><ul>
@@ -1204,8 +1203,7 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.commit"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.commit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ifu_request"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ifu_request</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ifu_writeback"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ifu_writeback</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.jump_target_req"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.jump_target_req</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.jump_target_resp"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.jump_target_resp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.jump_target"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.jump_target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ras_peek"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ras_peek</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ras_predict"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ras_predict</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.read_prediction"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.read_prediction</span></code></a></li>
@@ -1490,15 +1488,15 @@
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.__init__"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.bus"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter.bus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.read"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter.read</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.write"><code class="docutils literal notranslate"><span class="pre">AXILiteMasterAdapter.write</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.__init__"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.get_read_response</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.get_write_response</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.params"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.params</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.request_read</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.request_write</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.read"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.read</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.write"><code class="docutils literal notranslate"><span class="pre">BusMasterInterface.write</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusParametersInterface"><code class="docutils literal notranslate"><span class="pre">BusParametersInterface</span></code></a><ul>
@@ -1869,7 +1867,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 08:24 2026-11-17.
+      <span class="lastupdated">Last updated on 10:18 2026-11-18.
       </span></p>
   </div>
 

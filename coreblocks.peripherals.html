@@ -304,22 +304,6 @@ Returns response state as ‘wr_response_layout’.</p>
 </dd>
 <dt><strong>method_layouts: CommonBusMasterMethodLayout</strong></dt><dd><p>Layouts of common bus master methods.</p>
 </dd>
-<dt><strong>request_read: Method</strong></dt><dd><p>Transactional method for initiating a read request.
-It is ready if the <cite>ra_request</cite> method of the underlying AXI Lite master is ready.
-Input layout is <cite>request_read_layout</cite>.</p>
-</dd>
-<dt><strong>request_write: Method</strong></dt><dd><p>Transactional method for initiating a write request.
-It is ready if the ‘wa_request’ and ‘wd_request’ methods of the underlying AXI Lite master are ready.
-Input layout is <cite>request_write_layout</cite>.</p>
-</dd>
-<dt><strong>get_read_response: Method</strong></dt><dd><p>Transactional method for reading a response of a read action.
-It is ready if the <cite>rd_response</cite> method of the underlying AXI Lite master is ready.
-Output layout is <cite>read_response_layout</cite>.</p>
-</dd>
-<dt><strong>get_write_response: Method</strong></dt><dd><p>Transactional method for reading a response of a write action.
-It is ready if the <cite>wr_response</cite> method of the underlying AXI Lite master is ready.
-Output layout is <cite>write_response_layout</cite>.</p>
-</dd>
 </dl>
 </dd>
 </dl>
@@ -332,6 +316,22 @@ Output layout is <cite>write_response_layout</cite>.</p>
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.bus">
 <span class="sig-name descname"><span class="pre">bus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.bus" title="Link to this definition"></a></dt>
 <dd><p>AXI Lite master which is adapted.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.read">
+<span class="sig-name descname"><span class="pre">read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.read" title="Link to this definition"></a></dt>
+<dd><p>Read requests. The <cite>request</cite> method is ready if the <cite>ra_request</cite> method of the underlying
+AXI Lite master is ready. The <cite>response</cite> method is ready if the <cite>rd_response</cite> method of
+the underlying AXI Lite master is ready.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.write">
+<span class="sig-name descname"><span class="pre">write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.AXILiteMasterAdapter.write" title="Link to this definition"></a></dt>
+<dd><p>Write requests. The <cite>request</cite> method is ready if the <cite>wa_request</cite> and <cite>wd_request</cite> methods of
+the underlying AXI Lite master are ready. The <cite>response</cite> method is ready if the <cite>wr_response</cite>
+method of the underlying AXI Lite master is ready.</p>
 </dd></dl>
 
 </dd></dl>
@@ -349,37 +349,25 @@ It simplifies interchangeability of buses on the core configuration level.</p>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response">
-<span class="sig-name descname"><span class="pre">get_read_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response" title="Link to this definition"></a></dt>
-<dd><p>A method that is used to receive a response from a bus for a previously sent read request.
-Output layout is <cite>CommonBusMasterMethodLayout.read_response_layout</cite>.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response">
-<span class="sig-name descname"><span class="pre">get_write_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_write_response" title="Link to this definition"></a></dt>
-<dd><p>A method that is used to receive a response from a bus for a previously sent write request.
-Output layout is <cite>CommonBusMasterMethodLayout.write_response_layout</cite>.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.params">
 <span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.peripherals.bus_adapter.BusParametersInterface" title="coreblocks.peripherals.bus_adapter.BusParametersInterface"><span class="pre">BusParametersInterface</span></a></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.params" title="Link to this definition"></a></dt>
 <dd><p>Parameters of the bus.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read">
-<span class="sig-name descname"><span class="pre">request_read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read" title="Link to this definition"></a></dt>
-<dd><p>A method that is used to send a read request to a bus.
-Input layout is <cite>CommonBusMasterMethodLayout.request_read_layout</cite>.</p>
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.read">
+<span class="sig-name descname"><span class="pre">read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.read" title="Link to this definition"></a></dt>
+<dd><p>Read requests. The <cite>request</cite> method sends a read request to the bus, its input layout is
+<cite>CommonBusMasterMethodLayout.request_read_layout</cite>. The <cite>response</cite> method receives a response for
+a previously sent read request, its output layout is <cite>CommonBusMasterMethodLayout.read_response_layout</cite>.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write">
-<span class="sig-name descname"><span class="pre">request_write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write" title="Link to this definition"></a></dt>
-<dd><p>A method that is used to send a write request to a bus.
-Input layout is <cite>CommonBusMasterMethodLayout.request_write_layout</cite>.</p>
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.write">
+<span class="sig-name descname"><span class="pre">write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.write" title="Link to this definition"></a></dt>
+<dd><p>Write requests. The <cite>request</cite> method sends a write request to the bus, its input layout is
+<cite>CommonBusMasterMethodLayout.request_write_layout</cite>. The <cite>response</cite> method receives a response for
+a previously sent write request, its output layout is <cite>CommonBusMasterMethodLayout.write_response_layout</cite>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -777,7 +765,7 @@ should be implemented in block that controlls <cite>ssel_tga</cite> signal, befo
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 08:24 2026-11-17.
+      <span class="lastupdated">Last updated on 10:18 2026-11-18.
       </span></p>
   </div>
 
