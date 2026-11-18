@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
-from transactron import Method, Provided, Required, TModule, def_method, Priority, Transaction
+from transactron import Method, Provided, Required, TModule, def_method, Priority, Transaction, provide
 from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux, AssignType
 from transactron.lib import (
     BasicFifo,
@@ -228,7 +228,7 @@ class FullyAssociativeTLB(Elaboratable):
 
         m.submodules.refill_semaphore = refill_semaphore = Semaphore(1)
 
-        refill_ret = Signal(self.layout.tlb_accept)
+        refill_ret = Signal(self.layout.tlb_response)
 
         def do_query(cam, is_store):
             ask_backing = Signal()
@@ -255,7 +255,7 @@ class FullyAssociativeTLB(Elaboratable):
             m.d.comb += cam.ways_data.eq(entries)
             m.d.comb += cam.replacement_rr_index.eq(replacement_rr_index)
 
-            result_fwd = Forwarder(self.layout.tlb_accept)
+            result_fwd = Forwarder(self.layout.tlb_response)
             m.submodules[f"result_fwd_{port}"] = result_fwd
             m.submodules[f"cam_{port}"] = cam
 
@@ -269,7 +269,7 @@ class FullyAssociativeTLB(Elaboratable):
                 with Transaction(name=f"Refill_{port}").body(m):
                     refill_semaphore.release(m)
 
-                    resp = self.backing_resolver.accept(m)
+                    resp = self.backing_resolver.response(m)
 
                     m.d.av_comb += cam.checked_vpn.eq(vpn_req)
                     m.d.av_comb += cam.checked_asid.eq(resp.asid)
@@ -345,7 +345,7 @@ class FullyAssociativeTLB(Elaboratable):
                         result_fwd.write(m, ret)
                         m.d.sync += slow_path.eq(0)
 
-            @def_method(m, self.port_devices[port].accept)
+            @def_method(m, self.port_devices[port].response)
             def _():
                 self.perf_latency.stop[port](m)
                 return result_fwd.read(m)
@@ -438,7 +438,7 @@ class SetAssociativeTLB(Elaboratable):
         rd_wr = rd_mem.write_port()
         m.d.comb += cam.replacement_rr_index.eq(rd_rd.data)
 
-        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_response)
 
         flushing = Signal(init=1)
         refill_in_progress = Signal()
@@ -455,14 +455,13 @@ class SetAssociativeTLB(Elaboratable):
         m.submodules.port_serializer = port_serializer = Serializer(
             port_count=self.ports,
             req_layout=self.layout.tlb_request,
-            resp_layout=self.layout.tlb_accept,
+            resp_layout=self.layout.tlb_response,
         )
         request = port_serializer.server.request
         accept = port_serializer.server.response
 
         for port in range(self.ports):
-            self.port_devices[port].request.provide(port_serializer.ports[port].request)
-            self.port_devices[port].accept.provide(port_serializer.ports[port].response)
+            provide[TLBBackingDevice](self.port_devices[port], port_serializer.ports[port])
 
         @def_method(m, request, ready=~flushing)
         def _(vpn, is_store):
@@ -521,13 +520,13 @@ class SetAssociativeTLB(Elaboratable):
                 )
 
         refill_set_idx = Signal(set_index_bits)
-        refill_response = Signal(self.layout.tlb_accept)
+        refill_response = Signal(self.layout.tlb_response)
 
         with m.FSM():
             with m.State("IDLE"):
                 with Transaction().body(m):
                     req = request_pipe.peek(m)
-                    resp = self.backing_resolver.accept(m)
+                    resp = self.backing_resolver.response(m)
 
                     set_idx = vpn_to_set_idx(req.vpn, resp.size_class)
                     m.d.sync += refill_set_idx.eq(set_idx)

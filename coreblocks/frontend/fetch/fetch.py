@@ -177,9 +177,9 @@ class FetchUnit(Elaboratable):
         )
 
         m.submodules.addr_translator_accept_pipe = addr_translator_accept_pipe = Pipe(
-            self.addr_translator.accept.layout_out
+            self.addr_translator.response.layout_out
         )
-        m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
+        m.submodules += ConnectTrans.create(self.addr_translator.response, addr_translator_accept_pipe.write)
 
         m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr, fields.fetch_gen))
 
@@ -200,7 +200,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += access_fault.eq(translated.access_fault | ~pmp_checker.result.x)
 
             with m.If(~translated.page_fault & ~access_fault):
-                self.icache.issue_req(m, paddr=translated.paddr)
+                self.icache.request(m, paddr=translated.paddr)
 
             fetch_requests.write(
                 m,
@@ -258,12 +258,12 @@ class FetchUnit(Elaboratable):
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
             # Conditionally read from icache or mark fault
-            cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
+            cache_resp = Signal(self.gen_params.get(ICacheLayouts).response)
             access_fault = Signal(FetchLayouts.FaultFlag)
 
             with condition(m, nonblocking=True) as branch:
                 with branch(~fetch_request.page_fault & ~fetch_request.access_fault):
-                    m.d.av_comb += cache_resp.eq(self.icache.accept_res(m))
+                    m.d.av_comb += cache_resp.eq(self.icache.response(m))
 
             with m.If(fetch_request.page_fault):
                 m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)

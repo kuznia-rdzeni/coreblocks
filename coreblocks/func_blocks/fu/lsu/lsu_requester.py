@@ -139,9 +139,9 @@ class LSURequester(Elaboratable):
 
             with condition(m, nonblocking=True) as branch:
                 with branch(aligned & store):
-                    self.bus.request_write(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
+                    self.bus.write.request(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
-                    self.bus.request_read(m, addr=paddr >> 2, sel=bytes_mask)
+                    self.bus.read.request(m, addr=paddr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
                 args_fifo.write(m, paddr=paddr, vaddr=vaddr, funct3=funct3, store=store)
@@ -165,10 +165,10 @@ class LSURequester(Elaboratable):
 
             with condition(m) as branch:
                 with branch(request_args.store):
-                    fetched = self.bus.get_write_response(m)
+                    fetched = self.bus.write.response(m)
                     m.d.comb += err.eq(fetched.err)
                 with branch():
-                    fetched = self.bus.get_read_response(m)
+                    fetched = self.bus.read.response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(
                         self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)

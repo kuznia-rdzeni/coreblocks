@@ -151,7 +151,7 @@ class TestFrontend(TestCaseWithSimulator):
 
     async def bus_process(self, sim: TestbenchContext):
         while True:
-            req = await self.frontend.instr_bus.request_read.call(sim)
+            req = await self.frontend.instr_bus.read.request.call(sim)
 
             addr = req.addr << exact_log2(self.gen_params.icache_params.word_width_bytes)
 
@@ -166,7 +166,7 @@ class TestFrontend(TestCaseWithSimulator):
             for i in range(0, self.gen_params.wb_params.data_width // 8, 4):
                 data |= gen_instr(addr + i) << (8 * i)
 
-            await self.frontend.instr_bus.get_read_response.call(sim, data=data, err=0)
+            await self.frontend.instr_bus.read.response.call(sim, data=data, err=0)
 
     @def_method_mock(lambda self: self.eir.rob_get_indices)
     def process_rob_idx_mock(self):

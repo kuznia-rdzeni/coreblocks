@@ -174,7 +174,7 @@ class PageTableWalker(PureTLBBackingDevice, Elaboratable):
                     with m.Else():
                         m.next = "ISSUE"
             with m.State("DONE"):
-                with m.If(self.accept.run):
+                with m.If(self.response.run):
                     m.next = "IDLE"
             with m.State("ISSUE"):
                 with Transaction().body(m):
@@ -184,11 +184,11 @@ class PageTableWalker(PureTLBBackingDevice, Elaboratable):
                         m.next = "DONE"
                     with m.Else():
                         log.debug(m, 1, "Issuing bus request for PTE at address {:x}", pte_addr)
-                        self.bus.request_read(m, addr=pte_addr[offset_bits:], sel=~0)
+                        self.bus.read.request(m, addr=pte_addr[offset_bits:], sel=~0)
                         m.next = "EVAL"
             with m.State("EVAL"):
                 with Transaction().body(m):
-                    fetched = self.bus.get_read_response(m)
+                    fetched = self.bus.read.response(m)
                     pte = Signal(pte_layout)
                     m.d.av_comb += pte.eq(fetched.data)
 
@@ -257,7 +257,7 @@ class PageTableWalker(PureTLBBackingDevice, Elaboratable):
             m.d.sync += ppn.eq(csr.s_mode.satp_ppn)
             m.d.sync += walked_asid.eq(csr.s_mode.satp_asid)
 
-        @def_method(m, self.accept, ready=fsm.ongoing("DONE"))
+        @def_method(m, self.response, ready=fsm.ongoing("DONE"))
         def _():
             result = Signal(AddressTranslationLayouts.TLBResult, init=AddressTranslationLayouts.TLBResult.HIT)
 
