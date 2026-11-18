@@ -236,8 +236,8 @@ class FPUMulModule(Elaboratable):
                     m.d.av_comb += invalid_operation.eq(is_any_snan | bad_inf)
                 with m.Elif(is_inf & ~(bad_inf)):
                     m.d.av_comb += exc_sign.eq(Mux(op_1.is_inf, op_1.sign, op_2.sign))
-                    m.d.av_comb += (exc_exp.eq(Mux(op_1.is_inf, op_1.exp, op_2.exp)),)
-                    m.d.av_comb += (exc_sig.eq(Mux(op_1.is_inf, op_1.sig, op_2.sig)),)
+                    m.d.av_comb += exc_exp.eq(Mux(op_1.is_inf, op_1.exp, op_2.exp))
+                    m.d.av_comb += exc_sig.eq(Mux(op_1.is_inf, op_1.sig, op_2.sig))
                 with m.Elif(is_zero):
                     m.d.av_comb += exc_sign.eq(final_sign)
                     m.d.av_comb += exc_exp.eq(0)
