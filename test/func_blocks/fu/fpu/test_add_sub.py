@@ -1,158 +1,64 @@
 from coreblocks.func_blocks.fu.fpu.fpu_add_sub import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes
-from test.func_blocks.fu.fpu.fpu_test_common import FPUTester, python_to_float
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
 from test.func_blocks.fu.fpu.add_sub_test_cases import *
 from transactron.testing import *
 from amaranth import *
 import random
-import struct
 
 
 class TestAddSub(TestCaseWithSimulator):
     def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+        params = IEEE754_F32
         tester = FPUTester(params)
         m = SimpleTestCircuit(FPUAddSubModule(fpu_params=params))
+        sfr = SoftFloatReference()
 
         async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
+            rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
-            test_runs = 20
+            test_runs = 5000
             random.seed(seed)
 
             for i in range(test_runs):
-                input_dict = {}
-                p_float_1 = python_to_float(random.uniform(0, 3.4028235 * (10**38)))
-                p_float_2 = python_to_float(random.uniform(0, 3.4028235 * (10**38)))
-                if i < test_runs / 2:
-                    input_dict["operation"] = 0
-                    result = python_to_float(p_float_1 + p_float_2)
+                float_1_raw = random.getrandbits(32)
+                float_2_raw = random.getrandbits(32)
+                test_addition = i < test_runs / 2
+
+                if test_addition:
+                    (expected_raw, expected_errors) = sfr.add(SF_F32, float_1_raw, float_2_raw, rm)
                 else:
-                    input_dict["operation"] = 1
-                    result = python_to_float(p_float_1 - p_float_2)
-                hex_1 = hex(struct.unpack("<I", struct.pack("<f", p_float_1))[0])
-                hex_2 = hex(struct.unpack("<I", struct.pack("<f", p_float_2))[0])
-                hex_result = hex(struct.unpack("<I", struct.pack("<f", result))[0])
+                    (expected_raw, expected_errors) = sfr.sub(SF_F32, float_1_raw, float_2_raw, rm)
 
-                input_dict["op_1"] = tester.converter.from_hex(hex_1)
-                input_dict["op_2"] = tester.converter.from_hex(hex_2)
-                input_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
+                input_dict = {
+                    "operation": 0 if test_addition else 1,
+                    "op_1": tester.converter.to_input_data(float_1_raw),
+                    "op_2": tester.converter.to_input_data(float_2_raw),
+                    "rounding_mode": rm,
+                }
 
-                result = tester.converter.from_hex(hex_result)
+                result = tester.converter.to_output_data(expected_raw, expected_errors)
                 resp = await request_adapter.call(sim, input_dict)
-
-                assert result["sign"] == resp["sign"]
-                assert result["exp"] == resp["exp"]
-                assert result["sig"] == resp["sig"]
+                FPUTester.compare_results(result, resp)
 
         async def test_process(sim: TestbenchContext):
+            def construct_input(test_case_data, rounding_mode: RoundingModes):
+                return {
+                    "operation": 0,
+                    "op_1": tester.converter.to_input_data(test_case_data[0]),
+                    "op_2": tester.converter.to_input_data(test_case_data[1]),
+                    "rounding_mode": rounding_mode,
+                }
+
+            def get_expected(test_case_data, rounding_mode: RoundingModes):
+                (expected_raw, expected_errors) = sfr.add(SF_F32, test_case_data[0], test_case_data[1], rounding_mode)
+                return tester.converter.to_output_data(expected_raw, expected_errors)
+
             await python_float_test(sim, m.add_sub_request)
             await tester.run_test_set(
-                nc_add_rtne,
-                nc_add_rtne_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_rtna,
-                nc_add_rtna_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_up,
-                nc_add_up_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_down,
-                nc_add_down_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_add_zero,
-                nc_add_zero_resp,
-                {"rounding_mode": RoundingModes.ROUND_ZERO, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_rtne,
-                nc_sub_rtne_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_rtna,
-                nc_sub_rtna_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_up,
-                nc_sub_up_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_down,
-                nc_sub_down_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                nc_sub_zero,
-                nc_sub_zero_resp,
-                {"rounding_mode": RoundingModes.ROUND_ZERO, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                edge_cases_add,
-                edge_cases_add_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 0},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                edge_cases_sub,
-                edge_cases_sub_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-
-            await tester.run_test_set(
-                edge_cases_sub_down,
-                edge_cases_sub_down_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 1},
-                sim,
-                m.add_sub_request,
-            )
-            await tester.run_test_set(
-                edge_cases_sub_up,
-                edge_cases_sub_up_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 1},
+                add_sub_edge_cases,
+                construct_input,
+                get_expected,
                 sim,
                 m.add_sub_request,
             )
