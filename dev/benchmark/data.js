@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795015746312,
+  "lastUpdate": 1795015749022,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -97134,6 +97134,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "30830383+bartlomiej-stefanski@users.noreply.github.com",
+            "name": "Bartłomiej Stefański",
+            "username": "bartlomiej-stefanski"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "62a98246b582ad66aa4769687fbf4a911160b1c0",
+          "message": "Fix FPU inf multiplication (#1168)",
+          "timestamp": "2026-11-18T15:08:33+01:00",
+          "tree_id": "4d7a06bed4c2ef4d20b640af2bb2c2bec1b94dcb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/62a98246b582ad66aa4769687fbf4a911160b1c0"
+        },
+        "date": 1795015748543,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 71.77,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8795,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3664,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 154,
             "unit": "Slice"
           },
           {
