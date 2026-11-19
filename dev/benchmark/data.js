@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795087351304,
+  "lastUpdate": 1795087353688,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -90177,6 +90177,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 52286,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 17967,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1097,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "431fe9b2cd979b1d2d871ef79f317f40a528d0f7",
+          "message": "Float to Int conversion fix (#1155)",
+          "timestamp": "2026-11-19T11:50:54+01:00",
+          "tree_id": "46c1a67608071e0c137078a92ae4883cf209c631",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/431fe9b2cd979b1d2d871ef79f317f40a528d0f7"
+        },
+        "date": 1795087352961,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.35,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 52652,
             "unit": "LUT"
           },
           {
