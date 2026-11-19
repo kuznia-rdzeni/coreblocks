@@ -1,5 +1,4 @@
 from amaranth import *
-from math import log2
 from transactron import TModule, Method, def_method
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     FPUParams,
@@ -76,54 +75,52 @@ class FloatToIntModule(Elaboratable):
 
         @def_method(m, self.fti_request)
         def _(op, signed, rounding_mode):
-
             # Flag indicating if magnitude is greater or equal one
+            bias = 2 ** (self.conv_params.exp_width - 1) - 1
             mag_ge_one = Signal()
-            at_least_two = op.exp[0 : (self.conv_params.exp_width - 1)].all()
-            equal_to_one = op.exp[(self.conv_params.exp_width - 1)]
-            m.d.av_comb += mag_ge_one.eq(at_least_two | equal_to_one)
+            m.d.av_comb += mag_ge_one.eq(op.exp >= bias)
 
-            # Flag indicating if power of base equal to 1/2
-            minus_one_exp = Signal()
-            bias = Const(2 ** (self.conv_params.exp_width - 1) - 1)
-            biased_exp_for_minus_one = Const(bias.value - 1)
-            m.d.av_comb += minus_one_exp.eq(op.exp == biased_exp_for_minus_one)
-
-            # Shift for case when mag_ge_one, we assume that number is not big enough
+            # We assume that number is not big enough
             # to lead to overflow. Maximal value is int_width - 1
-            mgeo_shift = Signal(int(log2(self.int_width)) + 1)
-            max_shift = Const(self.int_width - 1)
-            min_unbiased_exp = 1 - bias.value
-            max_unbiased_exp = bias.value
+            alignment_shift = 2
+            max_shift = self.int_width - 1
+            shift = Signal(range(0, max_shift + alignment_shift + 1))
+            min_unbiased_exp = 1 - bias
+            max_unbiased_exp = bias
             unbiased_exp = Signal(range(min_unbiased_exp, max_unbiased_exp + 1))
+            # We can ignore subnormal in this case
             m.d.av_comb += unbiased_exp.eq(op.exp - bias)
-            # +3 is needed to align msb of op.sig with lsb of integer part
-            with m.If(unbiased_exp <= max_shift):
-                m.d.av_comb += mgeo_shift.eq(unbiased_exp + 2)
+            # +2 is needed to align the only integer bit of op.sig with lsb of integer part
+            # of out fixed point number
+            with m.If(unbiased_exp < -1):
+                m.d.av_comb += shift.eq(0)
+            with m.Elif(unbiased_exp <= max_shift):
+                m.d.av_comb += shift.eq(unbiased_exp + alignment_shift)
             with m.Else():
-                m.d.av_comb += mgeo_shift.eq(max_shift + 2)
+                m.d.av_comb += shift.eq(max_shift + alignment_shift)
 
             # This fixed point number has int_width bits for integer part and
             # sig_width + 1 bits for fractional part
-            fixed_point_number = Signal(self.conv_params.sig_width + self.int_width + 1)
-            m.d.av_comb += fixed_point_number.eq(
-                Mux(mag_ge_one, op.sig << mgeo_shift, Mux(minus_one_exp, op.sig << 1, op.sig))
-            )
+            # the sig_width LSB serve as a sort of bin that keeps sticky bits
+            # This is why we have separate case for 2^(-1), it is the only case
+            # of exp power less than zero that produces round bit
+            fractional_part_length = self.conv_params.sig_width + 1
+            fixed_point_number = Signal(fractional_part_length + self.int_width)
+            m.d.av_comb += fixed_point_number.eq(op.sig << shift)
+
+            fractional_part = Signal(fractional_part_length)
+            integer_part = Signal(self.int_width)
+            m.d.av_comb += Cat(fractional_part, integer_part).eq(op.sig << shift)
 
             sticky_bit = Signal()
             round_bit = Signal()
             inexact = Signal()
-            m.d.av_comb += sticky_bit.eq(fixed_point_number[0 : (self.conv_params.sig_width - 1)].any())
-            m.d.av_comb += round_bit.eq(fixed_point_number[(self.conv_params.sig_width - 1)])
+            m.d.av_comb += sticky_bit.eq(fractional_part[:-1].any())
+            m.d.av_comb += round_bit.eq(fractional_part[-1])
             m.d.av_comb += inexact.eq(sticky_bit | round_bit)
 
             # Unrounded (and depending on the sign negated) integer Part of fixed_point_number
             unr_compl_int = Signal(self.int_width)
-            integer_part = Signal(self.int_width)
-            integer_part_beg = 1 + self.conv_params.sig_width
-            integer_part_end = integer_part_beg + self.int_width
-            integer_part_slice = fixed_point_number[integer_part_beg:integer_part_end]
-            m.d.av_comb += integer_part.eq(integer_part_slice)
             m.d.av_comb += unr_compl_int.eq(Mux(op.sign, ~integer_part, integer_part))
 
             round_up = Signal()
@@ -133,7 +130,7 @@ class FloatToIntModule(Elaboratable):
                 with m.Case(RoundingModes.ROUND_NEAREST_AWAY):
                     m.d.av_comb += round_up.eq(round_bit)
                 with m.Case(RoundingModes.ROUND_NEAREST_EVEN):
-                    tie = fixed_point_number[integer_part_beg] & round_bit
+                    tie = integer_part[0] & round_bit
                     above_halfway = round_bit & sticky_bit
                     m.d.av_comb += round_up.eq(tie | above_halfway)
                 with m.Case(RoundingModes.ROUND_UP):
@@ -154,10 +151,9 @@ class FloatToIntModule(Elaboratable):
             is_max_shift = Signal()
             m.d.av_comb += is_max_shift.eq(unbiased_exp == max_shift)
             # We check if carry propagated to msb bit, important for
+            # signed integers
             carry_to_msb = Signal()
-            m.d.av_comb += carry_to_msb.eq(
-                (fixed_point_number[integer_part_beg : integer_part_end - 1].all()) & round_up
-            )
+            m.d.av_comb += carry_to_msb.eq((integer_part[:-1].all()) & round_up)
             # Macros for some cases that result in out of bound integer
             # Assumptions: magnitude >= 1, output signed, number is positive
             # Out of bounds due to carry or magnitude of input was too big
@@ -165,9 +161,7 @@ class FloatToIntModule(Elaboratable):
             # Assumptions: magnitude >= 1, output signed, number is negative
             # Input magnitute was too big or it was maximal possible value and
             # we overflowed due to rounding
-            sig_neg_out_of_bound = (is_max_shift) & (
-                (fixed_point_number[integer_part_beg : integer_part_end - 1].any()) | round_up
-            )
+            sig_neg_out_of_bound = (is_max_shift) & ((integer_part[:-1].any()) | round_up)
             # Assumptions: magnitude >= 1, output unsigned, number is positive
             # Maximal magnitude and carry results in overflow
             un_pos_out_of_bound = is_max_shift & carry_to_msb
@@ -182,7 +176,11 @@ class FloatToIntModule(Elaboratable):
             cases_mgeo = Mux(signed, cases_mgeo_osig, (op.sign | un_pos_out_of_bound))
             out_of_bounds = Signal()
             m.d.av_comb += out_of_bounds.eq(
-                Mux(mag_ge_one, (unbiased_exp > max_shift) | cases_mgeo, mag_bellow_one_out_of_bound)
+                Mux(
+                    mag_ge_one,
+                    (unbiased_exp > max_shift) | cases_mgeo,
+                    mag_bellow_one_out_of_bound,
+                )
             )
 
             final_sign = Signal()
@@ -196,12 +194,18 @@ class FloatToIntModule(Elaboratable):
 
             final_integer = Signal(self.int_width)
             errors = Signal(Errors)
-            m.d.av_comb += errors.eq(Mux(invalid_exc, Errors.INVALID_OPERATION, Mux(inexact_exc, Errors.INEXACT, 0)))
+            m.d.av_comb += errors.eq(
+                Mux(
+                    invalid_exc,
+                    Errors.INVALID_OPERATION,
+                    Mux(inexact_exc, Errors.INEXACT, 0),
+                )
+            )
 
-            smallest_us_value = 0
-            biggest_us_value = 2 ** (self.int_width) - 1
-            smallest_s_value = 2 ** (self.int_width - 1)
-            biggest_s_value = 2 ** (self.int_width - 1) - 1
+            smallest_us_value = Const(0)
+            biggest_us_value = Const(2 ** (self.int_width) - 1)
+            smallest_s_value = Const(2 ** (self.int_width - 1))
+            biggest_s_value = Const(2 ** (self.int_width - 1) - 1)
 
             mux_pos = Mux(signed, biggest_s_value, biggest_us_value)
             mux_neg = Mux(signed, smallest_s_value, smallest_us_value)
