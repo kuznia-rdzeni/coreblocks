@@ -129,7 +129,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             self.perf_misaligned,
         ]
 
-        jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
+        jump_target = self.dm.get_dependency(PredictedJumpTargetKey())
         resolve_branch = self.dm.get_dependency(BranchResolveKey())
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.fn)
@@ -159,7 +159,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
 
         with Transaction().body(m):
             instr = instr_fifo.read(m)
-            prediction = jump_target_resp(m)
+            prediction = jump_target.response(m)
 
             jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
             is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
@@ -280,7 +280,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 with m.If(instr_block_cross):
                     m.d.av_comb += cfi_idx.eq(0)
 
-            jump_target_req(m, ftq_ptr=arg.ftq_ptr)
+            jump_target.request(m, ftq_ptr=arg.ftq_ptr)
 
             instr_fifo.write(
                 m,

@@ -1,13 +1,13 @@
 from amaranth import *
 from amaranth_types import ModuleLike
-from transactron import Method, def_method, TModule
+from transactron import Method, Required, def_method, TModule
 from transactron.lib.simultaneous import condition
 from transactron.utils import logging
 from transactron.lib import BasicFifo
 
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from coreblocks.interface.layouts import CommonLayoutFields, LSULayouts
 
 
@@ -24,20 +24,21 @@ class LSURequester(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface, depth: int = 4) -> None:
+    bus: Required[BusMasterInterface]
+    """Data bus master."""
+
+    def __init__(self, gen_params: GenParams, depth: int = 4) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : BusMasterInterface
-            An instance of the bus master for interfacing with the data bus.
         depth : int
             Number of requests which can be send to memory, before it provides first response. Describe
             the resiliency of `LSURequester` to latency of memory in case when memory is fully pipelined.
         """
         self.gen_params = gen_params
-        self.bus = bus
+        self.bus = PureBusMasterInterface(gen_params.wb_params)
         self.depth = depth
 
         lsu_layouts = gen_params.get(LSULayouts)
@@ -138,9 +139,9 @@ class LSURequester(Elaboratable):
 
             with condition(m, nonblocking=True) as branch:
                 with branch(aligned & store):
-                    self.bus.request_write(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
+                    self.bus.write.request(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
-                    self.bus.request_read(m, addr=paddr >> 2, sel=bytes_mask)
+                    self.bus.read.request(m, addr=paddr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
                 args_fifo.write(m, paddr=paddr, vaddr=vaddr, funct3=funct3, store=store)
@@ -164,10 +165,10 @@ class LSURequester(Elaboratable):
 
             with condition(m) as branch:
                 with branch(request_args.store):
-                    fetched = self.bus.get_write_response(m)
+                    fetched = self.bus.write.response(m)
                     m.d.comb += err.eq(fetched.err)
                 with branch():
-                    fetched = self.bus.get_read_response(m)
+                    fetched = self.bus.read.response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(
                         self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)

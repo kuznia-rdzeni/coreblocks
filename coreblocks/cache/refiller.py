@@ -1,9 +1,9 @@
 from amaranth import *
-from coreblocks.cache.icache import CacheRefillerInterface
-from coreblocks.params import ICacheParameters
+from coreblocks.cache.iface import PureCacheRefillerInterface
+from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ICacheLayouts
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from transactron.core import Transaction, Method, TModule, def_method
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
+from transactron.core import Required, Transaction, TModule, def_method
 from transactron.lib import Forwarder
 
 from amaranth.utils import exact_log2
@@ -12,14 +12,15 @@ from amaranth.utils import exact_log2
 __all__ = ["SimpleCommonBusCacheRefiller"]
 
 
-class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface):
-        self.layouts = layouts
-        self.params = params
-        self.bus_master = bus_master
+class SimpleCommonBusCacheRefiller(PureCacheRefillerInterface, Elaboratable):
+    bus_master: Required[BusMasterInterface]
+    """Instruction bus master."""
 
-        self.start_refill = Method(i=layouts.start_refill)
-        self.accept_refill = Method(o=layouts.accept_refill)
+    def __init__(self, gen_params: GenParams):
+        super().__init__(gen_params)
+        self.layouts = gen_params.get(ICacheLayouts)
+        self.params = gen_params.icache_params
+        self.bus_master = PureBusMasterInterface(gen_params.wb_params)
 
     def elaborate(self, platform):
         m = TModule()
@@ -35,7 +36,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
         req_word_counter = Signal(range(self.params.words_in_line))
 
         with Transaction().body(m, ready=sending_requests):
-            self.bus_master.request_read(
+            self.bus_master.read.request(
                 m,
                 addr=Cat(req_word_counter, cache_line_address),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
@@ -51,7 +52,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
         # The transaction reads responses from the bus, builds the fetch block and when
         # receives the last word of the fetch block, dispatches it.
         with Transaction().body(m):
-            bus_response = self.bus_master.get_read_response(m)
+            bus_response = self.bus_master.read.response(m)
 
             block = Signal(self.params.fetch_block_bytes * 8)
             m.d.av_comb += block.eq(Cat(block_buffer, bus_response.data))
