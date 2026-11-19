@@ -14,7 +14,6 @@ from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.priv.vmem.walker import PageTableWalker, PTELayout
-from test.peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
 @dataclass
@@ -47,14 +46,8 @@ class TestPageTableWalker(TestCaseWithSimulator):
         self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        offset_bits = exact_log2(self.gen_params.isa.xlen // 8)
-        self.bus = MockMasterAdapter(
-            BusMockParameters(
-                data_width=self.gen_params.isa.xlen, addr_width=self.gen_params.phys_addr_bits - offset_bits
-            )
-        )
-        self.dut = SimpleTestCircuit(PageTableWalker(self.gen_params, self.bus))
-        self.m = ModuleConnector(dut=self.dut, bus=self.bus, csrs=self.csr_instances)
+        self.dut = SimpleTestCircuit(PageTableWalker(self.gen_params))
+        self.m = ModuleConnector(dut=self.dut, csrs=self.csr_instances)
 
         self.mem_ready = False
         self.mem_results = []
@@ -233,7 +226,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
             permissions=self.layouts.permissions.const(permissions).as_bits(),  # type: ignore
         )
 
-    @def_method_mock(lambda self: self.bus.request_read_mock, enable=lambda self: not self.mem_ready)
+    @def_method_mock(lambda self: self.dut.bus.read.request, enable=lambda self: not self.mem_ready)
     def bus_read_req_proc(self, addr, sel):
         @MethodMock.effect
         def _():
@@ -262,7 +255,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
                 )
             self.mem_ready = True
 
-    @def_method_mock(lambda self: self.bus.get_read_response_mock, enable=lambda self: self.mem_ready)
+    @def_method_mock(lambda self: self.dut.bus.read.response, enable=lambda self: self.mem_ready)
     def bus_read_resp_proc(self):
         @MethodMock.effect
         def _():
@@ -309,7 +302,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
             # corrupt satp to check if PTW correctly samples it
             self.set_satp(sim, SatpMode.BARE, ~0, translation_info.satp_asid ^ 1)
 
-            ret = await self.dut.accept.call(sim)
+            ret = await self.dut.response.call(sim)
             assert not self.mem_expected
 
             assert ret.result == translation_info.result
@@ -333,7 +326,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
                 is_write = random.random() < 0.5
                 await sim.tick()
                 await self.dut.request.call(sim, vpn=vpn, is_store=is_write)
-                ret = await self.dut.accept.call(sim)
+                ret = await self.dut.response.call(sim)
                 assert ret.result == AddressTranslationLayouts.TLBResult.PAGE_FAULT
 
         with self.run_simulation(self.m) as sim:

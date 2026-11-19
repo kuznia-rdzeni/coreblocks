@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Callable, Concatenate
 from transactron.utils import MethodStruct
 from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
 from transactron.lib.transformers import MethodProduct
+from transactron.lib import RequestResponseInterface
 from transactron import Method, TModule
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
@@ -56,7 +57,7 @@ class BranchResolveKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class PredictedJumpTargetKey(SimpleKey[tuple[Method, Method]]):
+class PredictedJumpTargetKey(SimpleKey[RequestResponseInterface]):
     pass
 
 

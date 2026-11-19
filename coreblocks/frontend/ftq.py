@@ -7,6 +7,7 @@ from transactron.utils import make_layout, DependencyContext
 from transactron.utils import logging
 from transactron.lib.metrics import *
 from transactron.lib.storage import MemoryBank
+from transactron.lib import PureRequestResponseInterface, RequestResponseInterface
 
 from coreblocks.params import GenParams
 from coreblocks.arch import *
@@ -121,10 +122,8 @@ class FetchTargetQueue(Elaboratable):
     ras_predict: Provided[Method]
     """Apply a fetch block's speculative effect on the return address stack and checkpoint it."""
 
-    jump_target_req: Provided[Method]
-    """Request the predicted jump target for a given FTQ entry (stub)."""
-    jump_target_resp: Provided[Method]
-    """Return the predicted jump target for a given FTQ entry (stub)."""
+    jump_target: Provided[RequestResponseInterface]
+    """Request and return the predicted jump target for a given FTQ entry (stub)."""
     commit: Provided[Method]
     """Retire an FTQ entry, advancing the commit pointer and freeing the slot."""
     resolve: Provided[Method]
@@ -159,9 +158,10 @@ class FetchTargetQueue(Elaboratable):
         self.ras_predict = Method(i=ifu_layouts.ras_predict)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
-        self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
-        self.jump_target_resp = Method(o=jb_layouts.predicted_jump_target_resp)
-        self.dep_manager.add_dependency(PredictedJumpTargetKey(), (self.jump_target_req, self.jump_target_resp))
+        self.jump_target = PureRequestResponseInterface(
+            jb_layouts.predicted_jump_target_req, jb_layouts.predicted_jump_target_resp
+        )
+        self.dep_manager.add_dependency(PredictedJumpTargetKey(), self.jump_target)
 
         ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
         self.commit = Method(i=ftq_layouts.commit)
@@ -192,7 +192,7 @@ class FetchTargetQueue(Elaboratable):
             gen_params=self.gen_params, layout=make_layout(fields.pc), rollback_ports=2
         )
         m.submodules.jb_unit_prediction_mem = jb_unit_prediction_mem = MemoryBank(
-            shape=self.jump_target_resp.data_out.shape(), depth=self.gen_params.ftq_size
+            shape=self.jump_target.response.data_out.shape(), depth=self.gen_params.ftq_size
         )
         m.submodules.prediction_mem = prediction_mem = FTQReadQueue(
             gen_params=self.gen_params, layout=fetch_layouts.bpu_prediction, rollback_ports=1
@@ -287,7 +287,9 @@ class FetchTargetQueue(Elaboratable):
 
         @def_method(m, self.ras_predict)
         def _(ftq_ptr, ras_action, addr):
-            log.assertion(m, ~ras_checkpoint.read_resp[0].ready, "RAS prediction before checkpoint recovery completed")
+            log.assertion(
+                m, ~ras_checkpoint.read[0].response.ready, "RAS prediction before checkpoint recovery completed"
+            )
             new_state = ras.update(m, push=RasAction.has_push(ras_action), pop=RasAction.has_pop(ras_action), addr=addr)
             ras_checkpoint.write(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr, data=new_state)
 
@@ -405,21 +407,21 @@ class FetchTargetQueue(Elaboratable):
             pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
             prediction_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
 
-            ras_checkpoint.read_req(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
+            ras_checkpoint.read[0].request(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
 
             log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
 
         with Transaction(name="FTQ_RAS_Recover").body(m):
-            redirect_checkpoint = ras_checkpoint.read_resp(m).data
+            redirect_checkpoint = ras_checkpoint.read[0].response(m).data
             ras.recover(m, sp=redirect_checkpoint.sp, count=redirect_checkpoint.count, top=redirect_checkpoint.top)
 
-        @def_method(m, self.jump_target_req)
+        @def_method(m, self.jump_target.request)
         def _(ftq_ptr):
-            jb_unit_prediction_mem.read_req(m, addr=ftq_ptr.ptr)
+            jb_unit_prediction_mem.read[0].request(m, addr=ftq_ptr.ptr)
 
-        @def_method(m, self.jump_target_resp)
+        @def_method(m, self.jump_target.response)
         def _():
-            return jb_unit_prediction_mem.read_resp(m).data
+            return jb_unit_prediction_mem.read[0].response(m).data
 
         @def_method(m, self.resolve)
         def _(ftq_ptr, misprediction, taken, cfi_idx, cfi_type, cfi_target):
