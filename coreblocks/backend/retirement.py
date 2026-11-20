@@ -81,16 +81,6 @@ class Retirement(Elaboratable):
         self.checkpoint_tag_free = Method()
 
         self.pure_active_count = Signal(range(gen_params.retirement_superscalarity + 1))
-        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_active_count)
-        self.instret_shadow = DoubleShadowCSR(
-            gen_params,
-            self.instret_csr,
-            CSRAddress.MINSTRET,
-            CSRAddress.MINSTRETH,
-            CSRAddress.INSTRET,
-            CSRAddress.INSTRETH,
-            shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.IR),
-        )
         self.perf_instr_ret = HwCounter(
             "backend.retirement.retired_instr",
             "Number of retired instructions",
@@ -119,6 +109,20 @@ class Retirement(Elaboratable):
         csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
         m_csr = csr_instances.m_mode
         s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
+
+        instret_inhibit = csr_instances.m_mode.mcountinhibit.value[2]
+        instret_incr = Mux(instret_inhibit, 0, self.pure_active_count)
+        self.instret_csr = CSRRegister(None, self.gen_params, width=64, fu_read_map=lambda _, v: v + instret_incr)
+        self.instret_shadow = DoubleShadowCSR(
+            self.gen_params,
+            self.instret_csr,
+            CSRAddress.MINSTRET,
+            CSRAddress.MINSTRETH,
+            CSRAddress.INSTRET,
+            CSRAddress.INSTRETH,
+            shadow_access_filter=counteren_access_filter(self.gen_params, CounterEnableFieldOffsets.IR),
+        )
+
         m.submodules.instret_csr = self.instret_csr
         m.submodules.instret_shadow = self.instret_shadow
 

@@ -31,6 +31,7 @@ class DoubleCounterCSR(Elaboratable):
         shadow_high_addr: Optional[CSRAddress] = None,
         shadow_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
         read_only_zero: bool = False,
+        inhibit: Optional[ValueLike] = None,
     ):
         """
         Parameters
@@ -60,6 +61,13 @@ class DoubleCounterCSR(Elaboratable):
         )
 
         self.read_only_zero = read_only_zero
+        if inhibit is not None:
+            inhibit_val = Value.cast(inhibit)
+            if inhibit_val.shape().width != 1:
+                raise ValueError("Inhibit signal on counter must be a single-bit value")
+            self.inhibit = inhibit_val
+        else:
+            self.inhibit = Const(0, 1)
 
     def elaborate(self, platform):
         m = TModule()
@@ -72,7 +80,8 @@ class DoubleCounterCSR(Elaboratable):
             if self.read_only_zero:
                 return
 
-            register_read = self.register.read(m).data
-            self.register.write(m, data=register_read + 1)
+            with m.If(~self.inhibit):
+                register_read = self.register.read(m).data
+                self.register.write(m, data=register_read + 1)
 
         return m
