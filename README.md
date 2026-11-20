@@ -27,7 +27,7 @@ The core currently supports the full unprivileged RV32I instruction set and a nu
 
  * M - integer multiplication and division, with Zmmul only as an option,
  * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
- * C - compressed instructions (Zca). Additionally we support Zcb.
+ * C - compressed instructions (Zca). Additionally we support Zcb,
  * B - bit manipulation, comprising of Zba, Zbb and Zbs, extensions Zbc, Zbkx and Zbkc are implemented too.
 
 Full privileged architecture support is implemented, including virtual memory, some additional extensions, like Sstc.
@@ -37,6 +37,11 @@ Full list of supported extensions can be found in [full configuration's UDB](htt
 Coreblocks is also highly configurable, providing [multiple configuration points](https://github.com/kuznia-rdzeni/coreblocks/blob/master/coreblocks/params/core_configuration.py) and several [predefined configurations](https://github.com/kuznia-rdzeni/coreblocks/blob/master/coreblocks/params/configurations.py).
 
 Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
+
+As for microarchitectural features, Coreblocks implements:
+ * Fully superscalar flow (front-end and back-end) with out-of-order execution,
+ * Checkpointing for fast recovery from branch mispredictions,
+ * Simple branch predictors.
 
 ## Community
 
