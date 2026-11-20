@@ -12,13 +12,14 @@ Coreblocks is an experimental, modular out-of-order [RISC-V](https://riscv.org/s
    For this goal, we designed a transaction system called [Transactron](https://github.com/kuznia-rdzeni/transactron), which is inspired by [Bluespec](http://github.com/b-lang-org/bsc).
  * Fine-grained testing. Outside of the integration tests for the full core, modules are tested individually.
    This is to support an agile style of development.
+ * Wide RISC-V support.
+   The core can currently [a mainline Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
 
-In the future, we would like to achieve the following goals:
+Our current goals are:
 
  * Performance (up to a point, on FPGAs). We would like Coreblocks not to be too sluggish, without compromising the simplicity goal.
    We don't wish to compete with high performance cores like [BOOM](https://github.com/riscv-boom/riscv-boom) though.
- * Wide RISC-V support.
-   The core can currently run [Zephyr](https://github.com/kuznia-rdzeni/zephyr-on-litex-coreblocks) and [a mainline Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
+ * Implementation of widely-expected RISC-V extensions including floating point, 64-bit support. For that purpose RISC-V International defined [profiles](https://docs.riscv.org/reference/rva20-rvi20-rva22/v1.0/index.html).
 
 ## State of the project
 
@@ -28,9 +29,10 @@ The core currently supports the full unprivileged RV32I instruction set and a nu
  * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
  * C - compressed instructions (Zca). Additionally we support Zcb.
  * B - bit manipulation, comprising of Zba, Zbb and Zbs, extensions Zbc, Zbkx and Zbkc are implemented too.
- * misc - Zicsr, Zifencei, Zicntr.
 
-Full privileged architecture support (including virtual memory) is fully implemented, including some additional extensions, like Sstc.
+Full privileged architecture support is implemented, including virtual memory, some additional extensions, like Sstc.
+
+Full list of supported extensions can be found in [full configuration's UDB](https://github.com/kuznia-rdzeni/coreblocks/blob/master/test/external/riscv-arch-test/coreblocks/coreblocks-full/coreblocks.yaml).
 
 Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
 
