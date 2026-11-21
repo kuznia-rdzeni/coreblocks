@@ -5,7 +5,7 @@ from transactron import *
 from transactron.utils.transactron_helpers import make_layout
 
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import CommonLayoutFields
+from coreblocks.interface.layouts import BranchPredictionLayouts, CommonLayoutFields
 
 __all__ = [
     "BPUComponentLayouts",
@@ -41,16 +41,7 @@ class BPUComponentLayouts:
         )
         self.direction_prediction = make_layout(("taken", gen_params.fetch_width), self._meta)
 
-        self.update = make_layout(
-            fields.pc,
-            ("branch_mask", gen_params.fetch_width),
-            fields.cfi_target,
-            fields.cfi_idx,
-            fields.cfi_type,
-            ("taken", 1),
-            ("mispredict", 1),
-            self._meta,
-        )
+        self.update = gen_params.get(BranchPredictionLayouts).update_with_meta(meta_width)
 
     def cfi_hints(self, candidate_count: int):
         return make_layout(("candidates", ArrayLayout(self.cfi_hint, candidate_count)))

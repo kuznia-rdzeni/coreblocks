@@ -8,6 +8,7 @@ from transactron.utils.transactron_helpers import make_layout
 
 from coreblocks.arch import CfiType
 from coreblocks.frontend import FrontendParams
+from coreblocks.frontend.bpu.component import CfiPredictor, DirectionPredictor, FastPredictor
 from coreblocks.interface.layouts import (
     BranchPredictionLayouts,
     CommonLayoutFields,
@@ -52,13 +53,14 @@ class BranchPredictionUnit(Elaboratable):
             "frontend.bpu.s2_corrections", "S2 predictions that corrected the tentative S1 fetch target"
         )
 
-    def _s2_select(self, m: TModule, stage, candidates, candidate_count: int, taken: Value):
+    def _s2_select(self, m: TModule, stage, candidates, taken: Value):
         """Choose S2's prediction: the earliest taken CFI among the CFI predictor's candidates.
 
         Returns the prediction, the next fetch PC, and whether that PC differs from S1's.
         """
         fetch_layouts = self.gen_params.get(FetchLayouts)
         xlen = self.gen_params.isa.xlen
+        candidate_count = len(candidates)
         ways = range(candidate_count)
 
         eligible = Signal(candidate_count)
@@ -104,8 +106,8 @@ class BranchPredictionUnit(Elaboratable):
         )
         selected_type = OneHotMux.create(
             m,
-            [(win[way], Value.cast(candidates[way].cfi_type)) for way in ways],
-            C(CfiType.INVALID.value, CfiType.as_shape()),
+            [(win[way], candidates[way].cfi_type) for way in ways],
+            CfiType.INVALID,
         )
         selected_target = OneHotMux.create(m, [(win[way], candidates[way].target) for way in ways], C(0, xlen))
 
@@ -115,7 +117,7 @@ class BranchPredictionUnit(Elaboratable):
         m.d.av_comb += [
             prediction.branch_mask.eq(branch_mask),
             prediction.cfi_idx.eq(selected_idx),
-            Value.cast(prediction.cfi_type).eq(selected_type),
+            prediction.cfi_type.eq(selected_type),
             prediction.cfi_target.eq(selected_target),
             prediction.cfi_target_valid.eq(selected),
             next_pc.eq(Mux(selected, selected_target, stage.fallthrough)),
@@ -135,106 +137,92 @@ class BranchPredictionUnit(Elaboratable):
         ]
 
         config = self.gen_params.bpu_config
-
-        m.submodules.fast_predictor = fast = config.fast_predictor.get_module(self.gen_params)
-
-        backing_enabled = config.cfi_predictor is not None
-        cfi = config.cfi_predictor.get_module(self.gen_params) if config.cfi_predictor else None
-        direction = config.direction_predictor.get_module(self.gen_params) if config.direction_predictor else None
-
-        if backing_enabled:
-            assert cfi is not None and direction is not None
-            m.submodules.cfi_predictor = cfi
-            m.submodules.direction_predictor = direction
-
         fparams = self.gen_params.get(FrontendParams)
         fields = self.gen_params.get(CommonLayoutFields)
         fetch_layouts = self.gen_params.get(FetchLayouts)
+        xlen = self.gen_params.isa.xlen
 
-        m.submodules.s1_pipe = s1_pipe = Pipe(
-            make_layout(
-                fields.pc,
-                fields.ftq_ptr,
-                ("fallthrough", self.gen_params.isa.xlen),
-                ("entry_idx", self.gen_params.fetch_width_log),
+        s1_layout = [
+            fields.pc,
+            fields.ftq_ptr,
+            ("fallthrough", xlen),
+            ("entry_idx", self.gen_params.fetch_width_log),
+        ]
+
+        m.submodules.fast_predictor = fast = config.fast_predictor.get_module(self.gen_params)
+        m.submodules.s1_pipe = s1_pipe = Pipe(make_layout(*s1_layout))
+        components: list[FastPredictor | CfiPredictor | DirectionPredictor] = [fast]
+        pipes = [s1_pipe]
+
+        backing = None
+        if config.cfi_predictor is not None:
+            assert config.direction_predictor is not None
+            m.submodules.cfi_predictor = cfi = config.cfi_predictor.get_module(self.gen_params)
+            m.submodules.direction_predictor = direction = config.direction_predictor.get_module(self.gen_params)
+            m.submodules.s2_pipe = s2_pipe = Pipe(
+                make_layout(*s1_layout, ("s1_next_pc", xlen), ("fast_meta", fast.meta_width))
             )
-        )
-        s2_pipe = None
-        if backing_enabled:
-            s2_layout = [
-                fields.pc,
-                fields.ftq_ptr,
-                ("fallthrough", self.gen_params.isa.xlen),
-                ("entry_idx", self.gen_params.fetch_width_log),
-                ("s1_next_pc", self.gen_params.isa.xlen),
-                ("fast_meta", fast.meta_width),
-            ]
-            m.submodules.s2_pipe = s2_pipe = Pipe(make_layout(*s2_layout))
+            components += [cfi, direction]
+            pipes.append(s2_pipe)
+            backing = cfi, direction, s2_pipe
 
-        s2_flush = Signal()
+        # Drop every request in flight
+        discard = Method(name="discard")
 
-        def flush_components(m: TModule):
-            fast.flush(m)
-            if backing_enabled:
-                assert cfi is not None and direction is not None
-                cfi.flush(m)
-                direction.flush(m)
+        @def_method(m, discard, nonexclusive=True)
+        def _():
+            for component in components:
+                component.flush(m)
+            for pipe in pipes:
+                pipe.clear(m)
+
+        live = Signal()
+        m.d.comb += live.eq(~self.flush.run)
 
         @def_method(m, self.request)
         def _(pc, ftq_ptr):
-            fast.request_s0(m, pc=pc)
+            for component in components:
+                component.request_s0(m, pc=pc)
             self.perf_requests.incr(m)
-
-            if backing_enabled:
-                assert cfi is not None and direction is not None
-                assert s2_pipe is not None
-                cfi.request_s0(m, pc=pc)
-                direction.request_s0(m, pc=pc)
-
-            with m.If(~self.flush.run):
-                s1_pipe.write(
-                    m,
-                    pc=pc,
-                    ftq_ptr=ftq_ptr,
-                    fallthrough=fparams.pc_from_fb(fparams.fb_addr(pc) + 1, 0),
-                    entry_idx=fparams.fb_instr_idx(pc),
-                )
+            s1_pipe.write(
+                m,
+                pc=pc,
+                ftq_ptr=ftq_ptr,
+                fallthrough=fparams.pc_from_fb(fparams.fb_addr(pc) + 1, 0),
+                entry_idx=fparams.fb_instr_idx(pc),
+            )
 
         with Transaction(name="BPU_S1").always_body(m, log, ready=s1_pipe.read.ready):
             stage = s1_pipe.read(m)
-            live = Signal()
-            m.d.av_comb += live.eq(~self.flush.run)
 
             recognized = Signal()
             usable = Signal()
-            next_pc = Signal(self.gen_params.isa.xlen)
+            next_pc = Signal(xlen)
 
             fast_prediction = fast.response_s1(m)
-            fast_meta = fast_prediction.meta
             m.d.av_comb += [
                 recognized.eq(fast_prediction.valid & (fast_prediction.cfi_idx >= stage.entry_idx)),
                 usable.eq(recognized & fast_prediction.target_valid),
+                next_pc.eq(Mux(usable, fast_prediction.target, stage.fallthrough)),
             ]
-
-            m.d.av_comb += next_pc.eq(Mux(usable, fast_prediction.target, stage.fallthrough))
             self.perf_s1_redirects.incr(m, enable_call=live & usable)
             self.write_fetch_target(m, pc=next_pc, ftq_ptr=stage.ftq_ptr)
-            if backing_enabled:
-                assert cfi is not None and direction is not None
-                assert s2_pipe is not None
+
+            if backing is not None:
+                cfi, direction, s2_pipe = backing
                 hints = cfi.response_s1(m)
                 direction.accept_s1_hints(m, pc=stage.pc, hints=hints)
-                with m.If(live & ~s2_flush):
-                    s2_pipe.write(
-                        m,
-                        pc=stage.pc,
-                        ftq_ptr=stage.ftq_ptr,
-                        fallthrough=stage.fallthrough,
-                        entry_idx=stage.entry_idx,
-                        s1_next_pc=next_pc,
-                        fast_meta=fast_meta,
-                    )
+                s2_pipe.write(
+                    m,
+                    pc=stage.pc,
+                    ftq_ptr=stage.ftq_ptr,
+                    fallthrough=stage.fallthrough,
+                    entry_idx=stage.entry_idx,
+                    s1_next_pc=next_pc,
+                    fast_meta=fast_prediction.meta,
+                )
             else:
+                # S1 is the last stage
                 prediction = Signal(fetch_layouts.bpu_prediction)
                 m.d.av_comb += [
                     prediction.branch_mask.eq(
@@ -251,39 +239,33 @@ class BranchPredictionUnit(Elaboratable):
                         ftq_ptr=stage.ftq_ptr,
                         pc=stage.pc,
                         prediction=prediction,
-                        meta=fast_meta,
+                        meta=fast_prediction.meta,
                     )
 
-        if backing_enabled:
-            assert cfi is not None and direction is not None
-            assert s2_pipe is not None
+        if backing is not None:
+            cfi, direction, s2_pipe = backing
             with Transaction(name="BPU_S2").always_body(m, log, ready=s2_pipe.read.ready):
                 stage = s2_pipe.read(m)
-                live = Signal()
-                m.d.av_comb += live.eq(~self.flush.run)
                 cfi_prediction = cfi.response_s2(m)
                 direction_prediction = direction.response_s2(m)
 
                 prediction, next_pc, correction = self._s2_select(
-                    m, stage, cfi_prediction.candidates, cfi.candidate_count, direction_prediction.taken
+                    m, stage, cfi_prediction.candidates, direction_prediction.taken
                 )
-                selected = prediction.cfi_target_valid
-                self.perf_s2_redirects.incr(m, enable_call=live & selected)
+                self.perf_s2_redirects.incr(m, enable_call=live & prediction.cfi_target_valid)
                 self.perf_s2_corrections.incr(m, enable_call=live & correction)
-                meta = Cat(stage.fast_meta, cfi_prediction.meta, direction_prediction.meta)
                 with m.If(live):
                     self.write_prediction_details(
                         m,
                         ftq_ptr=stage.ftq_ptr,
                         pc=stage.pc,
                         prediction=prediction,
-                        meta=meta,
+                        meta=Cat(stage.fast_meta, cfi_prediction.meta, direction_prediction.meta),
                     )
 
                 with m.If(correction):
                     self.correct_fetch_target(m, pc=next_pc, ftq_ptr=stage.ftq_ptr)
-                    flush_components(m)
-                    m.d.comb += s2_flush.eq(1)
+                    discard(m)
 
         @def_method(m, self.update)
         def _(
@@ -297,9 +279,8 @@ class BranchPredictionUnit(Elaboratable):
             meta,
         ):
             offset = 0
-            predictors = tuple(predictor for predictor in (fast, cfi, direction) if predictor is not None)
-            for predictor in predictors:
-                predictor.update(
+            for component in components:
+                component.update(
                     m,
                     pc=pc,
                     branch_mask=branch_mask,
@@ -308,12 +289,12 @@ class BranchPredictionUnit(Elaboratable):
                     cfi_type=cfi_type,
                     taken=taken,
                     mispredict=mispredict,
-                    meta=meta[offset : offset + predictor.meta_width],
+                    meta=meta[offset : offset + component.meta_width],
                 )
-                offset += predictor.meta_width
+                offset += component.meta_width
 
         @def_method(m, self.flush, nonexclusive=True)
         def _():
-            flush_components(m)
+            discard(m)
 
         return m

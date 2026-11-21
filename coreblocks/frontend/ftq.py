@@ -234,6 +234,23 @@ class FetchTargetQueue(Elaboratable):
             Signal(make_layout(fields.fetch_gen).size, name=f"entry_gen_{i}") for i in range(self.gen_params.ftq_size)
         )
 
+        @def_method(m, self.bpu_correct_fetch_target)
+        def _(pc, ftq_ptr):
+            fetch_address_unit.bpu_redirect(m, pc=pc)
+
+            corrected_ptr = FTQPtr(ftq_ptr, gen_params=self.gen_params)
+            younger_ptr = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += younger_ptr.eq(corrected_ptr + 1)
+
+            m.d.sync += alloc_ptr.eq(younger_ptr)
+            # Discard only the entries after the corrected one. Rewind a read pointer that is
+            # already past them; one that hasn't reached them yet stays where it is.
+            with m.If(younger_ptr <= fetch_ptr):
+                pc_mem.rollback[0](m, ftq_ptr=younger_ptr)
+            with m.If(younger_ptr <= prediction_mem.read_ptr):
+                prediction_mem.rollback[0](m, ftq_ptr=younger_ptr)
+            evlog.emit(m, FTQRollback.hw(ftq_ptr=younger_ptr, cause="bpu_correction"))
+
         # FTQ_Alloc takes the next speculative PC, allocates an FTQ entry, and sends
         # a request back to BPU
         alloc_fetch_bypass = Signal(make_layout(fields.pc))
@@ -257,6 +274,8 @@ class FetchTargetQueue(Elaboratable):
 
             m.d.av_comb += alloc_fetch_bypass.eq(ret)
             m.d.sync += alloc_ptr.eq(alloc_ptr + 1)
+
+        self.bpu_correct_fetch_target.schedule_before(ftq_alloc_transaction)
 
         # FTQ_Send_Fetch_Requests follows fetch_ptr and sends requests to IFU. It has its data
         # bypassed from FTQ_Alloc.
@@ -282,23 +301,6 @@ class FetchTargetQueue(Elaboratable):
         @def_method(m, self.bpu_fetch_target)
         def _(pc, ftq_ptr):
             fetch_address_unit.write(m, pc=pc)
-
-        @def_method(m, self.bpu_correct_fetch_target)
-        def _(pc, ftq_ptr):
-            fetch_address_unit.bpu_redirect(m, pc=pc)
-
-            corrected_ptr = FTQPtr(ftq_ptr, gen_params=self.gen_params)
-            younger_ptr = FTQPtr(gen_params=self.gen_params)
-            m.d.av_comb += younger_ptr.eq(corrected_ptr + 1)
-
-            m.d.sync += alloc_ptr.eq(younger_ptr)
-            # Discard only the entries after the corrected one. Rewind a read pointer that is
-            # already past them; one that hasn't reached them yet stays where it is.
-            with m.If(younger_ptr <= fetch_ptr):
-                pc_mem.rollback[0](m, ftq_ptr=younger_ptr)
-            with m.If(younger_ptr <= prediction_mem.read_ptr):
-                prediction_mem.rollback[0](m, ftq_ptr=younger_ptr)
-            evlog.emit(m, FTQRollback.hw(ftq_ptr=younger_ptr, cause="bpu_correction"))
 
         @def_method(m, self.bpu_prediction_details)
         def _(ftq_ptr, pc, prediction, meta):
