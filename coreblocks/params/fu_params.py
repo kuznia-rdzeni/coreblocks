@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 __all__ = [
     "BlockComponentParams",
     "FunctionalComponentParams",
+    "FuncUnitGroup",
     "optypes_supported",
 ]
 
@@ -62,7 +63,35 @@ class FunctionalComponentParams(ABC):
         return self.decoder_manager.get_op_types()
 
 
-def optypes_supported(components: Iterable[BlockComponentParams | FunctionalComponentParams]) -> set["OpType"]:
+@dataclass(frozen=True, init=False)
+class FuncUnitGroup:
+    """A group of functional units in a reservation station block.
+
+    The units in a group share a single wakeup-select unit, which reduces the
+    number of transactions taking instructions from the reservation station.
+    Each unit keeps its own result path, as configured by its `result_fifo`.
+    The units in a group should preferably always be ready to accept an
+    instruction, otherwise a busy unit blocks issuing to the whole group.
+    The `OpType`\\s handled by the units must be disjoint.
+    """
+
+    func_units: tuple[FunctionalComponentParams, ...]
+
+    def __init__(self, *func_units: FunctionalComponentParams):
+        all_optypes: set[OpType] = set()
+        for func_unit in func_units:
+            if all_optypes & func_unit.get_optypes():
+                raise ValueError(f"OpTypes handled by multiple grouped units: {all_optypes & func_unit.get_optypes()}")
+            all_optypes |= func_unit.get_optypes()
+        object.__setattr__(self, "func_units", func_units)
+
+    def get_optypes(self) -> set[OpType]:
+        return optypes_supported(self.func_units)
+
+
+def optypes_supported(
+    components: Iterable[BlockComponentParams | FunctionalComponentParams | FuncUnitGroup],
+) -> set["OpType"]:
     return {optype for component in components for optype in component.get_optypes()}
 
 

@@ -3,6 +3,7 @@ from coreblocks.params.bpu_params import BranchPredictionConfig, MicroBTBConfig,
 from coreblocks.params.core_configuration import CoreConfiguration
 from coreblocks.arch.isa_consts import SatpMode
 
+from coreblocks.params.fu_params import FuncUnitGroup
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.func_blocks.fu.alu import ALUComponent
@@ -79,31 +80,34 @@ full = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
-                ShiftUnitComponent(zbb_enable=True),
-                ZbcComponent(),
-                ZbkxComponent(),
-                ZbsComponent(),
+                FuncUnitGroup(
+                    ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
+                    ShiftUnitComponent(zbb_enable=True),
+                    ZbkxComponent(),
+                    ZbsComponent(),
+                ),
             ],
             rs_entries=4,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
-                ShiftUnitComponent(zbb_enable=True),
-                ZbcComponent(),
-                ZbkxComponent(),
-                ZbsComponent(),
+                FuncUnitGroup(
+                    ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
+                    ShiftUnitComponent(zbb_enable=True),
+                    ZbkxComponent(),
+                    ZbsComponent(),
+                ),
+            ],
+            rs_entries=4,  # reduced RS size to reduce impact of bad predictions
+        ),
+        RSBlockComponent(
+            [
                 JumpComponent(),
                 ExceptionUnitComponent(),
                 PrivilegedUnitComponent(supervisor_enable=True),
-            ],
-            rs_entries=4,  # reduced RS size to reduce impact of bad predictions
-        ),
-        RSBlockComponent(
-            [
                 MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
+                ZbcComponent(),
             ],
             rs_entries=4,
         ),
