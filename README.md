@@ -34,7 +34,7 @@ Full privileged architecture support is implemented, including virtual memory, s
 
 Full list of supported extensions can be found in [full configuration's UDB](https://github.com/kuznia-rdzeni/coreblocks/blob/master/test/external/riscv-arch-test/coreblocks/coreblocks-full/coreblocks.yaml).
 
-Coreblocks is also highly configurable, providing [multiple configuration points](https://github.com/kuznia-rdzeni/coreblocks/blob/master/coreblocks/params/core_configuration.py) and several [predefined configurations](https://github.com/kuznia-rdzeni/coreblocks/blob/master/coreblocks/params/configurations.py).
+Coreblocks is highly configurable, providing [multiple configuration points](https://github.com/kuznia-rdzeni/coreblocks/blob/master/coreblocks/params/core_configuration.py) and several [predefined configurations](https://github.com/kuznia-rdzeni/coreblocks/blob/master/coreblocks/params/configurations.py).
 
 Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
 
