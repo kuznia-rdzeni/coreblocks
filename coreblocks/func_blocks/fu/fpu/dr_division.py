@@ -94,6 +94,7 @@ class DrDivModule(Elaboratable):
         self.method_layouts = DrDivMethodLayout(dr_div_params=div_params)
         self.div_init = Method(i=self.method_layouts.division_init_in_layout)
         self.div_result = Method(o=self.method_layouts.division_run_out_layout)
+        assert self.div_params.digit_w == DigitWidth.WIDTH_TWO
 
     def elaborate(self, platform):
         m = TModule()
