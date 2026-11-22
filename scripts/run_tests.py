@@ -34,6 +34,7 @@ def main():
     )
     parser.add_argument("--log-level", default="WARNING", action="store", help="Level of messages to display.")
     parser.add_argument("--log-filter", default=".*", action="store", help="Regexp used to filter out logs.")
+    parser.add_argument("--ci", action="store_true", help="Use CI profile")
     parser.add_argument("test_name", nargs="?")
 
     args = parser.parse_args()
@@ -70,6 +71,8 @@ def main():
         pytest_arguments += [f"--log-level={args.log_level}"]
     if args.log_filter:
         pytest_arguments += [f"--coreblocks-log-filter={args.log_filter}"]
+    if args.ci:
+        pytest_arguments += ["--hypothesis-profile=ci"]
 
     ret = pytest.main(pytest_arguments, [])
 
