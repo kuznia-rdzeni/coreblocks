@@ -257,7 +257,7 @@ class FetchTargetQueue(Elaboratable):
         # An entry can be reused once training has passed it. Allocation also waits out the
         # cycle of a BPU correction, which sets alloc_ptr itself.
         with Transaction(name="FTQ_Alloc").body(
-            m, ready=~FTQPtr.queue_full(alloc_ptr, train_mem.read_ptr) & ~self.bpu_correct_fetch_target.run
+            m, ready=~FTQPtr.queue_full(alloc_ptr, train_mem.read_ptr)
         ) as ftq_alloc_transaction:
             self.stall_guard(m)
 
@@ -275,7 +275,7 @@ class FetchTargetQueue(Elaboratable):
             m.d.av_comb += alloc_fetch_bypass.eq(ret)
             m.d.sync += alloc_ptr.eq(alloc_ptr + 1)
 
-        self.bpu_correct_fetch_target.schedule_before(ftq_alloc_transaction)
+        self.bpu_correct_fetch_target.add_conflict(ftq_alloc_transaction, priority=Priority.LEFT)
 
         # FTQ_Send_Fetch_Requests follows fetch_ptr and sends requests to IFU. It has its data
         # bypassed from FTQ_Alloc.
