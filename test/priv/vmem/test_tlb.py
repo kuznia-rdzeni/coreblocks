@@ -3,21 +3,20 @@ from typing import Optional
 
 from attr import dataclass
 
-from amaranth import *
-
 import pytest
-from transactron import *
-from transactron.lib import Adapter, AdapterTrans
+from transactron.lib import AdapterTrans
 from transactron.utils import DependencyContext, ModuleConnector
 from transactron.testing import (
     ProcessContext,
     TestCaseWithSimulator,
     TestbenchContext,
     TestbenchIO,
-    def_method_mock,
+    def_request_response_mock,
     SimpleTestCircuit,
     MethodMock,
     CallTrigger,
+    RequestResponseTestbenchIO,
+    call_request_response,
 )
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -25,7 +24,6 @@ from coreblocks.interface.keys import CSRInstancesKey, SFenceVMAKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
-from coreblocks.priv.vmem.iface import TLBBackingDevice
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 
 
@@ -38,25 +36,17 @@ class Permissions:
     d: int = 0
 
 
-class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
+class MockTLBBackingDevice:
     """Mock backing device for TLB testing."""
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, io: RequestResponseTestbenchIO):
         self.gen_params = gen_params
         self.csr_instances = DependencyContext.get().get_dependency(CSRInstancesKey())
-
-        self.layout = gen_params.get(AddressTranslationLayouts)
-
-        self.request_mock = TestbenchIO(Adapter(i=self.layout.tlb_request))
-        self.accept_mock = TestbenchIO(Adapter(o=self.layout.tlb_accept))
-
-        self.request = self.request_mock.adapter.iface
-        self.accept = self.accept_mock.adapter.iface
+        self.io = io
 
         # Storage for mock translations: (vpn, asid) -> (ppn, permissions, size_class, result)
         self.translations = dict()
 
-        self.ready = False
         self.translated = []
 
         self.asid = -1
@@ -130,44 +120,30 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
         async for *_, asid in sim.tick().sample(self.csr_instances.s_mode.satp_asid):  # type: ignore
             self.asid = asid
 
-    @def_method_mock(lambda self: self.request_mock, enable=lambda self: not self.ready)
-    def process_request(self, vpn, is_store):
+    @def_request_response_mock(lambda self: self.io, max_pending=1)
+    def process(self, vpn, is_store):
+        asid = self.asid if self.asid_override is None else self.asid_override
+        ppn, permissions, size_class, result, global_ = self.lookup(vpn, asid)[0]
+        translation = {
+            "ppn": ppn,
+            "asid": asid,
+            "permissions": {
+                "r": permissions.r,
+                "w": permissions.w,
+                "x": permissions.x,
+                "u": permissions.u,
+                "d": permissions.d,
+                "g": global_,
+            },
+            "size_class": size_class,
+            "result": result,
+        }
+
         @MethodMock.effect
         def _():
-            asid = self.asid if self.asid_override is None else self.asid_override
-            ppn, permissions, size_class, result, global_ = self.lookup(vpn, asid)[0]
+            self.translated.append(translation)
 
-            self.ready = True
-            self.translated.append(
-                {
-                    "ppn": ppn,
-                    "asid": asid,
-                    "permissions": {
-                        "r": permissions.r,
-                        "w": permissions.w,
-                        "x": permissions.x,
-                        "u": permissions.u,
-                        "d": permissions.d,
-                        "g": global_,
-                    },
-                    "size_class": size_class,
-                    "result": result,
-                }
-            )
-
-    @def_method_mock(lambda self: self.accept_mock, enable=lambda self: self.ready)
-    def process_accept(self):
-        @MethodMock.effect
-        def _():
-            self.ready = False
-
-        if self.translated:
-            return self.translated[-1]
-
-    def elaborate(self, platform):
-        m = TModule()
-        m.submodules += [self.request_mock, self.accept_mock]
-        return m
+        return translation
 
 
 @pytest.mark.parametrize(
@@ -194,26 +170,23 @@ class TestTLBCache(TestCaseWithSimulator):
         self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        self.backing = MockTLBBackingDevice(self.gen_params)
-
         match self.name:
             case "fully_associative":
-                dut = FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing, ports=1)
+                dut = FullyAssociativeTLB(self.gen_params, entries=16, ports=1)
             case "set_associative":
                 dut = SetAssociativeTLB(
                     self.gen_params,
                     ways=4,
                     entries=16,
-                    backing_resolver=self.backing,
                     ports=1,
                 )
             case _:
                 assert False, f"{self.name}: Invalid TLB type"
 
         self.dut = SimpleTestCircuit(dut)
+        self.backing = MockTLBBackingDevice(self.gen_params, self.dut.backing_resolver)
 
-        self.request = TestbenchIO(AdapterTrans.create(dut.request[0]))
-        self.accept = TestbenchIO(AdapterTrans.create(dut.accept[0]))
+        self.port = self.dut.port_devices[0]
 
         sfence_vma, _ = DependencyContext.get().get_dependency(SFenceVMAKey())
         self.sfence_vma = TestbenchIO(AdapterTrans.create(sfence_vma))
@@ -221,10 +194,7 @@ class TestTLBCache(TestCaseWithSimulator):
         self.m = ModuleConnector(
             dut=self.dut,
             sfence_vma=self.sfence_vma,
-            backing=self.backing,
             csrs=self.csr_instances,
-            request=self.request,
-            accept=self.accept,
         )
 
     def matches_lookup(self, response, vpn, asid):
@@ -260,13 +230,11 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid)
         await sim.tick()
 
-        await self.request.call(sim, vpn=vpn, is_store=0)
-        response = await self.accept.call(sim)
+        response = await call_request_response(sim, self.port, vpn=vpn, is_store=0)
         assert self.matches_lookup(response, vpn, asid)
         assert len(self.backing.translated) == 1
 
-        await self.request.call(sim, vpn=vpn, is_store=0)
-        cached_response = await self.accept.call(sim)
+        cached_response = await call_request_response(sim, self.port, vpn=vpn, is_store=0)
         assert self.matches_lookup(cached_response, vpn, asid)
         assert len(self.backing.translated) == 1
 
@@ -274,8 +242,7 @@ class TestTLBCache(TestCaseWithSimulator):
         ppn = 0x34567
         self.backing.add_translation(vpn, ppn, permissions=permissions, asid=asid)
         await self.sfence_vma.call(sim, vaddr=vpn << PAGE_SIZE_LOG, asid=asid, all_vaddrs=0, all_asids=0)
-        await self.request.call(sim, vpn=vpn, is_store=0)
-        response_after_sfence = await self.accept.call(sim)
+        response_after_sfence = await call_request_response(sim, self.port, vpn=vpn, is_store=0)
 
         assert self.matches_lookup(response_after_sfence, vpn, asid)
         assert len(self.backing.translated) == 2
@@ -302,17 +269,14 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
 
-        await self.request.call(sim, vpn=vpn0, is_store=0)
-        _ = await self.accept.call(sim)
-        await self.request.call(sim, vpn=vpn1, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn0, is_store=0)
+        await call_request_response(sim, self.port, vpn=vpn1, is_store=0)
         assert len(self.backing.translated) == base + 2
 
         # Cache vpn2 for asid_b
         sim.set(self.csr_instances.s_mode.satp_asid, asid_b)
         await sim.tick()
-        await self.request.call(sim, vpn=vpn2, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn2, is_store=0)
         assert len(self.backing.translated) == base + 3
 
         # Add a global (asid=None) entry and cache it. Global entries should
@@ -322,8 +286,7 @@ class TestTLBCache(TestCaseWithSimulator):
         self.backing.add_translation(vpn_g, ppn_g, permissions=permissions, asid=None)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
-        await self.request.call(sim, vpn=vpn_g, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn_g, is_store=0)
         assert len(self.backing.translated) == base + 4
 
         # 1) sfence for single vaddr+asid should only flush that mapping
@@ -332,13 +295,11 @@ class TestTLBCache(TestCaseWithSimulator):
         await sim.tick()
 
         # vpn0 should be re-translated
-        await self.request.call(sim, vpn=vpn0, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn0, is_store=0)
         assert len(self.backing.translated) == base + 5
 
         # vpn1 for same ASID should still be cached
-        await self.request.call(sim, vpn=vpn1, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn1, is_store=0)
         assert len(self.backing.translated) == base + 5
 
         # 2) sfence with all_vaddrs=1 and asid specified flushes all vaddrs for that ASID
@@ -346,31 +307,27 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
 
-        await self.request.call(sim, vpn=vpn1, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn1, is_store=0)
         assert len(self.backing.translated) == base + 6
 
         # vpn2 for asid_b remains cached
         sim.set(self.csr_instances.s_mode.satp_asid, asid_b)
         await sim.tick()
-        await self.request.call(sim, vpn=vpn2, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn2, is_store=0)
         assert len(self.backing.translated) == base + 6
 
         # 3) sfence with all_asids=1 and vaddr specified flushes that vaddr across all ASIDs
         await self.sfence_vma.call(sim, vaddr=vpn2 << PAGE_SIZE_LOG, asid=0, all_vaddrs=0, all_asids=1)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_b)
         await sim.tick()
-        await self.request.call(sim, vpn=vpn2, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn2, is_store=0)
         assert len(self.backing.translated) == base + 7
 
         # 4) sfence all (all_vaddrs=1, all_asids=1) flushes everything
         await self.sfence_vma.call(sim, vaddr=0, asid=0, all_vaddrs=1, all_asids=1)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
-        await self.request.call(sim, vpn=vpn0, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn0, is_store=0)
         assert len(self.backing.translated) == base + 8
 
     async def randomized_process(self, sim: TestbenchContext):
@@ -408,8 +365,7 @@ class TestTLBCache(TestCaseWithSimulator):
             sim.set(self.csr_instances.s_mode.satp_asid, asid)
             await sim.tick()
 
-            await self.request.call(sim, vpn=vpn, is_store=0)
-            response = await self.accept.call(sim)
+            response = await call_request_response(sim, self.port, vpn=vpn, is_store=0)
             assert self.matches_lookup(response, vpn, asid)
 
         # check that we actually cached anything
@@ -429,24 +385,26 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid)
 
         # First access -> miss -> causes backing lookup and fills TLB
-        await self.request.call(sim, vpn=vpn1, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn1, is_store=0)
         assert len(self.backing.translated) == 1
-        await self.request.call(sim, vpn=vpn2, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn2, is_store=0)
         assert len(self.backing.translated) == 2
 
         # Immediately perform a second access without an intervening tick.
         # This should be serviced from the TLB in the same cycle and must
         # not trigger another backing lookup.
-        req, cached = await CallTrigger(sim, [(self.request, {"vpn": vpn1, "is_store": 0}), (self.accept, {})])
+        req, cached = await CallTrigger(
+            sim, [(self.port.request, {"vpn": vpn1, "is_store": 0}), (self.port.response, {})]
+        )
         assert req is not None
         assert cached is not None
         assert self.matches_lookup(cached, vpn1, asid)
 
         # Immediately perform a third access to a different VPN, which should
         # also hit
-        req, cached = await CallTrigger(sim, [(self.request, {"vpn": vpn2, "is_store": 0}), (self.accept, {})])
+        req, cached = await CallTrigger(
+            sim, [(self.port.request, {"vpn": vpn2, "is_store": 0}), (self.port.response, {})]
+        )
         assert req is not None
         assert cached is not None
         assert self.matches_lookup(cached, vpn2, asid)
@@ -470,38 +428,35 @@ class TestTLBCache(TestCaseWithSimulator):
         await sim.tick()
 
         # The backing resolver responds with different ASID than expected.
-        await self.request.call(sim, vpn=vpn, is_store=0)
-        _ = await self.accept.call(sim)
+        await call_request_response(sim, self.port, vpn=vpn, is_store=0)
         assert len(self.backing.translated) == 1
 
         self.backing.asid_override = None
 
         # Make sure that the entry was saved with the ASID from response and not the requested ASID
-        await self.request.call(sim, vpn=vpn, is_store=0)
-        ret = await self.accept.call(sim)
+        ret = await call_request_response(sim, self.port, vpn=vpn, is_store=0)
         assert ret["ppn"] == ppn1
         assert len(self.backing.translated) == 2
 
         sim.set(self.csr_instances.s_mode.satp_asid, asid2)
         await sim.tick()
 
-        await self.request.call(sim, vpn=vpn, is_store=0)
-        ret = await self.accept.call(sim)
+        ret = await call_request_response(sim, self.port, vpn=vpn, is_store=0)
         assert ret["ppn"] == ppn2
         assert len(self.backing.translated) == 2
 
     def test_translation_is_cached(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            sim.add_mock(self.backing.process_request())
-            sim.add_mock(self.backing.process_accept())
+            for mock in self.backing.process():
+                sim.add_mock(mock)
             sim.add_testbench(self.translation_is_cached_process)
 
     def test_randomized(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            sim.add_mock(self.backing.process_request())
-            sim.add_mock(self.backing.process_accept())
+            for mock in self.backing.process():
+                sim.add_mock(mock)
             sim.add_testbench(self.randomized_process)
 
     def test_single_cycle_hit(self):
@@ -509,13 +464,13 @@ class TestTLBCache(TestCaseWithSimulator):
             pytest.skip("Single-cycle hit test is only valid for fully associative TLBs")
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            sim.add_mock(self.backing.process_request())
-            sim.add_mock(self.backing.process_accept())
+            for mock in self.backing.process():
+                sim.add_mock(mock)
             sim.add_testbench(self.single_cycle_process)
 
     def test_caches_correct_asid(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            sim.add_mock(self.backing.process_request())
-            sim.add_mock(self.backing.process_accept())
+            for mock in self.backing.process():
+                sim.add_mock(mock)
             sim.add_testbench(self.caches_correct_asid)
