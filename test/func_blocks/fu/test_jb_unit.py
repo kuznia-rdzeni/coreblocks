@@ -24,7 +24,7 @@ from coreblocks.interface.keys import (
 )
 
 from transactron.utils import signed_to_int, DependencyContext, layout_subset
-from transactron.lib import BasicFifo
+from transactron.lib import BasicFifo, PureRequestResponseInterface
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
@@ -40,15 +40,16 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
             branch_resolve_layout, fields={"misprediction", "taken", "cfi_target"}
         )
 
-        self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
-        self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
+        self.target_pred = PureRequestResponseInterface(
+            layouts.predicted_jump_target_req, layouts.predicted_jump_target_resp
+        )
         self.active_tags = Method(o=self.gp.get(RATLayouts).get_active_tags_out)
         self.rollback_handler = Method(i=self.gp.get(RATLayouts).rollback_in)
         self.unsafe_resolved = Method(i=self.gp.get(FetchLayouts).backend_redirect)
 
         self.fifo_branch_resolved = BasicFifo(branch_resolve_layout, 2)
 
-        DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
+        DependencyContext.get().add_dependency(PredictedJumpTargetKey(), self.target_pred)
         DependencyContext.get().add_dependency(BranchResolveKey(), self.fifo_branch_resolved.write)
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.active_tags)
         DependencyContext.get().add_dependency(RollbackKey(), self.rollback_handler)
@@ -72,11 +73,11 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
 
         self.jb.push_result.provide(res_fifo.write)
 
-        @def_method(m, self.target_pred_req)
+        @def_method(m, self.target_pred.request)
         def _(ftq_ptr):
             pass
 
-        @def_method(m, self.target_pred_resp)
+        @def_method(m, self.target_pred.response)
         def _(arg):
             return {"valid": 0, "cfi_idx": 0, "cfi_target": 0}
 

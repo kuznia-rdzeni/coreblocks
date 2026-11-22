@@ -7,14 +7,14 @@ import amaranth.lib.memory as memory
 from amaranth.utils import exact_log2
 
 from transactron.core import def_method, Priority, TModule
-from transactron import Method, Transaction
-from coreblocks.params import ICacheParameters
+from transactron import Required, Transaction
+from coreblocks.params import GenParams, ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import OneHotMux, assign, logging
 from transactron.lib import *
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 
-from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
+from coreblocks.cache.iface import PureCacheInterface, CacheRefillerInterface, PureCacheRefillerInterface
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
@@ -25,16 +25,16 @@ __all__ = [
 log = logging.HardwareLogger("frontend.icache")
 
 
-class ICacheBypass(Elaboratable, CacheInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
-        self.params = params
-        self.bus_master = bus_master
+class ICacheBypass(PureCacheInterface, Elaboratable):
+    bus_master: Required[BusMasterInterface]
+    """Instruction bus master."""
 
-        self.issue_req = Method(i=layouts.issue_req)
-        self.accept_res = Method(o=layouts.accept_res)
-        self.flush = Method()
+    def __init__(self, gen_params: GenParams) -> None:
+        super().__init__(gen_params)
+        self.params = gen_params.icache_params
+        self.bus_master = PureBusMasterInterface(gen_params.wb_params)
 
-        if params.words_in_fetch_block != 1:
+        if self.params.words_in_fetch_block != 1:
             raise ValueError("ICacheBypass only supports fetch block size equal to the word size.")
 
     def elaborate(self, platform):
@@ -42,18 +42,18 @@ class ICacheBypass(Elaboratable, CacheInterface):
 
         req_addr = Signal(self.params.addr_width)
 
-        @def_method(m, self.issue_req)
+        @def_method(m, self.request)
         def _(paddr: Value) -> None:
             m.d.sync += req_addr.eq(paddr)
-            self.bus_master.request_read(
+            self.bus_master.read.request(
                 m,
                 addr=paddr >> exact_log2(self.params.word_width_bytes),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
-        @def_method(m, self.accept_res)
+        @def_method(m, self.response)
         def _():
-            res = self.bus_master.get_read_response(m)
+            res = self.bus_master.read.response(m)
             return {
                 "fetch_block": res.data,
                 "error": res.err,
@@ -66,7 +66,7 @@ class ICacheBypass(Elaboratable, CacheInterface):
         return m
 
 
-class ICache(Elaboratable, CacheInterface):
+class ICache(PureCacheInterface, Elaboratable):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
@@ -80,29 +80,23 @@ class ICache(Elaboratable, CacheInterface):
     until the next transfer is started.
     """
 
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, refiller: CacheRefillerInterface) -> None:
+    refiller: Required[CacheRefillerInterface]
+    """The refiller used to fill cache lines."""
+
+    def __init__(self, gen_params: GenParams) -> None:
         """
         Parameters
         ----------
-        layouts : ICacheLayouts
-            Instance of ICacheLayouts used to create cache methods.
-        params : ICacheParameters
-            Instance of ICacheParameters with parameters which should be used to generate
-            the cache.
-        refiller_start : Method
-            A method with input layout ICacheLayouts.start_refill
-        refiller_accept : Method
-            A method with output layout ICacheLayouts.accept_refill
+        gen_params : GenParams
+            Core parameters. The cache is generated according to `gen_params.icache_params`.
         """
-        self.layouts = layouts
-        self.params = params
+        super().__init__(gen_params)
+        self.layouts = gen_params.get(ICacheLayouts)
+        self.params = gen_params.icache_params
 
-        self.refiller = refiller
+        self.refiller = PureCacheRefillerInterface(gen_params)
 
-        self.issue_req = Method(i=layouts.issue_req)
-        self.accept_res = Method(o=layouts.accept_res)
-        self.flush = Method()
-        self.flush.add_conflict(self.issue_req, Priority.LEFT)
+        self.flush.add_conflict(self.request, Priority.LEFT)
 
         self.addr_layout = make_layout(
             ("offset", self.params.offset_bits),
@@ -142,7 +136,7 @@ class ICache(Elaboratable, CacheInterface):
         ]
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
-        m.submodules.req_zipper = req_zipper = ArgumentsToResultsZipper(self.addr_layout, self.layouts.accept_res)
+        m.submodules.req_zipper = req_zipper = ArgumentsToResultsZipper(self.addr_layout, self.layouts.response)
 
         # State machine logic
         needs_refill = Signal()
@@ -212,14 +206,14 @@ class ICache(Elaboratable, CacheInterface):
                 log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
                 self.refiller.start_refill(m, paddr=aligned_addr)
 
-        @def_method(m, self.accept_res)
+        @def_method(m, self.response)
         def _():
             self.req_latency.stop(m)
 
             output = req_zipper.read(m)
             return output.results
 
-        @def_method(m, self.issue_req, ready=accepting_requests)
+        @def_method(m, self.request, ready=accepting_requests)
         def _(paddr: Value) -> None:
             self.perf_loads.incr(m)
             self.req_latency.start(m)

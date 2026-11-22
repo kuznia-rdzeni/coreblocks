@@ -41,7 +41,7 @@ class AddressTranslator(Elaboratable):
         self.layouts = self.gen_params.get(AddressTranslationLayouts)
 
         self.request = Method(i=self.layouts.request)
-        self.accept = Method(o=self.layouts.accept)
+        self.response = Method(o=self.layouts.response)
 
         self.dm = DependencyContext.get()
 
@@ -134,10 +134,10 @@ class AddressTranslator(Elaboratable):
                 is_store=is_store,
             )
 
-        @def_method(m, self.accept)
+        @def_method(m, self.response)
         def _():
             data = resp_fwd.read(m)
-            tlb_data = Signal(self.layouts.tlb_accept)
+            tlb_data = Signal(self.layouts.tlb_response)
 
             vpn = Signal(self.gen_params.isa.xlen - PAGE_SIZE_LOG)
             poffset = Signal(PAGE_SIZE_LOG)
@@ -151,7 +151,7 @@ class AddressTranslator(Elaboratable):
             if tlb is not None:
                 with condition(m, nonblocking=True) as branch:
                     with branch(~data.is_bare & ~data.vpn_invalid):
-                        m.d.av_comb += tlb_data.eq(tlb.accept(m))
+                        m.d.av_comb += tlb_data.eq(tlb.response(m))
 
                 with m.If(data.vpn_invalid):
                     m.d.av_comb += tlb_page_fault.eq(1)
