@@ -110,7 +110,6 @@ class ZbsUnit(FuncUnitBase[ZbsFn]):
 class ZbsComponent(FunctionalComponentParams):
     _: KW_ONLY
     decoder_manager: ZbsFn = ZbsFn()
-    result_fifo: bool = True
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return ZbsUnit(gen_params, self.decoder_manager)
