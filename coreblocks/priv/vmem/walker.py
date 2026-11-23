@@ -6,13 +6,13 @@ from coreblocks.arch.isa_consts import PAGE_SIZE, SatpMode, PAGE_SIZE_LOG
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.interface.keys import CSRInstancesKey
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface, PureBusMasterInterface
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 from transactron import *
 from transactron.utils import DependencyContext, HardwareLogger
 
-from coreblocks.priv.vmem.iface import TLBBackingDevice
+from coreblocks.priv.vmem.iface import PureTLBBackingDevice
 
 
 __all__ = ["PageTableWalker"]
@@ -100,7 +100,7 @@ class PTEView(View):
         return is_bad
 
 
-class PageTableWalker(TLBBackingDevice, Elaboratable):
+class PageTableWalker(PureTLBBackingDevice, Elaboratable):
     """Hardware page table walker for RISC-V virtual memory translation.
 
     This module implements a page table walker that translates virtual page numbers (VPN)
@@ -117,13 +117,15 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
     Implements Svade semantics (exception on missing A/D bits).
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+    bus: Required[BusMasterInterface]
+    """Data bus master."""
+
+    def __init__(self, gen_params: GenParams) -> None:
+        super().__init__(gen_params)
         self.gen_params = gen_params
         self.layout = gen_params.get(AddressTranslationLayouts)
-        self.request = Method(i=self.layout.tlb_request)
-        self.accept = Method(o=self.layout.tlb_accept)
         self.dm = DependencyContext.get()
-        self.bus = bus
+        self.bus = PureBusMasterInterface(gen_params.wb_params)
 
     def elaborate(self, platform):
         m = TModule()
@@ -172,7 +174,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                     with m.Else():
                         m.next = "ISSUE"
             with m.State("DONE"):
-                with m.If(self.accept.run):
+                with m.If(self.response.run):
                     m.next = "IDLE"
             with m.State("ISSUE"):
                 with Transaction().body(m):
@@ -182,11 +184,11 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                         m.next = "DONE"
                     with m.Else():
                         log.debug(m, 1, "Issuing bus request for PTE at address {:x}", pte_addr)
-                        self.bus.request_read(m, addr=pte_addr[offset_bits:], sel=~0)
+                        self.bus.read.request(m, addr=pte_addr[offset_bits:], sel=~0)
                         m.next = "EVAL"
             with m.State("EVAL"):
                 with Transaction().body(m):
-                    fetched = self.bus.get_read_response(m)
+                    fetched = self.bus.read.response(m)
                     pte = Signal(pte_layout)
                     m.d.av_comb += pte.eq(fetched.data)
 
@@ -255,7 +257,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
             m.d.sync += ppn.eq(csr.s_mode.satp_ppn)
             m.d.sync += walked_asid.eq(csr.s_mode.satp_asid)
 
-        @def_method(m, self.accept, ready=fsm.ongoing("DONE"))
+        @def_method(m, self.response, ready=fsm.ongoing("DONE"))
         def _():
             result = Signal(AddressTranslationLayouts.TLBResult, init=AddressTranslationLayouts.TLBResult.HIT)
 

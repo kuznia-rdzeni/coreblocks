@@ -7,6 +7,7 @@ from transactron.utils import make_layout, DependencyContext
 from transactron.utils import logging
 from transactron.lib.metrics import *
 from transactron.lib.storage import MemoryBank
+from transactron.lib import PureRequestResponseInterface, RequestResponseInterface
 
 from coreblocks.params import GenParams
 from coreblocks.arch import *
@@ -111,6 +112,11 @@ class FetchTargetQueue(Elaboratable):
     """
     bpu_fetch_target: Provided[Method]
     """Pass an FTQ entry's next fetch target to the FAU."""
+    bpu_correct_fetch_target: Provided[Method]
+    """
+    Replace an FTQ entry's next fetch target with a later BPU stage's prediction, squashing
+    the younger entries allocated from the replaced one.
+    """
     bpu_prediction_details: Provided[Method]
     """Store an FTQ entry's prediction, predictor metadata, and lookup PC."""
     read_prediction: Provided[Method]
@@ -121,10 +127,8 @@ class FetchTargetQueue(Elaboratable):
     ras_predict: Provided[Method]
     """Apply a fetch block's speculative effect on the return address stack and checkpoint it."""
 
-    jump_target_req: Provided[Method]
-    """Request the predicted jump target for a given FTQ entry (stub)."""
-    jump_target_resp: Provided[Method]
-    """Return the predicted jump target for a given FTQ entry (stub)."""
+    jump_target: Provided[RequestResponseInterface]
+    """Request and return the predicted jump target for a given FTQ entry (stub)."""
     commit: Provided[Method]
     """Retire an FTQ entry, advancing the commit pointer and freeing the slot."""
     resolve: Provided[Method]
@@ -149,6 +153,7 @@ class FetchTargetQueue(Elaboratable):
         bpu_layouts = self.gen_params.get(BranchPredictionLayouts)
         self.bpu_request = Method(i=bpu_layouts.request)
         self.bpu_fetch_target = Method(i=bpu_layouts.fetch_target)
+        self.bpu_correct_fetch_target = Method(i=bpu_layouts.fetch_target)
         self.bpu_prediction_details = Method(i=bpu_layouts.prediction_details)
         self.bpu_flush = Method()
         self.check_stale = Methods(2, i=ifu_layouts.check_stale_req, o=ifu_layouts.check_stale_resp)
@@ -159,9 +164,10 @@ class FetchTargetQueue(Elaboratable):
         self.ras_predict = Method(i=ifu_layouts.ras_predict)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
-        self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
-        self.jump_target_resp = Method(o=jb_layouts.predicted_jump_target_resp)
-        self.dep_manager.add_dependency(PredictedJumpTargetKey(), (self.jump_target_req, self.jump_target_resp))
+        self.jump_target = PureRequestResponseInterface(
+            jb_layouts.predicted_jump_target_req, jb_layouts.predicted_jump_target_resp
+        )
+        self.dep_manager.add_dependency(PredictedJumpTargetKey(), self.jump_target)
 
         ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
         self.commit = Method(i=ftq_layouts.commit)
@@ -189,13 +195,13 @@ class FetchTargetQueue(Elaboratable):
         m.submodules.fetch_address_unit = fetch_address_unit = FetchAddressUnit(self.gen_params)
 
         m.submodules.pc_mem = pc_mem = FTQReadQueue(
-            gen_params=self.gen_params, layout=make_layout(fields.pc), rollback_ports=2
+            gen_params=self.gen_params, layout=make_layout(fields.pc), rollback_ports=3
         )
         m.submodules.jb_unit_prediction_mem = jb_unit_prediction_mem = MemoryBank(
-            shape=self.jump_target_resp.data_out.shape(), depth=self.gen_params.ftq_size
+            shape=self.jump_target.response.data_out.shape(), depth=self.gen_params.ftq_size
         )
         m.submodules.prediction_mem = prediction_mem = FTQReadQueue(
-            gen_params=self.gen_params, layout=fetch_layouts.bpu_prediction, rollback_ports=1
+            gen_params=self.gen_params, layout=fetch_layouts.bpu_prediction, rollback_ports=2
         )
 
         # Store BPU training targets in memory and per-entry status in registers.
@@ -236,10 +242,28 @@ class FetchTargetQueue(Elaboratable):
             Signal(make_layout(fields.fetch_gen).size, name=f"entry_gen_{i}") for i in range(self.gen_params.ftq_size)
         )
 
+        @def_method(m, self.bpu_correct_fetch_target)
+        def _(pc, ftq_ptr):
+            fetch_address_unit.bpu_redirect(m, pc=pc)
+
+            corrected_ptr = FTQPtr(ftq_ptr, gen_params=self.gen_params)
+            younger_ptr = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += younger_ptr.eq(corrected_ptr + 1)
+
+            m.d.sync += alloc_ptr.eq(younger_ptr)
+            # Discard only the entries after the corrected one. Rewind a read pointer that is
+            # already past them; one that hasn't reached them yet stays where it is.
+            with m.If(younger_ptr <= fetch_ptr):
+                pc_mem.rollback[0](m, ftq_ptr=younger_ptr)
+            with m.If(younger_ptr <= prediction_mem.read_ptr):
+                prediction_mem.rollback[0](m, ftq_ptr=younger_ptr)
+            evlog.emit(m, FTQRollback.hw(ftq_ptr=younger_ptr, cause="bpu_correction"))
+
         # FTQ_Alloc takes the next speculative PC, allocates an FTQ entry, and sends
         # a request back to BPU
         alloc_fetch_bypass = Signal(make_layout(fields.pc))
-        # An entry is free for reuse only once training walked past it
+        # An entry can be reused once training has passed it. Allocation also waits out the
+        # cycle of a BPU correction, which sets alloc_ptr itself.
         with Transaction(name="FTQ_Alloc").body(
             m, ready=~FTQPtr.queue_full(alloc_ptr, train_mem.read_ptr)
         ) as ftq_alloc_transaction:
@@ -258,6 +282,8 @@ class FetchTargetQueue(Elaboratable):
 
             m.d.av_comb += alloc_fetch_bypass.eq(ret)
             m.d.sync += alloc_ptr.eq(alloc_ptr + 1)
+
+        self.bpu_correct_fetch_target.add_conflict(ftq_alloc_transaction, priority=Priority.LEFT)
 
         # FTQ_Send_Fetch_Requests follows fetch_ptr and sends requests to IFU. It has its data
         # bypassed from FTQ_Alloc.
@@ -306,7 +332,9 @@ class FetchTargetQueue(Elaboratable):
             log.assertion(
                 m,
                 FTQPtr(ftq_ptr, gen_params=self.gen_params) == prediction_mem.read_ptr,
-                "predictions read out of FTQ order",
+                "predictions read out of FTQ order: requested {}, expected {}",
+                FTQPtr(ftq_ptr, gen_params=self.gen_params),
+                prediction_mem.read_ptr,
             )
             return prediction_mem.read(m).data
 
@@ -350,7 +378,7 @@ class FetchTargetQueue(Elaboratable):
             with m.If(redirect | stall):
                 self.bpu_flush(m)
                 m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
-                pc_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
+                pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
 
                 evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
 
@@ -376,7 +404,6 @@ class FetchTargetQueue(Elaboratable):
                     m,
                     pc=prediction.pc,
                     branch_mask=executed_mask,
-                    cfi_valid=status.valid,
                     cfi_target=record.cfi_target,
                     cfi_idx=status.cfi_idx,
                     cfi_type=record.cfi_type,
@@ -412,8 +439,8 @@ class FetchTargetQueue(Elaboratable):
 
             evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="backend_redirect"))
             m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
-            pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
-            prediction_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
+            pc_mem.rollback[2](m, ftq_ptr=ftq_ptr_plus_one)
+            prediction_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
 
             m.d.comb += ras_checkpoint_rdport.addr.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
             m.d.comb += ras_checkpoint_rdport.en.eq(1)
@@ -426,11 +453,11 @@ class FetchTargetQueue(Elaboratable):
             redirect_checkpoint = ras_checkpoint_rdport.data
             ras.recover(m, sp=redirect_checkpoint.sp, count=redirect_checkpoint.count, top=redirect_checkpoint.top)
 
-        @def_method(m, self.jump_target_req)
+        @def_method(m, self.jump_target.request)
         def _(ftq_ptr):
             jb_unit_prediction_mem.read[0].request(m, addr=ftq_ptr.ptr)
 
-        @def_method(m, self.jump_target_resp)
+        @def_method(m, self.jump_target.response)
         def _():
             return jb_unit_prediction_mem.read[0].response(m).data
 

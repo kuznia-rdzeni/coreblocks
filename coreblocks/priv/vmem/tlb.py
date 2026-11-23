@@ -1,10 +1,8 @@
-from dataclasses import dataclass
-
 from amaranth import *
 from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
-from transactron import Method, Methods, TModule, def_method, Priority, Transaction
+from transactron import Method, Provided, Required, TModule, def_method, Priority, Transaction, provide
 from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux, AssignType
 from transactron.lib import (
     BasicFifo,
@@ -21,7 +19,7 @@ from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.interface.keys import SFenceVMAKey, CSRInstancesKey
 from coreblocks.params import GenParams
 
-from coreblocks.priv.vmem.iface import TLBBackingDevice
+from coreblocks.priv.vmem.iface import TLBBackingDevice, PureTLBBackingDevice
 
 __all__ = [
     "FullyAssociativeTLB",
@@ -154,13 +152,18 @@ class FullyAssociativeTLB(Elaboratable):
     Meant for L1 TLBs.
     """
 
+    backing_resolver: Required[TLBBackingDevice]
+    """Backing device used to resolve TLB misses."""
+
+    port_devices: Provided[list[TLBBackingDevice]]
+    """TLB ports, each usable as a backing device for another TLB."""
+
     def __init__(
         self,
         gen_params: GenParams,
         *,
         entries: int,
         ports: int,
-        backing_resolver: TLBBackingDevice,
         perf_name_prefix: str = "mmu.tlb",
     ):
         if entries <= 0:
@@ -172,12 +175,11 @@ class FullyAssociativeTLB(Elaboratable):
         self.gen_params = gen_params
         self.entries = entries
         self.ports = ports
-        self.backing_resolver = backing_resolver
+        self.backing_resolver = PureTLBBackingDevice(gen_params)
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.perf_name_prefix = perf_name_prefix
 
-        self.request = Methods(ports, i=self.layout.tlb_request)
-        self.accept = Methods(ports, o=self.layout.tlb_accept)
+        self.port_devices = [PureTLBBackingDevice(gen_params) for _ in range(ports)]
 
         self.sfence_vma = Method(i=self.layout.sfence_vma)
         self.dm = DependencyContext.get()
@@ -201,15 +203,7 @@ class FullyAssociativeTLB(Elaboratable):
         port = self.ports_allocated
         self.ports_allocated += 1
 
-        @dataclass(frozen=True)
-        class _Port(TLBBackingDevice):
-            request: Method
-            accept: Method
-
-        return _Port(
-            request=self.request[port],
-            accept=self.accept[port],
-        )
+        return self.port_devices[port]
 
     def elaborate(self, platform):
         m = TModule()
@@ -234,7 +228,7 @@ class FullyAssociativeTLB(Elaboratable):
 
         m.submodules.refill_semaphore = refill_semaphore = Semaphore(1)
 
-        refill_ret = Signal(self.layout.tlb_accept)
+        refill_ret = Signal(self.layout.tlb_response)
 
         def do_query(cam, is_store):
             ask_backing = Signal()
@@ -261,7 +255,7 @@ class FullyAssociativeTLB(Elaboratable):
             m.d.comb += cam.ways_data.eq(entries)
             m.d.comb += cam.replacement_rr_index.eq(replacement_rr_index)
 
-            result_fwd = Forwarder(self.layout.tlb_accept)
+            result_fwd = Forwarder(self.layout.tlb_response)
             m.submodules[f"result_fwd_{port}"] = result_fwd
             m.submodules[f"cam_{port}"] = cam
 
@@ -275,7 +269,7 @@ class FullyAssociativeTLB(Elaboratable):
                 with Transaction(name=f"Refill_{port}").body(m):
                     refill_semaphore.release(m)
 
-                    resp = self.backing_resolver.accept(m)
+                    resp = self.backing_resolver.response(m)
 
                     m.d.av_comb += cam.checked_vpn.eq(vpn_req)
                     m.d.av_comb += cam.checked_asid.eq(resp.asid)
@@ -315,7 +309,7 @@ class FullyAssociativeTLB(Elaboratable):
 
             with m.Elif(~slow_path):
 
-                @def_method(m, self.request[port])
+                @def_method(m, self.port_devices[port].request)
                 def _(vpn, is_store):
                     self.perf_loads.incr(m)
                     self.perf_latency.start(m)
@@ -351,7 +345,7 @@ class FullyAssociativeTLB(Elaboratable):
                         result_fwd.write(m, ret)
                         m.d.sync += slow_path.eq(0)
 
-            @def_method(m, self.accept[port])
+            @def_method(m, self.port_devices[port].response)
             def _():
                 self.perf_latency.stop[port](m)
                 return result_fwd.read(m)
@@ -360,6 +354,12 @@ class FullyAssociativeTLB(Elaboratable):
 
 
 class SetAssociativeTLB(Elaboratable):
+    backing_resolver: Required[TLBBackingDevice]
+    """Backing device used to resolve TLB misses."""
+
+    port_devices: Provided[list[TLBBackingDevice]]
+    """TLB ports, each usable as a backing device for another TLB."""
+
     def __init__(
         self,
         gen_params: GenParams,
@@ -367,7 +367,6 @@ class SetAssociativeTLB(Elaboratable):
         entries: int,
         ways: int,
         ports: int,
-        backing_resolver: TLBBackingDevice,
         perf_name_prefix: str = "mmu.tlb",
     ):
         if entries <= 0:
@@ -382,12 +381,11 @@ class SetAssociativeTLB(Elaboratable):
         self.ways = ways
         self.sets = entries // ways
         self.ports = ports
-        self.backing_resolver = backing_resolver
+        self.backing_resolver = PureTLBBackingDevice(gen_params)
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.perf_name_prefix = perf_name_prefix
 
-        self.request = Methods(ports, i=self.layout.tlb_request)
-        self.accept = Methods(ports, o=self.layout.tlb_accept)
+        self.port_devices = [PureTLBBackingDevice(gen_params) for _ in range(ports)]
         self.sfence_vma = Method(i=self.layout.sfence_vma)
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
@@ -408,15 +406,7 @@ class SetAssociativeTLB(Elaboratable):
         port = self.ports_allocated
         self.ports_allocated += 1
 
-        @dataclass(frozen=True)
-        class _Port(TLBBackingDevice):
-            request: Method
-            accept: Method
-
-        return _Port(
-            request=self.request[port],
-            accept=self.accept[port],
-        )
+        return self.port_devices[port]
 
     def elaborate(self, platform):
         m = TModule()
@@ -448,7 +438,7 @@ class SetAssociativeTLB(Elaboratable):
         rd_wr = rd_mem.write_port()
         m.d.comb += cam.replacement_rr_index.eq(rd_rd.data)
 
-        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_response)
 
         flushing = Signal(init=1)
         refill_in_progress = Signal()
@@ -465,14 +455,13 @@ class SetAssociativeTLB(Elaboratable):
         m.submodules.port_serializer = port_serializer = Serializer(
             port_count=self.ports,
             req_layout=self.layout.tlb_request,
-            resp_layout=self.layout.tlb_accept,
+            resp_layout=self.layout.tlb_response,
         )
         request = port_serializer.server.request
         accept = port_serializer.server.response
 
         for port in range(self.ports):
-            self.request[port].provide(port_serializer.ports[port].request)
-            self.accept[port].provide(port_serializer.ports[port].response)
+            provide[TLBBackingDevice](self.port_devices[port], port_serializer.ports[port])
 
         @def_method(m, request, ready=~flushing)
         def _(vpn, is_store):
@@ -531,13 +520,13 @@ class SetAssociativeTLB(Elaboratable):
                 )
 
         refill_set_idx = Signal(set_index_bits)
-        refill_response = Signal(self.layout.tlb_accept)
+        refill_response = Signal(self.layout.tlb_response)
 
         with m.FSM():
             with m.State("IDLE"):
                 with Transaction().body(m):
                     req = request_pipe.peek(m)
-                    resp = self.backing_resolver.accept(m)
+                    resp = self.backing_resolver.response(m)
 
                     set_idx = vpn_to_set_idx(req.vpn, resp.size_class)
                     m.d.sync += refill_set_idx.eq(set_idx)

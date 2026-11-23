@@ -190,7 +190,11 @@ class FPUAddSubModule(Elaboratable):
             assign_values(
                 far_path_op2,
                 (pre_shift_op2.exp + norm_shift_amount),
-                Mux(true_operation, ~(far_path_op2_ext.sig >> 2), far_path_op2_ext.sig >> 2),
+                Mux(
+                    true_operation,
+                    ~(far_path_op2_ext.sig >> 2),
+                    far_path_op2_ext.sig >> 2,
+                ),
                 pre_shift_op2.sign,
             )
 
@@ -222,7 +226,7 @@ class FPUAddSubModule(Elaboratable):
 
             # Preparing data for error checking module
             m.d.av_comb += path_response.eq(resp)
-            eq_signs = pre_shift_op2.sign == path_op1.sign
+            eq_signs = op_2_adjusted_sign == op_1.sign
             is_inf = op_1.is_inf | op_2.is_inf
             wrong_inf = (op_1.is_inf & op_2.is_inf) & ~(eq_signs)
             is_nan = (op_1.is_nan | op_2.is_nan) | wrong_inf
@@ -244,12 +248,12 @@ class FPUAddSubModule(Elaboratable):
                 m.d.av_comb += exception_op.sign.eq(0)
                 m.d.av_comb += exception_op.exp.eq(max_exp)
                 m.d.av_comb += exception_op.sig.eq(self.common_values.canonical_nan_sig)
-            with m.Elif(is_inf & ~(wrong_inf)):
+            with m.Elif(is_inf):
                 assign_values(
                     exception_op,
                     Mux(op_1.is_inf, op_1.exp, op_2.exp),
                     Mux(op_1.is_inf, op_1.sig, op_2.sig),
-                    Mux(op_1.is_inf, op_1.sign, pre_shift_op2.sign),
+                    Mux(op_1.is_inf, op_1.sign, op_2_adjusted_sign),
                 )
             with m.Elif(is_zero):
                 with m.If(eq_signs):
