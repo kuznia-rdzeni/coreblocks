@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795448587082,
+  "lastUpdate": 1795448589621,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -90820,6 +90820,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1086,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ffb8f656bd0a57b593d691c5a432ab4499babf6e",
+          "message": "frontend/bpu: implement the two-stage pipeline (#1119)",
+          "timestamp": "2026-11-23T15:45:37+01:00",
+          "tree_id": "2af956927e202f3c30c856974a28938fcb69e02d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ffb8f656bd0a57b593d691c5a432ab4499babf6e"
+        },
+        "date": 1795448588977,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.62,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 53098,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 17967,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1087,
             "unit": "Slice"
           },
           {
