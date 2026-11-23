@@ -224,12 +224,14 @@ Returns ‘division_run_out_layout’ as argument</p>
 </dd>
 <dt><strong>result_fractional_bits: int</strong></dt><dd><p>Fractional bits of the result we want to compute. The integer bits are always zero before shift</p>
 </dd>
+<dt><strong>digit_w</strong><span class="classifier">DigitWidth</span></dt><dd><p>Width of digit</p>
+</dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fractional_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_fractional_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fractional_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_fractional_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">digit_w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.otfc.DigitWidth" title="coreblocks.func_blocks.fu.fpu.otfc.DigitWidth"><span class="pre">DigitWidth</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1423,6 +1425,27 @@ Returns shift amount as ‘predict_out_layout’</p>
 <section id="module-coreblocks.func_blocks.fu.fpu.otfc">
 <span id="coreblocks-func-blocks-fu-fpu-otfc-module"></span><h2>coreblocks.func_blocks.fu.fpu.otfc module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.otfc" title="Link to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.DigitWidth">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfc.</span></span><span class="sig-name descname"><span class="pre">DigitWidth</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.DigitWidth" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntFlag" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.DigitWidth.WIDTH_ONE">
+<span class="sig-name descname"><span class="pre">WIDTH_ONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.DigitWidth.WIDTH_ONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.DigitWidth.WIDTH_TWO">
+<span class="sig-name descname"><span class="pre">WIDTH_TWO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.DigitWidth.WIDTH_TWO" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.DigitWidth.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.DigitWidth.__new__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCMethodLayout">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfc.</span></span><span class="sig-name descname"><span class="pre">OTFCMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCMethodLayout" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -1493,12 +1516,98 @@ Returns result as ‘otfc_result_out_layout’</p>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>result_width: int</strong></dt><dd><p>Number of bits of result</p>
 </dd>
+<dt><strong>digit_width: DigitWidth</strong></dt><dd><p>Width of digit</p>
+</dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCParams.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCParams.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">digit_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.otfc.DigitWidth" title="coreblocks.func_blocks.fu.fpu.otfc.DigitWidth"><span class="pre">DigitWidth</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCParams.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-coreblocks.func_blocks.fu.fpu.otfu">
+<span id="coreblocks-func-blocks-fu-fpu-otfu-module"></span><h2>coreblocks.func_blocks.fu.fpu.otfu module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.otfu" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfu.OTFUMethodLayout">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfu.</span></span><span class="sig-name descname"><span class="pre">OTFUMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUMethodLayout" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>On-the-fly update function module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>otfu_params: OTFUParams</strong></dt><dd><p>Parameters of OTFU</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfu.OTFUMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">otfu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUParams" title="coreblocks.func_blocks.fu.fpu.otfu.OTFUParams"><span class="pre">OTFUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUMethodLayout.__init__" title="Link to this definition"></a></dt>
+<dd><p>sign - sign of one root digit
+q - bits of one root digit
+result - result width of conversion</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfu.OTFUModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfu.</span></span><span class="sig-name descname"><span class="pre">OTFUModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUModule" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module for on-the-fly update
+This module is responsible for updating F1 and F-1 needed to update residual of square root.
+The module functions similar to OTFC (on-the-fly conversion) but rather than computing
+result (one number) in non redundant form, this module computes values of F
+which is a formula rather than one number, thus the process is a little bit more complex.
+The formulas comes from “Digital Arithmetic” by Milos D. Ercegovac and Tomas Lang</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>otfu_params: OTFUParams</strong></dt><dd><p>Params for OTFU</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>otfu_add_digit: Method</strong></dt><dd><p>Transactional method for adding one digit to result
+Takes ‘otfu_add_digit_in_layout’ as argument</p>
+</dd>
+<dt><strong>otfu_reset: Method</strong></dt><dd><p>Transactional method for reseting state of OTFU</p>
+</dd>
+<dt><strong>otfu_result</strong></dt><dd><p>Transactinal method for returning result
+Takes ‘otfu_result_in_layout as argument’
+Returns result as ‘otfu_result_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfu.OTFUModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">otfu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUParams" title="coreblocks.func_blocks.fu.fpu.otfu.OTFUParams"><span class="pre">OTFUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUModule.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfu.OTFUParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfu.</span></span><span class="sig-name descname"><span class="pre">OTFUParams</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUParams" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>On-the-fly update function parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>result_width: int</strong></dt><dd><p>Number of bits of result</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfu.OTFUParams.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfu.OTFUParams.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1524,7 +1633,7 @@ Returns result as ‘otfc_result_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:46 2026-11-23.
+      <span class="lastupdated">Last updated on 16:15 2026-11-23.
       </span></p>
   </div>
 
