@@ -5,7 +5,7 @@ from transactron import *
 from transactron.utils.transactron_helpers import make_layout
 
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import CommonLayoutFields
+from coreblocks.interface.layouts import BranchPredictionLayouts, CommonLayoutFields
 
 __all__ = [
     "BPUComponentLayouts",
@@ -41,16 +41,7 @@ class BPUComponentLayouts:
         )
         self.direction_prediction = make_layout(("taken", gen_params.fetch_width), self._meta)
 
-        self.update = make_layout(
-            fields.pc,
-            ("branch_mask", gen_params.fetch_width),
-            fields.cfi_target,
-            fields.cfi_idx,
-            fields.cfi_type,
-            ("taken", 1),
-            ("mispredict", 1),
-            self._meta,
-        )
+        self.update = gen_params.get(BranchPredictionLayouts).update_with_meta(meta_width)
 
     def cfi_hints(self, candidate_count: int):
         return make_layout(("candidates", ArrayLayout(self.cfi_hint, candidate_count)))
@@ -63,7 +54,12 @@ class BPUComponentLayouts:
 
 
 class BPUComponent(Elaboratable):
-    """Shared layouts and training interface for BPU components."""
+    """Shared layouts and training interface for BPU components.
+
+    Components are simple fixed-latency pipelines: a response is available one cycle per stage
+    after its request. A flush drops every response due in a later cycle, and the BPU reads out
+    exactly the responses of requests that were not flushed.
+    """
 
     update: Provided[Method]
     """Train on a resolved CFI using this component's prediction metadata."""
@@ -85,6 +81,7 @@ class FastPredictor(BPUComponent):
     request_s0: Provided[Method]
     response_s1: Provided[Method]
     flush: Provided[Method]
+    """Drop every request in flight, including one made in the same cycle. Must stay off the critical path."""
 
     def __init__(self, gen_params: GenParams, meta_width: int):
         super().__init__(gen_params, meta_width)
