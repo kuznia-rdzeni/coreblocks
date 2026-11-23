@@ -149,7 +149,7 @@ class ReorderBuffer(Elaboratable):
             self.perf_rob_wait_time.start(m, count=count)
             self.perf_rob_put_count.incr(m, tag=count)
             self.data.write(m, count=count, data=[entry.rob_data for entry in entries])
-            for i in range(self.params.retirement_superscalarity):
+            for i in range(self.params.frontend_superscalarity):
                 with m.If(i < count):
                     m.d.sync += self.pure[end_idx_plus[i]].eq(entries[i].pure)
             entries = []
@@ -158,9 +158,6 @@ class ReorderBuffer(Elaboratable):
                 entries.append({"rob_id": rob_id})
             return {"entries": entries}
 
-        # TODO: There is a potential race condition when ROB is flushed.
-        # If functional units aren't flushed, finished obsolete instructions
-        # could mark fields in ROB as done when they shouldn't.
         @def_methods(m, self.mark_done)
         def _(k: int, rob_id: Value, exception):
             log.assertion(m, ~self.done[rob_id], "mark_done called on already done ROB entry {}", rob_id)
