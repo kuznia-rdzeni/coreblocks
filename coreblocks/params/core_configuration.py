@@ -9,7 +9,7 @@ from amaranth_types.memory import AbstractMemoryConstructor
 from amaranth.lib.memory import Memory
 
 from coreblocks.arch.isa import Extension
-from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.params.fu_params import BlockComponentParams, FuncUnitGroup
 
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
@@ -34,16 +34,18 @@ __all__ = [
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
         [
-            ALUComponent(),
-            ShiftUnitComponent(),
-            JumpComponent(),
-            ExceptionUnitComponent(),
-            PrivilegedUnitComponent(supervisor_enable=True),
+            FuncUnitGroup(
+                ALUComponent(),
+                ShiftUnitComponent(),
+            )
         ],
         rs_entries=4,
     ),
     RSBlockComponent(
         [
+            JumpComponent(),
+            ExceptionUnitComponent(),
+            PrivilegedUnitComponent(supervisor_enable=True),
             MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
             DivComponent(),
         ],
