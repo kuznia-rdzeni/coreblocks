@@ -54,16 +54,18 @@ small_linux = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
             [
-                ALUComponent(),
-                ShiftUnitComponent(),
-                JumpComponent(),
-                ExceptionUnitComponent(),
-                PrivilegedUnitComponent(supervisor_enable=True),
+                FuncUnitGroup(
+                    ALUComponent(),
+                    ShiftUnitComponent(),
+                )
             ],
             rs_entries=4,
         ),
         RSBlockComponent(
             [
+                JumpComponent(),
+                ExceptionUnitComponent(),
+                PrivilegedUnitComponent(supervisor_enable=True),
                 MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
