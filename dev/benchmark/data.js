@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795457474064,
+  "lastUpdate": 1795463963907,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -30933,6 +30933,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/30cd7d55c126a78e7cab0ff63bd40210d56b50c3"
         },
         "date": 1795457446843,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5722245979037762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820780899517166,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5968773620026399,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6925532928805159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39411610750331244,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5457941940279776,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5398188586335259,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5264662796375671,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "31d52f23e387afd0a11ec2b9cf98e18cfc64516e",
+          "message": "Merge groups (#1172)",
+          "timestamp": "2026-11-23T19:55:45+01:00",
+          "tree_id": "c95062a5744b87982f2920935270872c266ebede",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/31d52f23e387afd0a11ec2b9cf98e18cfc64516e"
+        },
+        "date": 1795463949455,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
