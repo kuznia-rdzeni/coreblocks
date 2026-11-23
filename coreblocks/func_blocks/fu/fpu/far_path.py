@@ -83,7 +83,7 @@ class FarPathModule(Elaboratable):
 
         input_sig_add_0_a = Signal(self.params.sig_width)
         input_sig_add_0_b = Signal(self.params.sig_width)
-        input_sig_add_1_a = Signal(self.params.sig_width)
+        input_sig_add_1_a = Signal(self.params.sig_width + 1)
         input_sig_add_1_b = Signal(self.params.sig_width)
         output_sig_add_0 = Signal(self.params.sig_width + 1)
         output_sig_add_1 = Signal(self.params.sig_width + 1)
@@ -176,9 +176,7 @@ class FarPathModule(Elaboratable):
                 m.d.av_comb += carry_add1.eq(0)
 
             m.d.av_comb += output_sig_add_0.eq(input_sig_add_0_a + input_sig_add_0_b)
-            m.d.av_comb += output_sig_add_1.eq(
-                (input_sig_add_1_a + input_sig_add_1_b + 1) | (carry_add1 << (self.params.sig_width - 1))
-            )
+            m.d.av_comb += output_sig_add_1.eq((input_sig_add_1_a + input_sig_add_1_b + 1))
 
             m.d.av_comb += nrs.eq((~sub_op) & (~output_sig_add_0[-1]))
             m.d.av_comb += ors.eq((~sub_op) & (output_sig_add_0[-1]))
@@ -274,7 +272,6 @@ class FarPathModule(Elaboratable):
                 with m.Else():
                     m.d.av_comb += output_sig.eq(output_sig_add_0)
             m.d.av_comb += output_exp.eq(exp)
-
             with m.If(sub_op):
                 m.d.av_comb += final_guard_bit.eq((~guard_bit) ^ ((~round_bit) & (~sticky_bit)))
                 m.d.av_comb += final_round_bit.eq((~round_bit) ^ (~sticky_bit))
@@ -298,7 +295,6 @@ class FarPathModule(Elaboratable):
             with m.If((~sub_op) & (output_sig[-1])):
                 m.d.av_comb += output_final_sig.eq(output_sig >> 1)
                 m.d.av_comb += output_final_exp.eq(output_exp + 1)
-
             with m.Elif((sub_op & (~output_sig[-2])) & (output_exp > 0)):
                 with m.If(output_exp == 1):
                     m.d.av_comb += output_final_sig.eq(output_sig)
