@@ -217,7 +217,7 @@ class AddressTranslationLayouts:
             fields.addr,
             ("is_store", 1),
         )
-        self.accept = make_layout(
+        self.response = make_layout(
             fields.vaddr,
             fields.paddr,
             ("page_fault", 1),
@@ -228,7 +228,7 @@ class AddressTranslationLayouts:
             self.vpn,
             ("is_store", 1),
         )
-        self.tlb_accept = make_layout(
+        self.tlb_response = make_layout(
             ("result", self.TLBResult),
             self.ppn,
             self.asid,
@@ -436,8 +436,10 @@ class RATLayouts:
         self.crat_rename_in = self.frat_rename_in
         self.crat_rename_out = self.frat_rename_out
 
-        self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
+        self.crat_tag_in = make_layout(fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
         self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
+
+        self.crat_dealloc_tags_in = make_layout(("count", range(gen_params.retirement_superscalarity + 1)))
 
         self.crat_flush_restore_in = make_layout(self.entries)
 
@@ -640,9 +642,9 @@ class ICacheLayouts:
         self.fetch_block: LayoutListField = ("fetch_block", gen_params.fetch_block_bytes * 8)
         """The block of data the fetch unit operates on."""
 
-        self.issue_req = make_layout(fields.paddr)
+        self.request = make_layout(fields.paddr)
 
-        self.accept_res = make_layout(
+        self.response = make_layout(
             self.fetch_block,
             fields.error,
         )

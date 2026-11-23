@@ -13,8 +13,9 @@ from test.scheduler.test_scheduler import SchedulerTestCircuit, MockedBlockCompo
 
 
 class TestSchedulerCheckpointing(TestCaseWithSimulator):
-    @pytest.mark.parametrize("tag_bits, checkpoint_count", [(2, 3), (5, 8)])
-    def test_randomized(self, tag_bits: int, checkpoint_count: int):
+    # TODO-future: non power of two retirement_superscalarity tests when supported in test_scheduler
+    @pytest.mark.parametrize("tag_bits, checkpoint_count, retirement_superscalarity", [(2, 3, 2), (5, 8, 1), (5, 8, 4)])
+    def test_randomized(self, tag_bits: int, checkpoint_count: int, retirement_superscalarity: int):
         gen_params = GenParams(
             configurations.test.replace(
                 func_units_config=(
@@ -23,6 +24,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 ),
                 tag_bits=tag_bits,
                 checkpoint_count=checkpoint_count,
+                retirement_superscalarity=retirement_superscalarity,
                 allow_partial_extensions=True,
             )
         )
@@ -45,8 +47,6 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
         rollback_tag_v = False
 
         random.seed(42)
-
-        end = False
 
         class BranchEncoding(Enum):
             CORRECT_PATH_OK = auto()
@@ -112,12 +112,10 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
             return instr
 
         async def input_process(sim):
-            nonlocal end
             for _ in range(instr_cnt):
                 data = get_instr()
                 await dut.instr_inp.call(sim, count=1, data=[data])
                 await self.random_wait_geom(sim, 0.5)
-            end = True
 
         rob_id_to_imm_id = {}
 
@@ -131,34 +129,56 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
 
         retire_imm_ids = 0
         current_tag = 0
+        retired_instrs = 0
 
         async def rob_retire_process(sim):
-            nonlocal current_tag, retire_imm_ids, end
-            for _ in range(instr_cnt):
+            nonlocal current_tag, retire_imm_ids, retired_instrs
+            dut.rob_peek.enable(sim)
+            while retired_instrs < instr_cnt:
                 await self.random_wait_geom(sim, 0.4)
 
-                _, active_tags, peek_res, rob_idxs = (
+                retire_cnt = 0
+                peek_res = {}
+                while not retire_cnt:
+                    await sim.delay(2e-9)
+                    peek_res = dut.rob_peek.get_outputs(sim)
+
+                    retire_cnt = 0
+                    for i in range(peek_res["count"]):
+                        if not peek_res["entries"][i]["done"]:
+                            await sim.tick()
+                            break
+                        retire_cnt += 1
+
+                _, active_tags = (
                     await CallTrigger(sim)
-                    .call(dut.rob_retire, count=1)
+                    .call(dut.rob_retire, count=retire_cnt)
                     .call(dut.get_active_tags)
-                    .call(dut.rob_peek)
-                    .call(dut.rob_get_indices)
                     .until_all_done()
                 )
+
                 active_tags = active_tags["active_tags"]
-                entry = peek_res.entries[0]["rob_data"]
-                rob_id = rob_idxs["start"]
+                tag_deallocs = 0
 
-                current_tag += entry["tag_increment"]
-                current_tag %= 2**gen_params.tag_bits
+                for i in range(retire_cnt):
+                    entry = peek_res["entries"][i]
+                    assert entry["done"]
+                    assert entry["rob_id"] == (retired_instrs + i) % gen_params.rob_entries
 
-                if active_tags[current_tag]:
-                    # check for instructions on valid speculation path retiring in order
-                    assert rob_id_to_imm_id[rob_id] == retire_imm_ids
-                    retire_imm_ids += 1
+                    if entry["rob_data"]["tag_increment"]:
+                        current_tag += 1
+                        current_tag %= 2**gen_params.tag_bits
+                        tag_deallocs += 1
 
-                if entry["tag_increment"]:
-                    await dut.free_tag.call(sim)
+                    if active_tags[current_tag]:
+                        # check for instructions on valid speculation path retiring in order
+                        assert rob_id_to_imm_id[entry["rob_id"]] == retire_imm_ids
+                        retire_imm_ids += 1
+
+                if tag_deallocs:
+                    await dut.dealloc_tags.call(sim, count=tag_deallocs)
+
+                retired_instrs += retire_cnt
 
         @def_method_mock(lambda: dut.core_state)
         def core_state_mock():
@@ -199,7 +219,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 in_order_branch_encoding.popleft()
                 branch_in_flight.add(frozenset(br.items()))
 
-        rob_done_queue = deque()
+        rob_mark_done_queue = deque()
 
         async def rs_insert_arithmetic(sim):
             while True:
@@ -217,7 +237,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                     exp_rs_arith.popleft()
 
                 in_order_arith_encoding.popleft()
-                rob_done_queue.append(arg["rob_id"])
+                rob_mark_done_queue.append(arg["rob_id"])
 
         async def active_tags_call_process(sim):
             while True:
@@ -249,14 +269,14 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                         frat = frat_to_restore.copy()
                         on_correct_path = True
 
-                rob_done_queue.append(instr["rob_id"])
+                rob_mark_done_queue.append(instr["rob_id"])
 
         async def mark_done_process(sim):
             while True:
-                while not rob_done_queue:
+                while not rob_mark_done_queue:
                     await sim.tick()
-                await dut.rob_done.call(sim, rob_id=rob_done_queue[0])
-                rob_done_queue.popleft()
+                await dut.rob_done.call(sim, rob_id=rob_mark_done_queue[0])
+                rob_mark_done_queue.popleft()
 
         with self.run_simulation(dut, max_cycles=2000) as sim:
             sim.add_testbench(input_process)
