@@ -95,6 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">coreblocks.frontend.bpu.bpu module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.__init__"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.correct_fetch_target"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.correct_fetch_target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.flush"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.flush</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.request"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.request</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.update"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.update</span></code></a></li>
@@ -265,6 +266,12 @@ It selects the next fetch PC based on reset, backend redirects, IFU redirects, a
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.bpu_redirect">
+<span class="sig-name descname"><span class="pre">bpu_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.bpu_redirect" title="Link to this definition"></a></dt>
+<dd><p>Replace the next fetch PC with a BPU correction.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.ifu_redirect">
 <span class="sig-name descname"><span class="pre">ifu_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.ifu_redirect" title="Link to this definition"></a></dt>
 <dd><p>Redirect the fetch PC after a misprediction detected by the IFU, or - when <cite>pc_valid</cite> is
@@ -280,7 +287,7 @@ low - invalidate it, because the IFU doesn’t know where to fetch next.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.write">
 <span class="sig-name descname"><span class="pre">write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.write" title="Link to this definition"></a></dt>
-<dd><p>Supply the next fetch PC (e.g. from a BPU prediction). Requires the current PC to have been consumed.</p>
+<dd><p>Supply the next fetch PC, replacing any stored prediction. Forwarded to a <cite>read</cite> in the same cycle.</p>
 </dd></dl>
 
 </dd></dl>
@@ -420,6 +427,13 @@ stream has consumed them; the buffer stalls allocation when full.</p>
 <dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.backend_redirect">
 <span class="sig-name descname"><span class="pre">backend_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.backend_redirect" title="Link to this definition"></a></dt>
 <dd><p>Handle a backend misprediction: reset alloc/fetch pointers to commit+1 and redirect the FAU.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.bpu_correct_fetch_target">
+<span class="sig-name descname"><span class="pre">bpu_correct_fetch_target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.bpu_correct_fetch_target" title="Link to this definition"></a></dt>
+<dd><p>Replace an FTQ entry’s next fetch target with a later BPU stage’s prediction, squashing
+the younger entries allocated from the replaced one.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -569,7 +583,7 @@ exception and redirects the frontend itself).</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 07:16 2026-11-23.
+      <span class="lastupdated">Last updated on 14:46 2026-11-23.
       </span></p>
   </div>
 

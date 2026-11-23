@@ -103,9 +103,16 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit.correct_fetch_target">
+<span class="sig-name descname"><span class="pre">correct_fetch_target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.correct_fetch_target" title="Link to this definition"></a></dt>
+<dd><p>Replace an FTQ entry’s next fetch PC with S2’s prediction when it differs from S1’s.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit.flush">
 <span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.flush" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Discard every request in the BPU, including one made in the same cycle, except that cycle’s fetch targets.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit.request">
@@ -120,7 +127,8 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit.write_fetch_target">
 <span class="sig-name descname"><span class="pre">write_fetch_target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.write_fetch_target" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Pass S1’s next fetch PC for an FTQ entry. May still be called in a flush cycle.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.bpu.BranchPredictionUnit.write_prediction_details">
@@ -137,6 +145,9 @@
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.component.</span></span><span class="sig-name descname"><span class="pre">BPUComponent</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponent" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Shared layouts and training interface for BPU components.</p>
+<p>Components are simple fixed-latency pipelines: a response is available one cycle per stage
+after its request. A flush drops every response due in a later cycle, and the BPU reads out
+exactly the responses of requests that were not flushed.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.BPUComponent.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.component.BPUComponent.__init__" title="Link to this definition"></a></dt>
@@ -249,7 +260,8 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor.flush">
 <span class="sig-name descname"><span class="pre">flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.component.FastPredictor.flush" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Drop every request in flight, including one made in the same cycle. Must stay off the critical path.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.bpu.component.FastPredictor.request_s0">
@@ -342,7 +354,7 @@ speculation can also corrupt the stack, as a checkpoint only recovers the top en
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 07:16 2026-11-23.
+      <span class="lastupdated">Last updated on 14:46 2026-11-23.
       </span></p>
   </div>
 
