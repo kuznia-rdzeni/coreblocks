@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795421423663,
+  "lastUpdate": 1795421426022,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -86344,6 +86344,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 383,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c289cd4c0958db50686080f828a3ff909c9f6bc9",
+          "message": "Float add/sub bug fix (#1160)",
+          "timestamp": "2026-11-23T08:15:22+01:00",
+          "tree_id": "65051cae574c3f0c9f0e28bd543cd80eb2e16b66",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c289cd4c0958db50686080f828a3ff909c9f6bc9"
+        },
+        "date": 1795421425283,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 44.08,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20726,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9410,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 379,
             "unit": "Slice"
           },
           {
