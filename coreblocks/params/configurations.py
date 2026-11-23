@@ -36,7 +36,13 @@ tiny = CoreConfiguration(
     embedded=True,
     func_units_config=(
         RSBlockComponent(
-            [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=2
+            [
+                ALUComponent(result_fifo=True),
+                ShiftUnitComponent(result_fifo=True),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+            ],
+            rs_entries=2,
         ),
         RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     ),
