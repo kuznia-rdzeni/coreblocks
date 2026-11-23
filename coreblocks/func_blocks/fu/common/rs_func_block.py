@@ -28,7 +28,7 @@ def _issue_to_group(m: TModule, func_units: Iterable[tuple[FuncUnit, set[OpType]
         all_optypes |= unit_optypes
 
     unit_select = Signal(len(func_units))
-    m.d.av_comb += unit_select.eq(
+    m.d.top_comb += unit_select.eq(
         Cat(Cat(arg.exec_fn.op_type == optype for optype in unit_optypes).any() for _, unit_optypes in func_units)
     )
 
