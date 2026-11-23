@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795454863714,
+  "lastUpdate": 1795454866978,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -91031,6 +91031,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1087,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f6687fe82c3d02e1c7db2463ee9a89fe6975a220",
+          "message": "OTFC/OTFU refactor (#1144)",
+          "timestamp": "2026-11-23T17:15:11+01:00",
+          "tree_id": "2d5adc236ab966aa4fa643b44e5aaaf51dd532e9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f6687fe82c3d02e1c7db2463ee9a89fe6975a220"
+        },
+        "date": 1795454866205,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 43.62,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 52468,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 17967,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1090,
             "unit": "Slice"
           },
           {
