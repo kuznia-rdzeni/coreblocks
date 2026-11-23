@@ -13,13 +13,13 @@ from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSInterfaceLayouts, RSLayouts, FuncUnitLayouts
 from coreblocks.telemetry import FuIssue, func_unit_kind
 
-__all__ = ["RSFuncBlock", "RSBlockComponent", "issue_to_group"]
+__all__ = ["RSFuncBlock", "RSBlockComponent"]
 
 
 evlog = EventSource("backend.rs_func_block")
 
 
-def issue_to_group(m: TModule, func_units: Iterable[tuple[FuncUnit, set[OpType]]], arg: MethodStruct):
+def _issue_to_group(m: TModule, func_units: Iterable[tuple[FuncUnit, set[OpType]]], arg: MethodStruct):
     func_units = list(func_units)
     all_optypes: set[OpType] = set()
     for _, unit_optypes in func_units:
@@ -137,7 +137,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
                 # provide implementation by defining it directly
                 @def_method(m, wakeup_select.issue)
                 def _(arg):
-                    issue_to_group(m, [(func_unit, optypes) for func_unit, optypes, _ in group], arg)
+                    _issue_to_group(m, [(func_unit, optypes) for func_unit, optypes, _ in group], arg)
 
         self.insert.provide(self.rs.insert)
         self.select.provide(self.rs.select)
