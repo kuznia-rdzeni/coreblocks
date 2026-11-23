@@ -221,17 +221,9 @@ class FetchTargetQueue(Elaboratable):
         )
 
         m.submodules.ras = ras = RAS(self.gen_params, self.gen_params.bpu_config.ras)
-        m.submodules.ras_checkpoint = ras_checkpoint = memory.Memory(
-            shape=ras.state_layout, depth=self.gen_params.ftq_size, init=[]
+        m.submodules.ras_checkpoint = ras_checkpoint = MemoryBank(
+            shape=ras.state_layout, depth=self.gen_params.ftq_size
         )
-        ras_checkpoint_wrport = ras_checkpoint.write_port()
-        ras_checkpoint_rdport = ras_checkpoint.read_port()
-        m.d.comb += ras_checkpoint_rdport.en.eq(0)
-
-        ras_recover_req = Signal()
-        ras_recover_done = Signal()
-        ras_recover_pending = Signal()
-        m.d.sync += ras_recover_pending.eq(ras_recover_req | (ras_recover_pending & ~ras_recover_done))
 
         # Three pointers in the queue.
         alloc_ptr = FTQPtr(gen_params=self.gen_params)
@@ -321,11 +313,9 @@ class FetchTargetQueue(Elaboratable):
 
         @def_method(m, self.ras_predict)
         def _(ftq_ptr, ras_action, addr):
-            log.assertion(m, ~ras_recover_pending, "RAS prediction before checkpoint recovery completed")
+            log.assertion(m, ~ras_checkpoint.read_resp[0].ready, "RAS prediction before checkpoint recovery completed")
             new_state = ras.update(m, push=RasAction.has_push(ras_action), pop=RasAction.has_pop(ras_action), addr=addr)
-            m.d.comb += ras_checkpoint_wrport.addr.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
-            m.d.comb += ras_checkpoint_wrport.data.eq(new_state)
-            m.d.comb += ras_checkpoint_wrport.en.eq(1)
+            ras_checkpoint.write(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr, data=new_state)
 
         @def_method(m, self.read_prediction)
         def _(ftq_ptr):
@@ -442,15 +432,12 @@ class FetchTargetQueue(Elaboratable):
             pc_mem.rollback[2](m, ftq_ptr=ftq_ptr_plus_one)
             prediction_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
 
-            m.d.comb += ras_checkpoint_rdport.addr.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
-            m.d.comb += ras_checkpoint_rdport.en.eq(1)
-            m.d.comb += ras_recover_req.eq(1)
+            ras_checkpoint.read_req(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
 
             log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
 
-        with Transaction(name="FTQ_RAS_Recover").body(m, ready=ras_recover_pending):
-            m.d.comb += ras_recover_done.eq(1)
-            redirect_checkpoint = ras_checkpoint_rdport.data
+        with Transaction(name="FTQ_RAS_Recover").body(m):
+            redirect_checkpoint = ras_checkpoint.read_resp(m).data
             ras.recover(m, sp=redirect_checkpoint.sp, count=redirect_checkpoint.count, top=redirect_checkpoint.top)
 
         @def_method(m, self.jump_target.request)
