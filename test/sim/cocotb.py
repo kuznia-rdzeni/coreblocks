@@ -16,7 +16,7 @@ import logging
 import cocotb
 import cocotb.logging
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, SimTimeoutError
+from cocotb.triggers import ReadOnly, Timer, SimTimeoutError
 from cocotb.handle import LogicObject, LogicArrayObject
 from cocotb.triggers import Event, with_timeout
 from cocotb.utils import get_sim_time
@@ -218,6 +218,7 @@ class CocotbSimulation(SimulationBackend):
         cycle = 0
 
         while True:
+            await ReadOnly()
             sampler.sample(cycle, evlog)
             cycle += 1
             await clock.falling_edge
@@ -237,6 +238,7 @@ class CocotbSimulation(SimulationBackend):
         ]
 
         while True:
+            await ReadOnly()
             for rec, trigger_handle, field_handles, logger in logs:
                 if not trigger_handle.value:
                     continue
