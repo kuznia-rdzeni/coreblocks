@@ -83,16 +83,44 @@ class TestKonataParser:
             L\t0\t1\t fu=alu
             S\t1\t0\tIX
             L\t1\t1\t fu=alu
-            C\t1
+            C\t2
             S\t0\t0\tCm
             S\t1\t0\tCm
-            C\t2
+            C\t1
             R\t0\t0\t0
             R\t1\t1\t0
             C\t1
             R\t2\t0\t1
             """
         )
+
+    def test_announce_in_issue_cycle(self):
+        # A unit announcing in the issue cycle gets one cycle of "IX", even
+        # if the completion is logged before the issue; "Cm" starts in the
+        # next cycle, before the retirement in that cycle.
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=1)),
+            dec(3, ExecComplete(rob_id=0)),
+            dec(3, FuIssue(rob_id=0, unit="alu")),
+            dec(4, RobRetire(rob_id=0)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        lines = out.getvalue().splitlines()
+        assert lines[lines.index("S\t0\t0\tDs") :] == [
+            "S\t0\t0\tDs",
+            "L\t0\t1\t rob_id=0",
+            "C\t1",
+            "S\t0\t0\tIX",
+            "L\t0\t1\t fu=alu",
+            "C\t1",
+            "S\t0\t0\tCm",
+            "R\t0\t0\t0",
+        ]
 
     def test_rollback_without_instructions(self):
         # A block squashed before any instruction was fetched leaves no

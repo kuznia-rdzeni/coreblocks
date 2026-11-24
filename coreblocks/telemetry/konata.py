@@ -48,8 +48,12 @@ class KonataParser(EventConsumer):
     - "Rn" (rename) from entering the scheduler,
     - "Ds" (dispatch) from ROB allocation (which is where the
       instruction becomes identified by its ROB id),
-    - "IX" (issue) from being issued to a functional unit,
-    - "Cm" once execution completes.
+    - "IX" (issue) from being issued to a functional unit, up to and
+      including the cycle in which the result is announced: Konata takes
+      the last cycle of a stage named with "X" as the cycle in which the
+      result is produced, and draws dependency arrows from it,
+    - "Cm" (complete) from the cycle after the announcement, while the
+      instruction waits for retirement.
 
     The instruction terminates by retiring (`RobRetire`) or being squashed.
     Instructions still in flight when the event log ends are left unterminated.
@@ -176,7 +180,7 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "S", insn_id, 0, "Cm")
+        self._command(rec.cycle + 1, "S", insn_id, 0, "Cm")
 
     @handles(OperandWakeup)
     def on_update(self, rec: DecodedEvent[OperandWakeup]):
