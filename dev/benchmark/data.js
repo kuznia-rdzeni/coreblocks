@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795542793236,
+  "lastUpdate": 1795542795417,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -91664,6 +91664,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1087,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6d171ee08e43bc1bad57d5ad9fd73add05d14acf",
+          "message": "Fix Kanata generation in cocotb (#1173)",
+          "timestamp": "2026-11-24T17:56:53+01:00",
+          "tree_id": "3e0242e3119ee979077520361e16d3c85ebe9f77",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6d171ee08e43bc1bad57d5ad9fd73add05d14acf"
+        },
+        "date": 1795542794868,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 43.11,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 50879,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 16612,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1091,
             "unit": "Slice"
           },
           {
