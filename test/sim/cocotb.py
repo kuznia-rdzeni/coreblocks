@@ -18,7 +18,7 @@ import cocotb.logging
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, SimTimeoutError
 from cocotb.handle import LogicObject, LogicArrayObject
-from cocotb.triggers import ReadOnly, Event, with_timeout
+from cocotb.triggers import ReadOnly, ReadWrite, Event, with_timeout
 from cocotb.utils import get_sim_time
 from cocotb_tools.runner import VerilatorControlFile, Verilog
 
@@ -116,6 +116,7 @@ class WishboneSlave:
             for _ in range(self.delay):
                 await clock_edge_event  # type: ignore
 
+            await ReadWrite()
             match resp.status:
                 case ReplyStatus.OK:
                     self.bus.ack.value = 1
