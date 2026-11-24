@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795463977439,
+  "lastUpdate": 1795542781431,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -30997,6 +30997,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/31d52f23e387afd0a11ec2b9cf98e18cfc64516e"
         },
         "date": 1795463949455,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5722245979037762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7820780899517166,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5968773620026399,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6925532928805159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39411610750331244,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5457941940279776,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5398188586335259,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5264662796375671,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6d171ee08e43bc1bad57d5ad9fd73add05d14acf",
+          "message": "Fix Kanata generation in cocotb (#1173)",
+          "timestamp": "2026-11-24T17:56:53+01:00",
+          "tree_id": "3e0242e3119ee979077520361e16d3c85ebe9f77",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6d171ee08e43bc1bad57d5ad9fd73add05d14acf"
+        },
+        "date": 1795542765331,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
