@@ -6,14 +6,14 @@ from transactron import *
 from transactron.lib import Pipe
 from transactron.lib.storage import MemoryBank
 from transactron.lib.metrics import *
-from transactron.utils import OneHotMux, assign
-from transactron.utils.transactron_helpers import make_layout
+from transactron.utils import OneHotMux, assign, extract_lowest_set_bit, make_layout
 
 from coreblocks.params import GenParams, MainBTBConfig
 from coreblocks.arch import CfiType
 from coreblocks.frontend import FrontendParams
 from coreblocks.frontend.bpu.component import CfiPredictor
 from coreblocks.cache.random import PseudoRandomGenerator
+
 
 __all__ = ["MainBTB", "TargetCarry"]
 
@@ -142,9 +142,6 @@ class MainBTB(CfiPredictor):
 
         def target_high(pc: Value) -> Value:
             return pc[self.target_high_shift :]
-
-        def lowest_set(mask: Value) -> Value:
-            return mask & -mask
 
         row_layout = data.ArrayLayout(entry_layout, self.ways)
         m.submodules.table = table = MemoryBank(shape=row_layout, depth=self.sets, granularity=1)
@@ -276,9 +273,9 @@ class MainBTB(CfiPredictor):
             free_oh = Signal(self.ways)
             m.d.av_comb += [
                 way_hit.eq(Cat(wm.raw_hit & (wm.position == cfi_idx) for wm in way_meta)),
-                hit_oh.eq(lowest_set(way_hit)),
+                hit_oh.eq(extract_lowest_set_bit(way_hit)),
                 free.eq(Cat(~wm.valid for wm in way_meta)),
-                free_oh.eq(lowest_set(free)),
+                free_oh.eq(extract_lowest_set_bit(free)),
             ]
 
             victim = replacement_random.value
