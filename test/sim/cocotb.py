@@ -189,6 +189,7 @@ class CocotbSimulation(SimulationBackend):
             method_handles[method_id] = run_val
 
         while True:
+            await ReadOnly()
             samples = ProfileSamples()
 
             for transaction_id, (req, runnable, grant) in transaction_handles.items():
