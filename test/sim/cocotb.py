@@ -1,4 +1,3 @@
-from decimal import Decimal
 import inspect
 import re
 import os
@@ -16,7 +15,7 @@ import logging
 import cocotb
 import cocotb.logging
 from cocotb.clock import Clock
-from cocotb.triggers import ReadOnly, Timer, SimTimeoutError
+from cocotb.triggers import ReadOnly, SimTimeoutError
 from cocotb.handle import LogicObject, LogicArrayObject
 from cocotb.triggers import Event, with_timeout
 from cocotb.utils import get_sim_time
@@ -269,8 +268,11 @@ class CocotbSimulation(SimulationBackend):
 
         start_time = get_sim_time("ns")
 
+        # Release the reset on a falling edge: released together with a rising
+        # edge, the first cycle would be registered without being sampled.
         self.dut.rst.value = 1
-        await Timer(Decimal(1), "ns")
+        await self.dut.clk.rising_edge
+        await self.dut.clk.falling_edge
         self.dut.rst.value = 0
 
         memory = CoreMemoryEmulation(mem_model)

@@ -4,6 +4,7 @@ from amaranth.lib.data import StructLayout, View
 from dataclasses import dataclass
 
 from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
+from transactron.evlog import EventSource
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
@@ -15,6 +16,7 @@ from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts, CSRRegisterLayouts
+from coreblocks.telemetry import FuIssue, func_unit_kind
 from coreblocks.interface.keys import (
     ActiveTagsKey,
     CSRListKey,
@@ -29,6 +31,9 @@ __all__ = [
     "CSRUnit",
     "CSRBlockComponent",
 ]
+
+
+evlog = EventSource("backend.csr_unit")
 
 
 class CSRUnit(FuncBlock, Elaboratable):
@@ -151,6 +156,9 @@ class CSRUnit(FuncBlock, Elaboratable):
         with Transaction().body(m, ready=(ready_to_process & ~done)):
             side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
             side_fx_guard(m, rob_id=instr.rob_id, tag=instr.tag, require_done=1)
+
+            evlog.emit(m, FuIssue.hw(rob_id=instr.rob_id, unit=func_unit_kind(self)))
+
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
