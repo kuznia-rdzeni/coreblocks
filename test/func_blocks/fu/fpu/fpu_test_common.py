@@ -150,13 +150,22 @@ class FPUTester:
             self.compare_results(resp, expected)
 
 
-class FloatConverter:
-    class FloatData(NamedTuple):
-        sign: int
-        exp: int
-        sig: int
-        sig_with_implicit_one: int
+class FloatData(NamedTuple):
+    sign: int
+    exp: int
+    sig: int
 
+    def get_sig_with_explicit_one(self, params: FPUParams) -> int:
+        implicit_one = 1 << (params.sig_width - 1)
+        return self.sig | implicit_one if self.exp != 0 else self.sig
+
+    def assert_matches_params(self, params: FPUParams):
+        assert (self.sign >> 1) == 0
+        assert (self.exp >> params.exp_width) == 0
+        assert (self.sig >> (params.sig_width - 1)) == 0
+
+
+class FloatConverter:
     def __init__(self, params: FPUParams):
         self.params = params
         # Width of the entire floating point number.
@@ -167,35 +176,51 @@ class FloatConverter:
         self.sig_width = self.params.sig_width - 1
         self.exp_mask = (2**self.params.exp_width) - 1
         self.sig_mask = (2 ** (self.params.sig_width - 1)) - 1
-        self.implicit_one = 1 << (self.params.sig_width - 1)
         self.cv = FPUCommonValues(self.params)
 
-    def _decode_float(self, raw_float: int | str) -> FloatData:
+    def _decode_raw_float(self, raw_float: int | str) -> FloatData:
         raw_float = int(raw_float, 16) if isinstance(raw_float, str) else raw_float
         sign = (raw_float >> (self.all_width - 1)) & 0x1
         exp = (raw_float >> self.sig_width) & self.exp_mask
         sig = raw_float & self.sig_mask
-        sig_with_implicit_one = sig | self.implicit_one if exp != 0 else sig
-        return self.FloatData(sign, exp, sig, sig_with_implicit_one)
+        return FloatData(sign, exp, sig)
 
-    def to_input_data(self, raw_float: int | str) -> dict[str, int]:
-        (sign, exp, sig, sig_with_implicit_one) = self._decode_float(raw_float)
+    def _float_to_input_data(self, float_data: FloatData) -> dict[str, int]:
+        (sign, exp, sig) = float_data
         # Matches FPU data_input_layout
         return {
             "sign": sign,
             "exp": exp,
-            "sig": sig_with_implicit_one,
+            "sig": float_data.get_sig_with_explicit_one(self.params),
             "is_inf": ((exp == self.cv.max_exp) & (sig == 0)),
             "is_nan": ((exp == self.cv.max_exp) & (sig != 0)),
             "is_zero": ((exp == 0) & (sig == 0)),
         }
 
-    def to_output_data(self, raw_float: int | str, errors: int | str) -> dict[str, int]:
-        (sign, exp, _, sig_with_implicit_one) = self._decode_float(raw_float)
+    def _float_to_output_data(self, float_data: FloatData, errors: int | str) -> dict[str, int]:
+        (sign, exp, _) = float_data
         # Matches FPU data_output_layout
         return {
             "sign": sign,
             "exp": exp,
-            "sig": sig_with_implicit_one,
+            "sig": float_data.get_sig_with_explicit_one(self.params),
             "errors": int(errors, 16) if isinstance(errors, str) else errors,
         }
+
+    def to_input_data(self, raw_float: int | str | FloatData) -> dict[str, int]:
+        if isinstance(raw_float, FloatData):
+            float_data = raw_float
+            float_data.assert_matches_params(self.params)
+        else:
+            float_data = self._decode_raw_float(raw_float)
+
+        return self._float_to_input_data(float_data)
+
+    def to_output_data(self, raw_float: int | str | FloatData, errors: int | str) -> dict[str, int]:
+        if isinstance(raw_float, FloatData):
+            float_data = raw_float
+            float_data.assert_matches_params(self.params)
+        else:
+            float_data = self._decode_raw_float(raw_float)
+
+        return self._float_to_output_data(float_data, errors)
