@@ -83,16 +83,44 @@ class TestKonataParser:
             L\t0\t1\t fu=alu
             S\t1\t0\tIX
             L\t1\t1\t fu=alu
-            C\t1
+            C\t2
             S\t0\t0\tCm
             S\t1\t0\tCm
-            C\t2
+            C\t1
             R\t0\t0\t0
             R\t1\t1\t0
             C\t1
             R\t2\t0\t1
             """
         )
+
+    def test_announce_in_issue_cycle(self):
+        # A unit announcing in the issue cycle gets one cycle of "IX", even
+        # if the completion is logged before the issue. The instruction
+        # retires in the next cycle, so it gets no "Cm".
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=1)),
+            dec(3, ExecComplete(rob_id=0)),
+            dec(3, FuIssue(rob_id=0, unit="alu")),
+            dec(4, RobRetire(rob_id=0)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        lines = out.getvalue().splitlines()
+        assert lines[lines.index("S\t0\t0\tDs") :] == [
+            "S\t0\t0\tDs",
+            "L\t0\t1\t rob_id=0",
+            "C\t1",
+            "S\t0\t0\tIX",
+            "L\t0\t1\t fu=alu",
+            "C\t1",
+            "R\t0\t0\t0",
+        ]
 
     def test_rollback_without_instructions(self):
         # A block squashed before any instruction was fetched leaves no
@@ -115,6 +143,7 @@ class TestKonataParser:
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
             dec(2, FTQAlloc(ftq_ptr=1, pc=0x108)),
+            dec(3, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
             dec(3, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=5, rp_dst=1)),
             dec(4, FTQCommit(ftq_ptr=0)),
             dec(5, FTQCommit(ftq_ptr=1)),
@@ -131,6 +160,7 @@ class TestKonataParser:
         records = [
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
             dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=3, rp_dst=1)),
             dec(3, RobFlush(rob_id=3)),
             dec(4, FTQRollback(ftq_ptr=0, cause="backend_redirect")),
@@ -141,6 +171,100 @@ class TestKonataParser:
 
         retires = [line for line in out.getvalue().splitlines() if line.startswith("R")]
         assert retires == ["R\t0\t0\t1"]
+
+    def test_rollback_spares_instructions_past_frontend(self):
+        # A frontend flush squashes only the instructions which have not
+        # entered the scheduler; the others proceed until flushed from the
+        # ROB, even after their FTQ entry is reallocated.
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x104, instr=0x13, ftq_offset=1)),
+            dec(2, InstrDecoded(ftq_ptr=0, ftq_offset=0)),
+            dec(3, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
+            dec(3, InstrDecoded(ftq_ptr=0, ftq_offset=1)),
+            dec(4, FTQRollback(ftq_ptr=0, cause="backend_redirect")),
+            dec(5, FTQAlloc(ftq_ptr=0, pc=0x200)),
+            dec(6, InstrFetched(ftq_ptr=0, pc=0x200, instr=0x13, ftq_offset=0)),
+            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=2, rp_dst=1)),
+            dec(8, RobFlush(rob_id=2)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        # The instruction in the scheduler is allocated in the ROB and flushed
+        # from there; the one being decoded is squashed by the rollback; the
+        # refetched one is unaffected.
+        assert [line for line in out.getvalue().splitlines() if line.startswith(("S", "R"))] == [
+            "S\t0\t0\tF",
+            "S\t0\t0\tQ",
+            "S\t1\t0\tF",
+            "S\t1\t0\tQ",
+            "S\t0\t0\tD",
+            "S\t0\t0\tRn",
+            "S\t1\t0\tD",
+            "R\t1\t0\t1",
+            "S\t2\t0\tF",
+            "S\t2\t0\tQ",
+            "S\t0\t0\tDs",
+            "R\t0\t0\t1",
+        ]
+
+    def test_rollback_at_end_of_cycle(self):
+        # A frontend flush takes effect at the end of its cycle, whatever the
+        # logging order: an instruction entering the scheduler in that cycle
+        # survives, and one fetched in that cycle never enters the queue.
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(0, FetchRequest(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(2, InstrDecoded(ftq_ptr=0, ftq_offset=0)),
+            dec(2, FTQAlloc(ftq_ptr=1, pc=0x108)),
+            dec(2, FetchRequest(ftq_ptr=1, pc=0x108)),
+            dec(4, FTQRollback(ftq_ptr=0, cause="backend_redirect")),
+            dec(4, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
+            dec(4, InstrFetched(ftq_ptr=1, pc=0x108, instr=0x13, ftq_offset=0)),
+            dec(5, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=1)),
+            dec(6, RobFlush(rob_id=0)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        assert [line for line in out.getvalue().splitlines() if line.startswith(("S", "R"))] == [
+            "S\t0\t0\tF",
+            "S\t0\t0\tQ",
+            "S\t0\t0\tD",
+            "S\t1\t0\tF",
+            "S\t0\t0\tRn",
+            "R\t1\t0\t1",
+            "S\t0\t0\tDs",
+            "R\t0\t0\t1",
+        ]
+
+    def test_completion_shown_while_waiting_for_retirement(self):
+        # "Cm" is shown only if the instruction waits for retirement.
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x104, instr=0x13, ftq_offset=1)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=1)),
+            dec(3, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=1)),
+            dec(3, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1, rp_dst=2)),
+            dec(4, FuIssue(rob_id=0, unit="alu")),
+            dec(4, FuIssue(rob_id=1, unit="alu")),
+            dec(4, ExecComplete(rob_id=1)),
+            dec(5, ExecComplete(rob_id=0)),
+            dec(6, RobRetire(rob_id=0)),
+            dec(6, RobRetire(rob_id=1)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        assert [line for line in out.getvalue().splitlines() if line.endswith("Cm")] == ["S\t1\t0\tCm"]
 
     def test_unterminated_instructions(self):
         # Instructions still in flight when the log ends stay unterminated.
@@ -171,6 +295,8 @@ class TestKonataParser:
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x104, instr=0x93, ftq_offset=1)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=1)),
             dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=12)),
             dec(2, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1, rp_dst=13)),
             dec(3, OperandWakeup(rob_id=1, reg_id=12)),
@@ -185,6 +311,7 @@ class TestKonataParser:
         records = [
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(2, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
             dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=1, rp_dst=5)),
             dec(3, OperandWakeup(rob_id=1, reg_id=12)),
         ]

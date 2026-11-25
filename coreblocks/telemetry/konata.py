@@ -12,6 +12,7 @@ the times its fetch block was allocated and requested.
 import argparse
 import signal
 import sys
+from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Optional, TextIO
@@ -33,7 +34,8 @@ class _Block:
     pc: int
     fetch_cycle: Optional[int] = None
     instr_ids: dict[int, int] = field(default_factory=dict)
-    """Kanata instruction ids, keyed by the FTQ offset."""
+    """Kanata instruction ids of the block's instructions still in the
+    frontend, keyed by the FTQ offset."""
 
 
 class KonataParser(EventConsumer):
@@ -48,11 +50,25 @@ class KonataParser(EventConsumer):
     - "Rn" (rename) from entering the scheduler,
     - "Ds" (dispatch) from ROB allocation (which is where the
       instruction becomes identified by its ROB id),
-    - "IX" (issue) from being issued to a functional unit,
-    - "Cm" once execution completes.
+    - "IX" (issue) from being issued to a functional unit, up to and
+      including the cycle in which the result is announced: Konata takes
+      the last cycle of a stage named with "X" as the cycle in which the
+      result is produced, and draws dependency arrows from it,
+    - "Cm" (complete) from the cycle after the announcement, while the
+      instruction waits for retirement.
 
     The instruction terminates by retiring (`RobRetire`) or being squashed.
     Instructions still in flight when the event log ends are left unterminated.
+    A stage starting in the cycle of termination is omitted: the instruction
+    never really spent time in it (e.g. it retired right after completing,
+    or it was flushed while being written into a frontend buffer), and
+    Konata would draw it as a bare label.
+
+    A frontend flush (`FTQRollback`) takes effect at the end of its cycle,
+    and squashes only the instructions which have not yet entered the
+    scheduler. The scheduler is never flushed, so wrong-path instructions
+    which left the frontend proceed to the ROB and are squashed from there
+    (`RobFlush`).
     """
 
     def __init__(self, out: TextIO):
@@ -61,6 +77,12 @@ class KonataParser(EventConsumer):
         # bit, which makes keys unique among live entries); insertion order
         # is allocation order.
         self.blocks: dict[int, _Block] = {}
+        # Kanata instruction ids of instructions between entering the
+        # scheduler and ROB allocation, keyed by (FTQ pointer, FTQ offset).
+        # A key can repeat when a squashed FTQ entry is reallocated while
+        # its wrong-path instructions are still in the scheduler; the
+        # scheduler is in-order, so the oldest one is allocated first.
+        self.scheduler: defaultdict[tuple[int, int], deque[int]] = defaultdict(deque)
         # Kanata instruction ids of live ROB entries, keyed by the ROB id.
         self.rob: dict[int, int] = {}
         # Physical register ids associated with Kanata instruction ids.
@@ -69,6 +91,11 @@ class KonataParser(EventConsumer):
         self.by_rp_dst: dict[int, int] = {}
         # Kanata instruction ids with a terminal (retire/flush) record.
         self.terminated: set[int] = set()
+        # Timeline positions of the last stages of live instructions, keyed
+        # by Kanata instruction ids.
+        self.last_stage: dict[int, int] = {}
+        # Timeline positions of the stages omitted on termination.
+        self.omitted: set[int] = set()
         # (cycle, sequence number, line) command timeline; the sequence
         # number keeps the append order among commands of the same cycle.
         self.timeline: list[tuple[int, int, str]] = []
@@ -87,11 +114,30 @@ class KonataParser(EventConsumer):
         return f"{instr:08x}"
 
     def run(self, records: Iterable[DecodedEvent]):
-        super().run(records)
+        # A frontend flush takes effect at the end of its cycle, so rollbacks
+        # are handled after the other events of the cycle (the base class
+        # sorts by cycle, which keeps this order).
+        super().run(sorted(records, key=lambda rec: isinstance(rec.event, FTQRollback)))
         self._write()
 
     def _command(self, cycle: int, *columns) -> None:
         self.timeline.append((cycle, len(self.timeline), "\t".join(str(col) for col in columns)))
+
+    def _stage(self, cycle: int, insn_id: int, name: str) -> None:
+        # Stages are not always logged in order, e.g. a completion can be
+        # logged before the issue in the same cycle.
+        last = self.last_stage.get(insn_id)
+        if last is None or cycle >= self.timeline[last][0]:
+            self.last_stage[insn_id] = len(self.timeline)
+        self._command(cycle, "S", insn_id, 0, name)
+
+    def _terminate(self, cycle: int, insn_id: int, retire_id: int, flush: int) -> None:
+        stage = self.last_stage.pop(insn_id, None)
+        if stage is not None and self.timeline[stage][0] >= cycle:
+            self.omitted.add(stage)
+        self._command(cycle, "R", insn_id, retire_id, flush)
+        self.terminated.add(insn_id)
+        self._forget_dst(insn_id)
 
     def _forget_dst(self, insn_id: int) -> None:
         """Drops the destination register mapping of a terminated instruction,
@@ -128,8 +174,8 @@ class KonataParser(EventConsumer):
         self._command(start, "I", insn_id, insn_id, 0)
         self._command(start, "L", insn_id, 0, f"{ev.pc:08x}: {self._format_instr(ev.pc, ev.instr)}")
         self._command(start, "L", insn_id, 1, f"instr={ev.instr:08x} ftq_ptr={ev.ftq_ptr} ftq_offset={ev.ftq_offset}")
-        self._command(start, "S", insn_id, 0, "F")
-        self._command(rec.cycle, "S", insn_id, 0, "Q")
+        self._stage(start, insn_id, "F")
+        self._stage(rec.cycle, insn_id, "Q")
 
     @handles(InstrDecoded)
     def on_instr_decoded(self, rec: DecodedEvent[InstrDecoded]):
@@ -137,7 +183,7 @@ class KonataParser(EventConsumer):
         block = self.blocks.get(ev.ftq_ptr)
         if block is None or ev.ftq_offset not in block.instr_ids:
             return
-        self._command(rec.cycle, "S", block.instr_ids[ev.ftq_offset], 0, "D")
+        self._stage(rec.cycle, block.instr_ids[ev.ftq_offset], "D")
 
     @handles(SchedulerEnter)
     def on_scheduler_enter(self, rec: DecodedEvent[SchedulerEnter]):
@@ -145,20 +191,22 @@ class KonataParser(EventConsumer):
         block = self.blocks.get(ev.ftq_ptr)
         if block is None or ev.ftq_offset not in block.instr_ids:
             return
-        self._command(rec.cycle, "S", block.instr_ids[ev.ftq_offset], 0, "Rn")
+        insn_id = block.instr_ids.pop(ev.ftq_offset)
+        self.scheduler[(ev.ftq_ptr, ev.ftq_offset)].append(insn_id)
+        self._stage(rec.cycle, insn_id, "Rn")
 
     @handles(RobAllocate)
     def on_rob_allocate(self, rec: DecodedEvent[RobAllocate]):
         ev = rec.event
-        block = self.blocks.get(ev.ftq_ptr)
-        if block is None or ev.ftq_offset not in block.instr_ids:
+        pending = self.scheduler.get((ev.ftq_ptr, ev.ftq_offset))
+        if not pending:
             return
-        insn_id = block.instr_ids[ev.ftq_offset]
+        insn_id = pending.popleft()
         self.rob[ev.rob_id] = insn_id
         if ev.rp_dst:
             self.rp_dst[insn_id] = ev.rp_dst
             self.by_rp_dst[ev.rp_dst] = insn_id
-        self._command(rec.cycle, "S", insn_id, 0, "Ds")
+        self._stage(rec.cycle, insn_id, "Ds")
         self._command(rec.cycle, "L", insn_id, 1, f" rob_id={ev.rob_id}")
 
     @handles(FuIssue)
@@ -167,7 +215,7 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "S", insn_id, 0, "IX")
+        self._stage(rec.cycle, insn_id, "IX")
         self._command(rec.cycle, "L", insn_id, 1, f" fu={ev.unit}")
 
     @handles(ExecComplete)
@@ -176,7 +224,7 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "S", insn_id, 0, "Cm")
+        self._stage(rec.cycle + 1, insn_id, "Cm")
 
     @handles(OperandWakeup)
     def on_update(self, rec: DecodedEvent[OperandWakeup]):
@@ -193,10 +241,8 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.pop(ev.rob_id, None)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "R", insn_id, self.next_retire_id, 0)
+        self._terminate(rec.cycle, insn_id, self.next_retire_id, 0)
         self.next_retire_id += 1
-        self.terminated.add(insn_id)
-        self._forget_dst(insn_id)
 
     @handles(RobFlush)
     def on_rob_flush(self, rec: DecodedEvent[RobFlush]):
@@ -204,9 +250,7 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.pop(ev.rob_id, None)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "R", insn_id, 0, 1)
-        self.terminated.add(insn_id)
-        self._forget_dst(insn_id)
+        self._terminate(rec.cycle, insn_id, 0, 1)
 
     @handles(FTQCommit)
     def on_commit(self, rec: DecodedEvent[FTQCommit]):
@@ -221,19 +265,12 @@ class KonataParser(EventConsumer):
     def on_rollback(self, rec: DecodedEvent[FTQRollback]):
         ev = rec.event
         # `ftq_ptr` is the new allocation pointer: it and everything
-        # allocated after it is squashed. Instructions already flushed from
-        # the ROB (via `RobFlush`) are skipped; blocks squashed before
-        # producing any instructions simply disappear from the log.
-        flushed: set[int] = set()
+        # allocated after it is squashed. Only the instructions still in the
+        # frontend are flushed; blocks squashed before producing any
+        # instructions simply disappear from the log.
         for key in self._entries_from(ev.ftq_ptr):
             for insn_id in self.blocks.pop(key).instr_ids.values():
-                flushed.add(insn_id)
-                self._forget_dst(insn_id)
-                if insn_id in self.terminated:
-                    continue
-                self._command(rec.cycle, "R", insn_id, 0, 1)
-                self.terminated.add(insn_id)
-        self.rob = {rob_id: insn_id for rob_id, insn_id in self.rob.items() if insn_id not in flushed}
+                self._terminate(rec.cycle, insn_id, 0, 1)
 
     def _entries_before(self, ftq_ptr: int) -> list[int]:
         """Returns the live entries allocated strictly before `ftq_ptr`."""
@@ -251,6 +288,7 @@ class KonataParser(EventConsumer):
 
     def _write(self):
         self.out.write("Kanata\t0004\n")
+        self.timeline = [command for command in self.timeline if command[1] not in self.omitted]
         self.timeline.sort(key=lambda command: command[:2])
 
         current_cycle = self.timeline[0][0] if self.timeline else 0
