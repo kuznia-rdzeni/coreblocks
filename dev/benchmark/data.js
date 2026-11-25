@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795627902857,
+  "lastUpdate": 1795627905802,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -61594,6 +61594,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 9492,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "d1d4bcd0132b671e1b83b4068d9a0e0524036c4b",
+          "message": "Configurable announcement (#978)\n\n* WiP\n\n* Oopsie\n\n* FTQ experiment\n\n* Remove result fifos\n\n* Add result FIFOs back to tiny config\n\n* Revert \"FTQ experiment\"\n\n* Fix\n\n* Docs",
+          "timestamp": "2026-11-25T15:02:32Z",
+          "tree_id": "52116980ba5b0e7952634335e93bb027e1b46434",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d1d4bcd0132b671e1b83b4068d9a0e0524036c4b"
+        },
+        "date": 1795627905035,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 45.64,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24213,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1400,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2324,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9482,
             "unit": "LUT"
           }
         ]
