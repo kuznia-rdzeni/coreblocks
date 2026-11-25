@@ -14,24 +14,22 @@ class TestAddSub(TestCaseWithSimulator):
         m = SimpleTestCircuit(FPUAddSubModule(fpu_params=params))
         sfr = SoftFloatReference()
 
-        async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
+        async def python_float_test(test_addition: bool, sim: TestbenchContext, request_adapter: TestbenchIO):
+            (operation, sfr_op) = (0, sfr.add) if test_addition else (1, sfr.sub)
+
             rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
             test_runs = 5000
             random.seed(seed)
 
-            for i in range(test_runs):
+            for _ in range(test_runs):
                 float_1_raw = random.getrandbits(32)
                 float_2_raw = random.getrandbits(32)
-                test_addition = i < test_runs / 2
 
-                if test_addition:
-                    (expected_raw, expected_errors) = sfr.add(SF_F32, float_1_raw, float_2_raw, rm)
-                else:
-                    (expected_raw, expected_errors) = sfr.sub(SF_F32, float_1_raw, float_2_raw, rm)
+                (expected_raw, expected_errors) = sfr_op(SF_F32, float_1_raw, float_2_raw, rm)
 
                 input_dict = {
-                    "operation": 0 if test_addition else 1,
+                    "operation": operation,
                     "op_1": tester.converter.to_input_data(float_1_raw),
                     "op_2": tester.converter.to_input_data(float_2_raw),
                     "rounding_mode": rm,
@@ -42,7 +40,8 @@ class TestAddSub(TestCaseWithSimulator):
                 FPUTester.compare_results(result, resp)
 
         async def test_process(sim: TestbenchContext):
-            await python_float_test(sim, m.add_sub_request)
+            await python_float_test(True, sim, m.add_sub_request)
+            await python_float_test(False, sim, m.add_sub_request)
             await tester.run_test_set(
                 nc_add_rtne,
                 nc_add_rtne_resp,
