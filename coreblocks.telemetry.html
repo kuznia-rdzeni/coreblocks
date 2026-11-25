@@ -498,11 +498,24 @@ block. Stages:</p>
 <li><p>“Rn” (rename) from entering the scheduler,</p></li>
 <li><p>“Ds” (dispatch) from ROB allocation (which is where the
 instruction becomes identified by its ROB id),</p></li>
-<li><p>“IX” (issue) from being issued to a functional unit,</p></li>
-<li><p>“Cm” once execution completes.</p></li>
+<li><p>“IX” (issue) from being issued to a functional unit, up to and
+including the cycle in which the result is announced: Konata takes
+the last cycle of a stage named with “X” as the cycle in which the
+result is produced, and draws dependency arrows from it,</p></li>
+<li><p>“Cm” (complete) from the cycle after the announcement, while the
+instruction waits for retirement.</p></li>
 </ul>
 <p>The instruction terminates by retiring (<cite>RobRetire</cite>) or being squashed.
-Instructions still in flight when the event log ends are left unterminated.</p>
+Instructions still in flight when the event log ends are left unterminated.
+A stage starting in the cycle of termination is omitted: the instruction
+never really spent time in it (e.g. it retired right after completing,
+or it was flushed while being written into a frontend buffer), and
+Konata would draw it as a bare label.</p>
+<p>A frontend flush (<cite>FTQRollback</cite>) takes effect at the end of its cycle,
+and squashes only the instructions which have not yet entered the
+scheduler. The scheduler is never flushed, so wrong-path instructions
+which left the frontend proceed to the ROB and are squashed from there
+(<cite>RobFlush</cite>).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TextIO" title="(in Python v3.15)"><span class="pre">TextIO</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.__init__" title="Link to this definition"></a></dt>
@@ -647,7 +660,7 @@ Either way exposing more than 128k wires is not feasible.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 21:58 2026-11-25.
+      <span class="lastupdated">Last updated on 23:38 2026-11-25.
       </span></p>
   </div>
 
