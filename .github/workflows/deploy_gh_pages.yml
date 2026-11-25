@@ -16,8 +16,6 @@ jobs:
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GH_MAIL: ${{github.event.pusher.email}}
-      GH_NAME: ${{github.event.pusher.name}}
       DOCS_DIR: "docs"
       BUILD_DIR: "build"
     steps:
