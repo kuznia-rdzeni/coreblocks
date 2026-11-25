@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795542795417,
+  "lastUpdate": 1795627899625,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -31101,6 +31101,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.5264662796375671,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "d1d4bcd0132b671e1b83b4068d9a0e0524036c4b",
+          "message": "Configurable announcement (#978)\n\n* WiP\n\n* Oopsie\n\n* FTQ experiment\n\n* Remove result fifos\n\n* Add result FIFOs back to tiny config\n\n* Revert \"FTQ experiment\"\n\n* Fix\n\n* Docs",
+          "timestamp": "2026-11-25T15:02:32Z",
+          "tree_id": "52116980ba5b0e7952634335e93bb027e1b46434",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d1d4bcd0132b671e1b83b4068d9a0e0524036c4b"
+        },
+        "date": 1795627870964,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.6453278087523928,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.995499419279907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.6801516904486438,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.783929085155351,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.4145724536061187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5823427617890031,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5471642057102112,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.6827732275042923,
             "unit": "Instructions Per Cycle"
           }
         ]
