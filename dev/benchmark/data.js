@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795631449340,
+  "lastUpdate": 1795631451393,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -61697,6 +61697,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1400,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2324,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9482,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "563956454f0e8402b5c9450227fa564808037a45",
+          "message": "update README (#1165)\n\n* update README\n\n* PR review\n\n* link configuration files in README\n\n* add microarch paragraph\n\n* Apply suggestion from @awariac\n\nCo-authored-by: Aria Węgrzyn <git@ariac.at>\n\n* more microarch comments\n\n* remove RVA reference and Tomasulo typo\n\n---------\n\nCo-authored-by: Aria Węgrzyn <git@ariac.at>",
+          "timestamp": "2026-11-25T15:55:04Z",
+          "tree_id": "07253be42d77f8245d6e2234eef33fffacb46206",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/563956454f0e8402b5c9450227fa564808037a45"
+        },
+        "date": 1795631450957,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 44.72,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24079,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1440,
             "unit": "LUT"
           },
           {
