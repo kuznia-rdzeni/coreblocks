@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795645504235,
+  "lastUpdate": 1795645506426,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -92297,6 +92297,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1085,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4640a876e063e17b80abae5590141b5d20d51eb4",
+          "message": "Fix GH pages deploy from merge queue (#1176)",
+          "timestamp": "2026-11-25T22:57:49+01:00",
+          "tree_id": "9b6ae2d25426b698f8941113a24e4829bb365a06",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4640a876e063e17b80abae5590141b5d20d51eb4"
+        },
+        "date": 1795645505953,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.74,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 53145,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 16780,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1091,
             "unit": "Slice"
           },
           {
