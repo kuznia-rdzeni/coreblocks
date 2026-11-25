@@ -1,9 +1,11 @@
 from coreblocks.func_blocks.fu.fpu.fpu_mul import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32
-from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, FloatData, SoftFloatReference
 from transactron.testing import *
 from test.func_blocks.fu.fpu.mul_test_cases import *
+from test.func_blocks.fu.fpu.float_generator import FloatGenerator as Fg
 from amaranth import *
+from itertools import product
 import random
 
 
@@ -45,13 +47,25 @@ class TestMul(TestCaseWithSimulator):
                     "rounding_mode": rounding_mode,
                 }
 
-            def get_expected(test_case_data, rounding_mode: RoundingModes):
-                (expected_raw, expected_errors) = sfr.mul(SF_F32, test_case_data[0], test_case_data[1], rounding_mode)
+            def get_expected(test_case_data: list[int] | tuple[FloatData, FloatData], rounding_mode: RoundingModes):
+                def to_raw(val: int | FloatData) -> int:
+                    return val.to_raw_float(params) if isinstance(val, FloatData) else val
+
+                (data_a, data_b) = (to_raw(x) for x in test_case_data)
+                (expected_raw, expected_errors) = sfr.mul(SF_F32, data_a, data_b, rounding_mode)
                 return converter.to_output_data(expected_raw, expected_errors)
 
             await python_float_test(sim, m.mul_request)
             await tester.run_test_set(
                 edge_cases_mul,
+                construct_input,
+                get_expected,
+                sim,
+                m.mul_request,
+            )
+
+            await tester.run_test_set(
+                product(Fg(params).common_floats, Fg(params).common_floats),
                 construct_input,
                 get_expected,
                 sim,

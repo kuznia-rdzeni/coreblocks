@@ -1,9 +1,11 @@
 from coreblocks.func_blocks.fu.fpu.fpu_add_sub import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes
-from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, FloatData, SoftFloatReference
 from test.func_blocks.fu.fpu.add_sub_test_cases import *
+from test.func_blocks.fu.fpu.float_generator import FloatGenerator as Fg
 from transactron.testing import *
 from amaranth import *
+from itertools import product
 import random
 
 
@@ -43,25 +45,42 @@ class TestAddSub(TestCaseWithSimulator):
             await python_float_test(True, sim, m.add_sub_request)
             await python_float_test(False, sim, m.add_sub_request)
 
-            def construct_input(test_case_data, rounding_mode: RoundingModes):
-                return {
-                    "operation": 0,
-                    "op_1": tester.converter.to_input_data(test_case_data[0]),
-                    "op_2": tester.converter.to_input_data(test_case_data[1]),
-                    "rounding_mode": rounding_mode,
-                }
+            def get_input_constructor(test_addition: bool):
+                operation = 0 if test_addition else 1
 
-            def get_expected(test_case_data, rounding_mode: RoundingModes):
-                (expected_raw, expected_errors) = sfr.add(SF_F32, test_case_data[0], test_case_data[1], rounding_mode)
-                return tester.converter.to_output_data(expected_raw, expected_errors)
+                def construct_input(test_case_data, rounding_mode: RoundingModes):
+                    return {
+                        "operation": operation,
+                        "op_1": tester.converter.to_input_data(test_case_data[0]),
+                        "op_2": tester.converter.to_input_data(test_case_data[1]),
+                        "rounding_mode": rounding_mode,
+                    }
 
-            await tester.run_test_set(
-                add_sub_edge_cases,
-                construct_input,
-                get_expected,
-                sim,
-                m.add_sub_request,
-            )
+                return construct_input
+
+            def get_expected_generator(test_addition: bool):
+                sfr_op = sfr.add if test_addition else sfr.sub
+
+                def get_expected(test_case_data: list[int] | tuple[FloatData, FloatData], rounding_mode: RoundingModes):
+                    def to_raw(val: int | FloatData) -> int:
+                        return val.to_raw_float(params) if isinstance(val, FloatData) else val
+
+                    (data_a, data_b) = (to_raw(x) for x in test_case_data)
+                    (expected_raw, expected_errors) = sfr_op(SF_F32, data_a, data_b, rounding_mode)
+                    return tester.converter.to_output_data(expected_raw, expected_errors)
+
+                return get_expected
+
+            for is_addition, input in product(
+                [True, False], [add_sub_edge_cases, product(Fg(params).common_floats, Fg(params).common_floats)]
+            ):
+                await tester.run_test_set(
+                    input,
+                    get_input_constructor(is_addition),
+                    get_expected_generator(is_addition),
+                    sim,
+                    m.add_sub_request,
+                )
 
         with self.run_simulation(m) as sim:
             sim.add_testbench(test_process)

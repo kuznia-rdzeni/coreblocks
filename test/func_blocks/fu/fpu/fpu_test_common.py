@@ -161,6 +161,11 @@ class FloatData(NamedTuple):
         assert (self.exp >> params.exp_width) == 0
         assert (self.sig >> (params.sig_width - 1)) == 0
 
+    def to_raw_float(self, params: FPUParams) -> int:
+        return (
+            (self.sign << (params.exp_width + params.sig_width - 1)) | (self.exp << (params.sig_width - 1)) | self.sig
+        )
+
 
 class FloatConverter:
     def __init__(self, params: FPUParams):
