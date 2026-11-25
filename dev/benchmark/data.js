@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795631446916,
+  "lastUpdate": 1795631449340,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -96047,6 +96047,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 8917,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 526,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1264,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 3589,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "563956454f0e8402b5c9450227fa564808037a45",
+          "message": "update README (#1165)\n\n* update README\n\n* PR review\n\n* link configuration files in README\n\n* add microarch paragraph\n\n* Apply suggestion from @awariac\n\nCo-authored-by: Aria Węgrzyn <git@ariac.at>\n\n* more microarch comments\n\n* remove RVA reference and Tomasulo typo\n\n---------\n\nCo-authored-by: Aria Węgrzyn <git@ariac.at>",
+          "timestamp": "2026-11-25T15:55:04Z",
+          "tree_id": "07253be42d77f8245d6e2234eef33fffacb46206",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/563956454f0e8402b5c9450227fa564808037a45"
+        },
+        "date": 1795631448867,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 71.56,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 8908,
             "unit": "LUT4"
           },
           {
