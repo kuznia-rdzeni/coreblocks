@@ -256,7 +256,6 @@ class AluFuncUnit(FuncUnitBase[AluFn]):
 @dataclass(frozen=True)
 class ALUComponent(FunctionalComponentParams):
     _: KW_ONLY
-    result_fifo: bool = True
     zba_enable: bool = False
     zbb_enable: bool = False
     zicond_enable: bool = False

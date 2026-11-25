@@ -1,4 +1,4 @@
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 
 import dataclasses
 from dataclasses import dataclass, field
@@ -68,6 +68,12 @@ class _CoreConfigurationDataClass:
     func_units_config: Collection[BlockComponentParams]
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
+    announcement_config: Sequence[Collection[int]] | None
+        Assignment of functional blocks to announcement ports. The n-th element is the collection of
+        indices (into func_units_config) of the blocks whose results can be announced through the n-th
+        port. The number of elements must equal announcement_superscalarity, and every block must be
+        assigned to at least one port. If not set, every block is connected to every port.
+        Example: [[0], [1], [2, 3, 4]]
     compressed: bool
         Enables 16-bit Compressed instructions. Enables Zca, Zcf, and Zcd extensions as permitted by the ISA.
     zcb: bool
@@ -163,7 +169,8 @@ class _CoreConfigurationDataClass:
         ]
 
     xlen: int = 32
-    func_units_config: Collection[BlockComponentParams] = basic_configuration
+    func_units_config: Sequence[BlockComponentParams] = basic_configuration
+    announcement_config: Sequence[Collection[int]] | None = None
 
     compressed: bool = False
     zcb: bool = False

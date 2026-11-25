@@ -36,7 +36,13 @@ tiny = CoreConfiguration(
     embedded=True,
     func_units_config=(
         RSBlockComponent(
-            [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=2
+            [
+                ALUComponent(result_fifo=True),
+                ShiftUnitComponent(result_fifo=True),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+            ],
+            rs_entries=2,
         ),
         RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     ),
@@ -116,13 +122,14 @@ full = CoreConfiguration(
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
     ),
+    announcement_config=[[0], [1], [2, 3, 4]],
     compressed=True,
     zcb=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
     pmp_register_count=16,
     frontend_superscalarity=2,
-    announcement_superscalarity=2,
+    announcement_superscalarity=3,
     retirement_superscalarity=2,
     interrupt_custom_count=15,
     hpm_counters_count=2,
