@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795631457664,
+  "lastUpdate": 1795645494762,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -31189,6 +31189,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/563956454f0e8402b5c9450227fa564808037a45"
         },
         "date": 1795631433543,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.6453278087523928,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.995499419279907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.6801516904486438,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.783929085155351,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.4145724536061187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5823427617890031,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5471642057102112,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.6827732275042923,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4640a876e063e17b80abae5590141b5d20d51eb4",
+          "message": "Fix GH pages deploy from merge queue (#1176)",
+          "timestamp": "2026-11-25T22:57:49+01:00",
+          "tree_id": "9b6ae2d25426b698f8941113a24e4829bb365a06",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4640a876e063e17b80abae5590141b5d20d51eb4"
+        },
+        "date": 1795645481510,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
