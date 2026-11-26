@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795653393664,
+  "lastUpdate": 1795653396833,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -87802,6 +87802,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 378,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "30830383+bartlomiej-stefanski@users.noreply.github.com",
+            "name": "Bartłomiej Stefański",
+            "username": "bartlomiej-stefanski"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "80a6bd1242ad786f0e5612302bb68b2484ce58d0",
+          "message": "Use softfloatpy in randomized FPU tests (#1146)\n\n* test: fpu: mul_test_cases: Add underflow-to-zero edge case\n\n* test: fpu: Use softfloatpy for random tests\n\n* test: fpu: FloatConverter conversions now matches FPU input and output format\n\n* fpu: fpu_common: Turn FPUParams into a dataclass\n\n* test: fpu: Increase iteration count for softfloat random tests\n\n* test: fpu: fpu_common: Rework FloatConverter\n\n* test: fpu: test_add_sub: Test addition and subtraction separately",
+          "timestamp": "2026-11-25T21:58:43Z",
+          "tree_id": "69f0798fd6ebe515b0d66ff262ef3d9e3d58dd1b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/80a6bd1242ad786f0e5612302bb68b2484ce58d0"
+        },
+        "date": 1795653395960,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.42,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20565,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9316,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 379,
             "unit": "Slice"
           },
           {
