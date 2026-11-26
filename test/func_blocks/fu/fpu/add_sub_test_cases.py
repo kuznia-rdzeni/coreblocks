@@ -1,91 +1,89 @@
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32
+from test.func_blocks.fu.fpu.float_generator import FloatGenerator
+from test.func_blocks.fu.fpu.fpu_test_common import FloatData
+
+
+gen = FloatGenerator(IEEE754_F32)
+
 edge_cases_add = [
-    ["7F800000", "FF800000"],
-    ["7FC00000", "7f800008"],
-    ["7F800000", "7FC00000"],
-    ["7F800000", "7F000400"],
-    ["FF800000", "7F000400"],
-    ["00000000", "80880000"],
-    ["00000000", "00000000"],
-    ["FF7FFFFF", "FF7FFFFF"],
-    ["00200000", "00C00000"],
-    ["00200000", "00180001"],
-    ["00800003", "80800003"],
-    ["80000000", "80000000"],
+    [gen.plus.inf, FloatData(0, 0xFE, 0x400)],
+    [gen.minus.inf, FloatData(0, 0xFE, 0x400)],
+    [gen.plus.zero, FloatData(1, 0x1, 0x80000)],
+    [gen.plus.subnormal(0x200000), FloatData(0, 0x1, 0x400000)],
+    [gen.plus.subnormal(0x200000), gen.plus.subnormal(0x180001)],
+    [FloatData(0, 0x1, 0x3), FloatData(1, 0x1, 0x3)],
 ]
-
-edge_cases_add_resp = [
-    ["7FC00000", "10"],
-    ["7FC00000", "10"],
-    ["7FC00000", "00"],
-    ["7F800000", "00"],
-    ["FF800000", "00"],
-    ["80880000", "00"],
-    ["00000000", "00"],
-    ["FF800000", "05"],
-    ["00E00000", "00"],
-    ["00380001", "00"],
-    ["00000000", "00"],
-    ["80000000", "00"],
-]
-
-edge_cases_sub_down = [["00800000", "00800000"], ["00000000", "80000000"]]
-edge_cases_sub_down_resp = [["80000000", "00"], ["00000000", "00"]]
-
-edge_cases_sub_up = [["00800000", "00800000"], ["80000000", "00000000"]]
-edge_cases_sub_up_resp = [["00000000", "00"], ["80000000", "00"]]
-
-edge_cases_sub = [["7F800000", "7F800000"]]
-edge_cases_sub_resp = [["7FC00000", "10"]]
 
 nc_add_rtne = [
-    [
-        "7F21FFFF",
-        "3CBB907D",
-    ],
-    ["FF80013F", "FFFFFFFF"],
-    [
-        "3F7F0040",
-        "BFFFFFFF",
-    ],
+    [FloatData(0, 0xFE, 0x21FFFF), FloatData(0, 0x79, 0x3B907D)],
+    [gen.minus.snan(0x13F), gen.minus.qnan(0x3FFFFF)],
+    [FloatData(0, 0x7E, 0x7F0040), FloatData(1, 0x7F, 0x7FFFFF)],
 ]
-nc_add_rtne_resp = [["7F21FFFF", "01"], ["7FC00000", "10"], ["BF807FDF", "00"]]
 
-nc_add_rtna = [["FFFFFFFE", "BFFFFFFF"], ["0032C625", "80E00004"], ["3FFFFF1E", "4F000801"]]
-nc_add_rtna_resp = [["7FC00000", "00"], ["80AD39DF", "00"], ["4F000801", "01"]]
+nc_add_rtna = [
+    [gen.minus.qnan(0x3FFFFE), FloatData(1, 0x7F, 0x7FFFFF)],
+    [gen.plus.subnormal(0x32C625), FloatData(1, 0x1, 0x600004)],
+    [FloatData(0, 0x7F, 0x7FFF1E), FloatData(0, 0x9E, 0x801)],
+]
 
-nc_add_zero = [["3F5EE18F", "BDEFFFFB"], ["3EBDFFFF", "BA8C0000"], ["BEAC4A43", "BF7FFFFE"]]
-nc_add_zero_resp = [["3F40E18F", "01"], ["3EBD73FF", "00"], ["BFAB128F", "01"]]
+nc_add_zero = [
+    [FloatData(0, 0x7E, 0x5EE18F), FloatData(1, 0x7B, 0x6FFFFB)],
+    [FloatData(0, 0x7D, 0x3DFFFF), FloatData(1, 0x75, 0xC0000)],
+    [FloatData(1, 0x7D, 0x2C4A43), FloatData(1, 0x7E, 0x7FFFFE)],
+]
 
-nc_add_up = [["C07FFFEE", "4FFF0010"], ["FFFFFFFE", "FF800001"], ["7E87FBFF", "3F88939E"]]
-nc_add_up_resp = [["4FFF0010", "01"], ["7FC00000", "10"], ["7E87FC00", "01"]]
+nc_add_up = [
+    [FloatData(1, 0x80, 0x7FFFEE), FloatData(0, 0x9F, 0x7F0010)],
+    [gen.minus.qnan(0x3FFFFE), gen.minus.snan(0x1)],
+    [FloatData(0, 0xFD, 0x7FBFF), FloatData(0, 0x7F, 0x8939E)],
+]
 
-nc_add_down = [["BF8007FA", "8DF1952E"], ["70800083", "4EBFFFF7"], ["5E83FFFA", "C00000FE"]]
-nc_add_down_resp = [["BF8007FB", "01"], ["70800083", "01"], ["5E83FFF9", "01"]]
+nc_add_down = [
+    [FloatData(1, 0x7F, 0x7FA), FloatData(1, 0x1B, 0x71952E)],
+    [FloatData(0, 0xE1, 0x83), FloatData(0, 0x9D, 0x3FFFF7)],
+    [FloatData(0, 0xBD, 0x3FFFA), FloatData(1, 0x80, 0xFE)],
+]
 
 nc_sub_rtne = [
-    [
-        "C00007EF",
-        "3DFFF7BF",
-    ],
-    [
-        "8683F7FF",
-        "C07F3FFF",
-    ],
-    [
-        "E6FFFFFE",
-        "B3FFFFFF",
-    ],
+    [FloatData(1, 0x80, 0x7EF), FloatData(0, 0x7B, 0x7FF7BF)],
+    [FloatData(1, 0xD, 0x3F7FF), FloatData(1, 0x80, 0x7F3FFF)],
+    [FloatData(1, 0xCD, 0x7FFFFE), FloatData(1, 0x67, 0x7FFFFF)],
 ]
-nc_sub_rtne_resp = [["C00807AD", "01"], ["407F3FFF", "01"], ["E6FFFFFE", "01"]]
 
-nc_sub_rtna = [["4F0200FF", "DE8080FE"], ["41DD4434", "FF800000"], ["3EFFFFFE", "C1FFFFC4"]]
-nc_sub_rtna_resp = [["5E8080FE", "01"], ["7F800000", "00"], ["4201FFE2", "01"]]
+nc_sub_rtna = [
+    [FloatData(0, 0x9E, 0x200FF), FloatData(1, 0xBD, 0x80FE)],
+    [FloatData(0, 0x83, 0x5D4434), gen.minus.inf],
+    [FloatData(0, 0x7D, 0x7FFFFE), FloatData(1, 0x83, 0x7FFFC4)],
+]
 
-nc_sub_zero = [["DEA0000E", "41FF8003"], ["BF7BBFFF", "33FFFFDD"], ["FFFFFFFE", "7F03FFF7"]]
-nc_sub_zero_resp = [["DEA0000E", "01"], ["BF7BC000", "01"], ["7FC00000", "00"]]
+nc_sub_zero = [
+    [FloatData(1, 0xBD, 0x20000E), FloatData(0, 0x83, 0x7F8003)],
+    [FloatData(1, 0x7E, 0x7BBFFF), FloatData(0, 0x67, 0x7FFFDD)],
+    [gen.minus.qnan(0x3FFFFE), FloatData(0, 0xFE, 0x3FFF7)],
+]
 
-nc_sub_up = [["BFFFEFFE", "7F7FE1FF"], ["3FFFF008", "3F007FF0"], ["C37FF7DE", "4E07EC37"]]
-nc_sub_up_resp = [["FF7FE1FF", "01"], ["3FBFB010", "00"], ["CE07EC3A", "01"]]
+nc_sub_up = [
+    [FloatData(1, 0x7F, 0x7FEFFE), FloatData(0, 0xFE, 0x7FE1FF)],
+    [FloatData(0, 0x7F, 0x7FF008), FloatData(0, 0x7E, 0x7FF0)],
+    [FloatData(1, 0x86, 0x7FF7DE), FloatData(0, 0x9C, 0x7EC37)],
+]
 
-nc_sub_down = [["480803FF", "41030000"], ["5F800007", "DF7FE080"], ["DC901FFF", "7F7FFFFE"]]
-nc_sub_down_resp = [["480801F3", "00"], ["5FFFF047", "00"], ["FF7FFFFF", "01"]]
+nc_sub_down = [
+    [FloatData(0, 0x90, 0x803FF), FloatData(0, 0x82, 0x30000)],
+    [FloatData(0, 0xBF, 0x7), FloatData(1, 0xBE, 0x7FE080)],
+    [FloatData(1, 0xB9, 0x101FFF), FloatData(0, 0xFE, 0x7FFFFE)],
+]
+
+add_sub_edge_cases = (
+    edge_cases_add
+    + nc_add_rtne
+    + nc_add_rtna
+    + nc_add_zero
+    + nc_add_up
+    + nc_add_down
+    + nc_sub_rtne
+    + nc_sub_rtna
+    + nc_sub_zero
+    + nc_sub_up
+    + nc_sub_down
+)

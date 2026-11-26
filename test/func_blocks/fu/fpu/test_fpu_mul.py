@@ -1,9 +1,11 @@
 from coreblocks.func_blocks.fu.fpu.fpu_mul import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32
-from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, SoftFloatReference
+from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, FPUTester, FloatData, SoftFloatReference
 from transactron.testing import *
 from test.func_blocks.fu.fpu.mul_test_cases import *
+from test.func_blocks.fu.fpu.float_generator import FloatGenerator as Fg
 from amaranth import *
+from itertools import product
 import random
 
 
@@ -38,46 +40,34 @@ class TestMul(TestCaseWithSimulator):
                     FPUTester.compare_results(resp, expected)
 
         async def test_process(sim: TestbenchContext):
+            def construct_input(test_case_data, rounding_mode: RoundingModes):
+                return {
+                    "op_1": converter.to_input_data(test_case_data[0]),
+                    "op_2": converter.to_input_data(test_case_data[1]),
+                    "rounding_mode": rounding_mode,
+                }
+
+            def get_expected(test_case_data: list[int] | tuple[FloatData, FloatData], rounding_mode: RoundingModes):
+                def to_raw(val: int | FloatData) -> int:
+                    return val.to_raw_float(params) if isinstance(val, FloatData) else val
+
+                (data_a, data_b) = (to_raw(x) for x in test_case_data)
+                (expected_raw, expected_errors) = sfr.mul(SF_F32, data_a, data_b, rounding_mode)
+                return converter.to_output_data(expected_raw, expected_errors)
+
             await python_float_test(sim, m.mul_request)
             await tester.run_test_set(
-                rna_cases_mul,
-                rna_cases_mul_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY},
-                sim,
-                m.mul_request,
-            )
-            await tester.run_test_set(
-                rne_cases_mul,
-                rne_cases_mul_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN},
-                sim,
-                m.mul_request,
-            )
-            await tester.run_test_set(
-                rpi_cases_mul,
-                rpi_cases_mul_resp,
-                {"rounding_mode": RoundingModes.ROUND_UP},
-                sim,
-                m.mul_request,
-            )
-            await tester.run_test_set(
-                rni_cases_mul,
-                rni_cases_mul_resp,
-                {"rounding_mode": RoundingModes.ROUND_DOWN},
-                sim,
-                m.mul_request,
-            )
-            await tester.run_test_set(
-                rz_cases_mul,
-                rz_cases_mul_resp,
-                {"rounding_mode": RoundingModes.ROUND_ZERO},
-                sim,
-                m.mul_request,
-            )
-            await tester.run_test_set(
                 edge_cases_mul,
-                edge_cases_mul_resp,
-                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY},
+                construct_input,
+                get_expected,
+                sim,
+                m.mul_request,
+            )
+
+            await tester.run_test_set(
+                product(Fg(params).common_floats, Fg(params).common_floats),
+                construct_input,
+                get_expected,
                 sim,
                 m.mul_request,
             )

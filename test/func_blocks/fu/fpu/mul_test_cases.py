@@ -1,79 +1,36 @@
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32
+from test.func_blocks.fu.fpu.float_generator import FloatGenerator
+from test.func_blocks.fu.fpu.fpu_test_common import FloatData
+
+
+gen = FloatGenerator(IEEE754_F32)
+
 edge_cases_mul = [
-    # +inf * -inf
-    ["7F800000", "FF800000"],
-    # +inf * 0
-    ["7F800000", "80000000"],
     # qNaN * number
-    ["7FC00000", "7F400000"],
+    [gen.plus.qnan(0), FloatData(0, 0xFE, 0x400000)],
     # qNaN * sNaN
-    ["7FC00000", "7FA00001"],
+    [gen.plus.qnan(0), gen.plus.snan(1)],
     # result is subnormal
-    ["3F800001", "00000001"],
+    [FloatData(0, 0x7F, 0x1), gen.plus.subnormal(1)],
     # norm * sub = norm
-    ["7F000000", "00400000"],
+    [FloatData(0, 0xFE, 0x0), gen.plus.subnormal(0x400000)],
     # overflow
-    ["7F000000", "7F000000"],
-    # subnormals underflow to zero
-    ["80000FAC", "037E7F60"],
-]
-
-edge_cases_mul_resp = [
-    ["FF800000", "00"],
-    ["7FC00000", "10"],
-    ["7FC00000", "00"],
-    ["7FC00000", "10"],
-    ["00000001", "03"],
-    ["3F800000", "00"],
-    ["7F800000", "05"],
-    ["80000000", "03"],
-]
-
-rne_cases_mul = [
-    ["C07FFFEE", "4FFF0010"],
-    ["C00007EF", "3DFFF7BF"],
-]
-
-rne_cases_mul_resp = [
-    ["D0FEFFFE", "01"],
-    ["BE8003CE", "01"],
-]
-
-rna_cases_mul = [
-    ["4131F471", "387C7FA2"],
-    ["7E8000FB", "BE9FFFFB"],
-]
-
-rna_cases_mul_resp = [
-    ["3A2F8558", "01"],
-    ["FDA00135", "01"],
-]
-
-rpi_cases_mul = [
-    ["BFFFFFEE", "CEFFC006"],
-    ["40FFFFBF", "4403FFFF"],
-]
-
-rpi_cases_mul_resp = [
-    ["4F7FBFF5", "01"],
-    ["4583FFDE", "01"],
-]
-
-rni_cases_mul = [
-    ["BE8D8ACA", "BF7FFF3E"],
-    ["5F770000", "DDF5C7C2"],
-]
-
-rni_cases_mul_resp = [
-    ["3E8D8A5E", "01"],
-    ["FDED23BD", "01"],
-]
-
-rz_cases_mul = [
-    ["C1E20853", "3D801003"],
-    ["3D0CF32D", "C17FBFBF"],
-]
-
-rz_cases_mul_resp = [
-    ["BFE22499", "01"],
-    ["BF0CCFCC", "01"],
+    [FloatData(0, 0xFE, 0x0), FloatData(0, 0xFE, 0x0)],
+    # underflow to zero
+    [gen.minus.subnormal(0xFAC), FloatData(0, 0x6, 0x7E7F60)],
+    # Round Nearest Even edge cases
+    [FloatData(1, 0x80, 0x7FFFEE), FloatData(0, 0x9F, 0x7F0010)],
+    [FloatData(1, 0x80, 0x7EF), FloatData(0, 0x7B, 0x7FF7BF)],
+    # Round Nearest Away edge cases
+    [FloatData(0, 0x82, 0x31F471), FloatData(0, 0x70, 0x7C7FA2)],
+    [FloatData(0, 0xFD, 0xFB), FloatData(1, 0x7D, 0x1FFFFB)],
+    # RPI edge cases
+    [FloatData(1, 0x7F, 0x7FFFEE), FloatData(1, 0x9D, 0x7FC006)],
+    [FloatData(0, 0x81, 0x7FFFBF), FloatData(0, 0x88, 0x3FFFF)],
+    # RNI edge cases
+    [FloatData(1, 0x7D, 0xD8ACA), FloatData(1, 0x7E, 0x7FFF3E)],
+    [FloatData(0, 0xBE, 0x770000), FloatData(1, 0xBB, 0x75C7C2)],
+    # Round Zero edge cases
+    [FloatData(1, 0x83, 0x620853), FloatData(0, 0x7B, 0x1003)],
+    [FloatData(0, 0x7A, 0xCF32D), FloatData(1, 0x82, 0x7FBFBF)],
 ]

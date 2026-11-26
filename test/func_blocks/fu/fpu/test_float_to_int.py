@@ -1,10 +1,17 @@
 from coreblocks.func_blocks.fu.fpu.float_to_int import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes, Errors
-from test.func_blocks.fu.fpu.fpu_test_common import SF_F32, SF_I64, SF_UI64, FloatConverter, SoftFloatReference
+from coreblocks.func_blocks.fu.fpu.fpu_common import IEEE754_F32, RoundingModes
+from test.func_blocks.fu.fpu.float_generator import FloatGenerator
+from test.func_blocks.fu.fpu.fpu_test_common import (
+    SF_F32,
+    SF_I64,
+    SF_UI64,
+    FloatConverter,
+    FloatData,
+    SoftFloatReference,
+)
 from transactron.testing import *
 from amaranth import *
 import random
-from dataclasses import dataclass
 
 # Few notes for later.
 # 1. Due to the precision of float some conditions for out of bound numbers
@@ -16,77 +23,18 @@ from dataclasses import dataclass
 
 converter = FloatConverter(IEEE754_F32)
 
+gen = FloatGenerator(IEEE754_F32)
 
-@dataclass
-class TCase:
-    op: dict[str, int]
-    signed: int
-    result: int
-    errors: int
-
-
-max_un_int = (2**64) - 1
-min_sig_int = 2**63
-max_sig_int = (2**63) - 1
-
-test_cases = [
-    # Test 1: Zero
-    TCase(
-        converter.to_input_data("00000000"),
-        1,
-        0,
-        0,
-    ),
-    # Test 2: NaN
-    TCase(
-        converter.to_input_data("FFC00000"),
-        0,
-        max_un_int,
-        Errors.INVALID_OPERATION,
-    ),
-    # Test 3: -Inf
-    TCase(
-        converter.to_input_data("FF800000"),
-        1,
-        min_sig_int,
-        Errors.INVALID_OPERATION,
-    ),
-    # Test 4: +Inf
-    TCase(
-        converter.to_input_data("7F800000"),
-        1,
-        max_sig_int,
-        Errors.INVALID_OPERATION,
-    ),
-    # Test 4: Rounding
-    TCase(
-        converter.to_input_data("3FFFFFFF"),
-        1,
-        2,
-        Errors.INEXACT,
-    ),
-    # Test 5: Out of bound negative
-    TCase(
-        converter.to_input_data("DF000001"),
-        1,
-        min_sig_int,
-        Errors.INVALID_OPERATION,
-    ),
-    # Test 6: Out of bound positive
-    TCase(
-        converter.to_input_data("5F000000"),
-        1,
-        max_sig_int,
-        Errors.INVALID_OPERATION,
-    ),
-    # Test 7: Mag less than one, out of bound
-    TCase(
-        converter.to_input_data("bf7fffff"),
-        0,
-        0,
-        Errors.INVALID_OPERATION,
-    ),
-]
+edge_cases = [
+    # Test 1: Rounding
+    FloatData(0, 0x7F, 0x7FFFFF),
+    # Test 2: Out of bound negative
+    FloatData(1, 0xBE, 0x1),
+    # Test 3: Out of bound positive
+    FloatData(0, 0xBE, 0x0),
+    # Test 4: Mag less than one, out of bound
+    FloatData(1, 0x7E, 0x7FFFFF),
+] + gen.common_floats
 
 
 class TestFTI(TestCaseWithSimulator):
@@ -96,48 +44,46 @@ class TestFTI(TestCaseWithSimulator):
         fti = SimpleTestCircuit(FloatToIntModule(fpu_params=params, int_width=64))
         sfr = SoftFloatReference()
 
-        async def fti_ec_test(sim: TestbenchContext):
-            input_dict = {}
-            for tc in test_cases:
-                input_dict["op"] = tc.op
-                input_dict["signed"] = tc.signed
-                input_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
+        async def perform_test(sim: TestbenchContext, rm: RoundingModes, float_raw: int | FloatData):
+            float_raw = float_raw if isinstance(float_raw, int) else float_raw.to_raw_float(params)
+            input = converter.to_input_data(float_raw)
 
-                resp = await fti.fti_request.call(sim, input_dict)
-                assert tc.result == resp["result"]
-                assert tc.errors == resp["errors"]
+            (expected_signed, expected_signed_errors) = sfr.convert(SF_F32, SF_I64, float_raw, rm)
+            input_dict = {
+                "op": input,
+                "signed": 1,
+                "rounding_mode": rm,
+            }
+
+            resp = await fti.fti_request.call(sim, input_dict)
+            assert expected_signed == resp["result"]
+            assert expected_signed_errors == resp["errors"]
+
+            (expected_unsigned, expected_unsigned_errors) = sfr.convert(SF_F32, SF_UI64, float_raw, rm)
+            input_dict = {
+                "op": input,
+                "signed": 0,
+                "rounding_mode": rm,
+            }
+
+            resp = await fti.fti_request.call(sim, input_dict)
+            assert expected_unsigned == resp["result"]
+            assert expected_unsigned_errors == resp["errors"]
+
+        async def fti_ec_test(sim: TestbenchContext):
+            for rm in RoundingModes:
+                for tc in edge_cases:
+                    await perform_test(sim, rm, tc)
 
         async def fti_python_test(sim: TestbenchContext):
-            rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
             random.seed(seed)
             test_runs = 5000
 
-            for _ in range(test_runs):
-                float_raw = random.getrandbits(32)
-                input = converter.to_input_data(float_raw)
-
-                (expected_signed, expected_signed_errors) = sfr.convert(SF_F32, SF_I64, float_raw, rm)
-                input_dict = {
-                    "op": input,
-                    "signed": 1,
-                    "rounding_mode": rm,
-                }
-
-                resp = await fti.fti_request.call(sim, input_dict)
-                assert expected_signed == resp["result"]
-                assert expected_signed_errors == resp["errors"]
-
-                (expected_unsigned, expected_unsigned_errors) = sfr.convert(SF_F32, SF_UI64, float_raw, rm)
-                input_dict = {
-                    "op": input,
-                    "signed": 0,
-                    "rounding_mode": rm,
-                }
-
-                resp = await fti.fti_request.call(sim, input_dict)
-                assert expected_unsigned == resp["result"]
-                assert expected_unsigned_errors == resp["errors"]
+            for rm in RoundingModes:
+                for _ in range(test_runs):
+                    float_raw = random.getrandbits(32)
+                    await perform_test(sim, rm, float_raw)
 
         async def test_process(sim: TestbenchContext):
             await fti_python_test(sim)
