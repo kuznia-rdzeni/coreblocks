@@ -256,19 +256,7 @@ class SchedulerLayouts:
         self.rs_entry_id: LayoutListField = ("rs_entry_id", gen_params.max_rs_entries_bits)
         """Reservation station entry ID for the instruction."""
 
-        self.regs_p_alloc_out: LayoutListField = ("regs_p", [fields.rp_dst])
-        """Physical register number for the destination operand, after allocation."""
-
-        self.regs_l_rob_in: LayoutListField = (
-            "regs_l",
-            [
-                fields.rl_dst,
-                ("rl_dst_v", 1),
-            ],
-        )
-        """Logical register number for the destination operand, before ROB allocation."""
-
-        self.reg_alloc_in_data = make_layout(
+        self.scheduler_in_data = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
@@ -280,71 +268,19 @@ class SchedulerLayouts:
             fields.ftq_ptr,
             fields.ftq_offset,
         )
+        """Data of a single instruction entering the scheduler."""
 
-        self.reg_alloc_in = self.scheduler_in = make_layout(
+        self.scheduler_in = make_layout(
             ("count", range(gen_params.frontend_superscalarity + 1)),
-            ("data", ArrayLayout(self.reg_alloc_in_data, gen_params.frontend_superscalarity)),
+            ("data", ArrayLayout(self.scheduler_in_data, gen_params.frontend_superscalarity)),
         )
-
-        self.instr_tag_in_data = make_layout(
-            fields.exec_fn,
-            fields.regs_l,
-            self.regs_p_alloc_out,
-            fields.imm,
-            fields.csr,
-            fields.pc,
-            fields.rollback_tag,
-            fields.rollback_tag_v,
-            fields.commit_checkpoint,
-            fields.ftq_ptr,
-            fields.ftq_offset,
-        )
-
-        self.reg_alloc_out = self.instr_tag_in = make_layout(
-            ("count", range(gen_params.frontend_superscalarity + 1)),
-            ("data", ArrayLayout(self.instr_tag_in_data, gen_params.frontend_superscalarity)),
-        )
-
-        self.renaming_in_data = make_layout(
-            fields.exec_fn,
-            fields.regs_l,
-            self.regs_p_alloc_out,
-            fields.imm,
-            fields.csr,
-            fields.pc,
-            fields.tag,
-            fields.tag_increment,
-            fields.commit_checkpoint,
-            fields.ftq_ptr,
-            fields.ftq_offset,
-        )
-
-        self.renaming_in = self.instr_tag_out = make_layout(
-            ("count", range(gen_params.frontend_superscalarity + 1)),
-            ("data", ArrayLayout(self.renaming_in_data, gen_params.frontend_superscalarity)),
-        )
-
-        self.rob_allocate_in_data = make_layout(
-            fields.exec_fn,
-            self.regs_l_rob_in,
-            fields.regs_p,
-            fields.imm,
-            fields.csr,
-            fields.pc,
-            fields.tag,
-            fields.tag_increment,
-            fields.ftq_ptr,
-            fields.ftq_offset,
-        )
-
-        self.renaming_out = self.rob_allocate_in = make_layout(
-            ("count", range(gen_params.frontend_superscalarity + 1)),
-            ("data", ArrayLayout(self.rob_allocate_in_data, gen_params.frontend_superscalarity)),
-        )
+        """Group of instructions entering the scheduler."""
 
         self.rs_select_in_data = make_layout(
             fields.exec_fn,
-            fields.regs_p,
+            fields.rp_s1,
+            fields.rp_s2,
+            fields.rp_dst,
             fields.rob_id,
             fields.imm,
             fields.csr,
@@ -352,29 +288,7 @@ class SchedulerLayouts:
             fields.tag,
             fields.ftq_ptr,
         )
-
-        self.rob_allocate_out = self.rs_select_in = make_layout(
-            ("count", range(gen_params.frontend_superscalarity + 1)),
-            ("data", ArrayLayout(self.rs_select_in_data, gen_params.frontend_superscalarity)),
-        )
-
-        self.rs_insert_in_data = make_layout(
-            fields.exec_fn,
-            fields.regs_p,
-            fields.rob_id,
-            self.rs_selected,
-            self.rs_entry_id,
-            fields.imm,
-            fields.csr,
-            fields.pc,
-            fields.tag,
-            fields.ftq_ptr,
-        )
-
-        self.rs_insert_in = self.rs_select_out = make_layout(
-            ("count", range(gen_params.frontend_superscalarity + 1)),
-            ("data", ArrayLayout(self.rs_insert_in_data, gen_params.frontend_superscalarity)),
-        )
+        """Data of a single instruction waiting for RS selection."""
 
         self.free_rf_layout = make_layout(("ident", gen_params.phys_regs_bits))
 
