@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795645506426,
+  "lastUpdate": 1795653384502,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -31253,6 +31253,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4640a876e063e17b80abae5590141b5d20d51eb4"
         },
         "date": 1795645481510,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.6453278087523928,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.995499419279907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.6801516904486438,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.783929085155351,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.4145724536061187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5823427617890031,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5471642057102112,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.6827732275042923,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "30830383+bartlomiej-stefanski@users.noreply.github.com",
+            "name": "Bartłomiej Stefański",
+            "username": "bartlomiej-stefanski"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "80a6bd1242ad786f0e5612302bb68b2484ce58d0",
+          "message": "Use softfloatpy in randomized FPU tests (#1146)\n\n* test: fpu: mul_test_cases: Add underflow-to-zero edge case\n\n* test: fpu: Use softfloatpy for random tests\n\n* test: fpu: FloatConverter conversions now matches FPU input and output format\n\n* fpu: fpu_common: Turn FPUParams into a dataclass\n\n* test: fpu: Increase iteration count for softfloat random tests\n\n* test: fpu: fpu_common: Rework FloatConverter\n\n* test: fpu: test_add_sub: Test addition and subtraction separately",
+          "timestamp": "2026-11-25T21:58:43Z",
+          "tree_id": "69f0798fd6ebe515b0d66ff262ef3d9e3d58dd1b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/80a6bd1242ad786f0e5612302bb68b2484ce58d0"
+        },
+        "date": 1795653367535,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
