@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 from amaranth import *
 from amaranth.lib.wiring import connect
@@ -183,26 +183,31 @@ class TestCoreAsmSourceBase(TestCoreBase):
             assert self.get_arch_reg_val(sim, reg_id) == val, "Bad register value"
 
 
+full_test_core = configurations.full.replace(
+    bpu_config=replace(configurations.full.bpu_config, cfi_predictor=None, direction_predictor=None)
+)
+
+
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "exit_csr", "configuration"),
     [
         ("fibonacci", "fibonacci.asm", 700, {2: 2971215073}, True, configurations.basic),
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, False, configurations.basic),
         ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, False, configurations.tiny),
-        ("csr", "csr.asm", 400, {1: 1, 2: 4}, True, configurations.full),
-        ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, True, configurations.full),
-        ("counter_wraparound", "counter_wraparound.asm", 300, {}, True, configurations.full),
+        ("csr", "csr.asm", 400, {1: 1, 2: 4}, True, full_test_core),
+        ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, True, full_test_core),
+        ("counter_wraparound", "counter_wraparound.asm", 300, {}, True, full_test_core),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
-        ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, False, configurations.full),
-        ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, False, configurations.full),
-        ("mtval", "mtval.asm", 2000, {8: 5 * 8}, True, configurations.full),
+        ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, False, full_test_core),
+        ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, False, full_test_core),
+        ("mtval", "mtval.asm", 2000, {8: 5 * 8}, True, full_test_core),
         ("socks_clint", "socks_clint.asm", 1600, {2: 5, 8: 1}, True, configurations.basic),
         ("socks_plic", "plic.asm", 1000, {31: 0xCAFE}, True, configurations.basic),
-        ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, True, configurations.full),
-        ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, True, configurations.full),
-        ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, False, configurations.full),
-        ("sv32_translation", "sv32_translation.asm", 500, {9: 5, 10: 1}, True, configurations.full),
+        ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, True, full_test_core),
+        ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, True, full_test_core),
+        ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, False, full_test_core),
+        ("sv32_translation", "sv32_translation.asm", 500, {9: 5, 10: 1}, True, full_test_core),
     ],
 )
 @pytest.mark.collection_order(1)
@@ -271,7 +276,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     reg_init_mem_offset: int = 0x100
 
     def setup_method(self):
-        self.configuration = configurations.full.replace(
+        self.configuration = full_test_core.replace(
             _generate_test_hardware=True,
             interrupt_custom_count=2,
             interrupt_custom_edge_trig_mask=0b01,
@@ -371,7 +376,7 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
     always_mmode: bool
 
     def setup_method(self):
-        self.configuration = configurations.full.replace(
+        self.configuration = full_test_core.replace(
             _generate_test_hardware=True,
             interrupt_custom_count=2,
             interrupt_custom_edge_trig_mask=0b01,
@@ -424,7 +429,7 @@ class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
     expected_regvals: dict[int, int] = {5: 1, 7: 1, 8: 0x80000011, 31: 0xDE}
 
     def setup_method(self):
-        self.configuration = configurations.full.replace(
+        self.configuration = full_test_core.replace(
             _generate_test_hardware=True,
             interrupt_custom_count=2,
             interrupt_custom_edge_trig_mask=0b01,
