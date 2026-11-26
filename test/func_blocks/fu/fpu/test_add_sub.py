@@ -19,27 +19,27 @@ class TestAddSub(TestCaseWithSimulator):
         async def python_float_test(test_addition: bool, sim: TestbenchContext, request_adapter: TestbenchIO):
             (operation, sfr_op) = (0, sfr.add) if test_addition else (1, sfr.sub)
 
-            rm = RoundingModes.ROUND_NEAREST_EVEN
             seed = 42
             test_runs = 5000
             random.seed(seed)
 
-            for _ in range(test_runs):
-                float_1_raw = random.getrandbits(32)
-                float_2_raw = random.getrandbits(32)
+            for rm in RoundingModes:
+                for _ in range(test_runs):
+                    float_1_raw = random.getrandbits(32)
+                    float_2_raw = random.getrandbits(32)
 
-                (expected_raw, expected_errors) = sfr_op(SF_F32, float_1_raw, float_2_raw, rm)
+                    (expected_raw, expected_errors) = sfr_op(SF_F32, float_1_raw, float_2_raw, rm)
 
-                input_dict = {
-                    "operation": operation,
-                    "op_1": tester.converter.to_input_data(float_1_raw),
-                    "op_2": tester.converter.to_input_data(float_2_raw),
-                    "rounding_mode": rm,
-                }
+                    input_dict = {
+                        "operation": operation,
+                        "op_1": tester.converter.to_input_data(float_1_raw),
+                        "op_2": tester.converter.to_input_data(float_2_raw),
+                        "rounding_mode": rm,
+                    }
 
-                result = tester.converter.to_output_data(expected_raw, expected_errors)
-                resp = await request_adapter.call(sim, input_dict)
-                FPUTester.compare_results(result, resp)
+                    result = tester.converter.to_output_data(expected_raw, expected_errors)
+                    resp = await request_adapter.call(sim, input_dict)
+                    FPUTester.compare_results(result, resp)
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(True, sim, m.add_sub_request)
