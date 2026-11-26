@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795653384502,
+  "lastUpdate": 1795653387957,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -96572,6 +96572,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1264,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 3589,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "30830383+bartlomiej-stefanski@users.noreply.github.com",
+            "name": "Bartłomiej Stefański",
+            "username": "bartlomiej-stefanski"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": false,
+          "id": "80a6bd1242ad786f0e5612302bb68b2484ce58d0",
+          "message": "Use softfloatpy in randomized FPU tests (#1146)\n\n* test: fpu: mul_test_cases: Add underflow-to-zero edge case\n\n* test: fpu: Use softfloatpy for random tests\n\n* test: fpu: FloatConverter conversions now matches FPU input and output format\n\n* fpu: fpu_common: Turn FPUParams into a dataclass\n\n* test: fpu: Increase iteration count for softfloat random tests\n\n* test: fpu: fpu_common: Rework FloatConverter\n\n* test: fpu: test_add_sub: Test addition and subtraction separately",
+          "timestamp": "2026-11-25T21:58:43Z",
+          "tree_id": "69f0798fd6ebe515b0d66ff262ef3d9e3d58dd1b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/80a6bd1242ad786f0e5612302bb68b2484ce58d0"
+        },
+        "date": 1795653387175,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 69.33,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 9307,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 526,
             "unit": "LUT"
           },
           {
